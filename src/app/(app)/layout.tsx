@@ -7,28 +7,15 @@ import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter,
 import { LogOut, Settings, LoaderCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
-import { useAuth, useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { redirect } from "next/navigation";
-import { doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-
-type UserProfile = {
-  displayName: string;
-  email: string;
-};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
 
-  const userProfileRef = useMemoFirebase(
-    () => (user ? doc(firestore, "users", user.uid) : null),
-    [user, firestore]
-  );
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
-  if (isUserLoading || (user && isProfileLoading)) {
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <LoaderCircle className="animate-spin h-12 w-12 text-primary" />
@@ -44,14 +31,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     signOut(auth);
   };
   
-  const displayName = userProfile?.displayName || user?.email;
+  const displayName = user.displayName || user.email;
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <Logo displayName={displayName} />
+          <Logo displayName={user.displayName} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarNav />
@@ -66,14 +53,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Avatar>
                 <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
                   <span className="font-medium text-sm">{displayName}</span>
-                  {userProfile?.displayName && <span className="text-xs text-muted-foreground">{user.email}</span>}
+                  {user.displayName && <span className="text-xs text-muted-foreground">{user.email}</span>}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <p className="text-sm font-medium">{displayName}</p>
-                {userProfile?.displayName && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                {user.displayName && <p className="text-xs text-muted-foreground">{user.email}</p>}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
@@ -92,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 sticky top-0 z-30 md:hidden">
           <SidebarTrigger />
-          <Logo displayName={displayName} />
+          <Logo displayName={user.displayName} />
         </header>
         {children}
       </SidebarInset>

@@ -36,7 +36,7 @@ export default function PaymentsPage() {
                     {payments.slice(0, 5).map(payment => (
                         <TableRow key={payment.id}>
                             <TableCell>{getMemberName(payment.memberId)}</TableCell>
-                            <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                            <TableCell>₹{payment.amount.toFixed(2)}</TableCell>
                             <TableCell>{format(parseISO(payment.date), 'MMM dd, yyyy')}</TableCell>
                             <TableCell>
                                 <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className="capitalize">{payment.status}</Badge>

@@ -24,7 +24,7 @@ export default function PlansPage() {
                     <CardDescription>{plan.duration} Month Access</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                    <p className="text-4xl font-bold">${plan.price}</p>
+                    <p className="text-4xl font-bold">₹{plan.price}</p>
                 </CardContent>
                 <CardFooter>
                     <Button variant="outline" className="w-full">Edit Plan</Button>

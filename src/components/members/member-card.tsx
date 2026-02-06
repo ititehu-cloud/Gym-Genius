@@ -6,7 +6,10 @@ import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Mail, Phone, Share2, MapPin } from 'lucide-react';
+import { Cake, Calendar, Mail, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import { useToast } from '@/hooks/use-toast';
 
 type MemberCardProps = {
   member: Member;
@@ -16,6 +19,9 @@ type MemberCardProps = {
 };
 
 export default function MemberCard({ member, planName, gymName, gymAddress }: MemberCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const { toast } = useToast();
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -42,27 +48,57 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
     }
   };
   
-  const handleShare = () => {
-    const cardDetails = `
-*${gymName || 'Gym Member'} ID Card*
----------------------
-*Name:* ${member.name}
-*Plan:* ${planName}
-*Membership valid until:* ${format(parseISO(member.expiryDate), 'MMM dd, yyyy')}
-*Status:* ${status.charAt(0).toUpperCase() + status.slice(1)}
----------------------
-    `.trim();
+  const handleShare = async () => {
+    if (!cardRef.current) return;
+    setIsSharing(true);
 
-    const encodedText = encodeURIComponent(cardDetails);
-    
-    // Using a more universal link that works on both mobile and desktop
-    const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedText}`;
-    
-    window.open(whatsappUrl, '_blank');
+    try {
+      // Use html2canvas to capture the card element
+      const canvas = await html2canvas(cardRef.current, {
+        useCORS: true, // Important for external images
+        scale: 2, // Increase resolution
+        backgroundColor: null, // Use transparent background
+      });
+
+      // Convert canvas to a Blob
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      
+      if (!blob) {
+        throw new Error('Could not create image blob.');
+      }
+
+      // Create a File from the Blob
+      const file = new File([blob], `${member.name.replace(' ', '_')}_ID_Card.png`, { type: 'image/png' });
+
+      // Use Web Share API if available
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${member.name}'s ID Card`,
+          text: `Here is the ID card for ${member.name}.`,
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API or file sharing
+        toast({
+            variant: "destructive",
+            title: "Sharing Not Supported",
+            description: "Your browser does not support sharing images directly. Please take a screenshot.",
+        });
+      }
+    } catch (error) {
+        console.error("Sharing failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Sharing Failed",
+            description: "Could not share the ID card. Please try again.",
+        });
+    } finally {
+        setIsSharing(false);
+    }
   };
 
   return (
-    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-sm mx-auto">
+    <Card ref={cardRef} className="overflow-hidden bg-card w-full max-w-sm mx-auto">
       <div className="flex bg-primary text-primary-foreground font-headline">
           <div className="p-3 text-left w-1/2 flex items-center">
             <h2 className="text-md font-bold truncate">{gymName}</h2>
@@ -79,6 +115,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                     alt={`Photo of ${member.name}`}
                     fill
                     className="object-cover"
+                    crossOrigin="anonymous" // Required for html2canvas with external images
                 />
             </div>
         </div>
@@ -98,8 +135,12 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
         </CardContent>
       </div>
       <CardFooter className="p-3 bg-muted/50">
-        <Button className="w-full" size="sm" onClick={handleShare}>
-          <Share2 className="mr-2 h-4 w-4" />
+        <Button className="w-full" size="sm" onClick={handleShare} disabled={isSharing}>
+          {isSharing ? (
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Share2 className="mr-2 h-4 w-4" />
+          )}
           Share on WhatsApp
         </Button>
       </CardFooter>

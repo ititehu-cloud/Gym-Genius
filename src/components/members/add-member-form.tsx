@@ -22,10 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { CalendarIcon, LoaderCircle } from "lucide-react";
-import { format, addMonths } from "date-fns";
+import { LoaderCircle } from "lucide-react";
+import { addMonths } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
@@ -188,73 +186,48 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
-            control={form.control}
-            name="planId"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Membership Plan</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
-                    <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                    {plans?.map(plan => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ₹{plan.price}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="joinDate"
-            render={({ field }) => (
-                <FormItem className="flex flex-col">
-                    <FormLabel className="mb-1">Joining Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                            )}
-                            >
-                            {field.value ? (
-                                format(field.value, "PPP")
-                            ) : (
-                                <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                                date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                        />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
+        <FormField
+          control={form.control}
+          name="planId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Membership Plan</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {plans?.map(plan => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="joinDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Joining Date</FormLabel>
+              <FormControl>
+                <Calendar
+                  mode="single"
+                  selected={field.value}
+                  onSelect={field.onChange}
+                  className="rounded-md border w-full"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>

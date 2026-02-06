@@ -109,7 +109,7 @@
           "type": "string",
           "description": "Unique identifier for the plan."
         },
-        "planName": {
+        "name": {
           "type": "string",
           "description": "Name of the plan."
         },
@@ -128,7 +128,7 @@
       },
       "required": [
         "id",
-        "planName",
+        "name",
         "price",
         "duration"
       ]

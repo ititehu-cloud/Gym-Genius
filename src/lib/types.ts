@@ -14,6 +14,7 @@ export type Member = {
 export type Plan = {
   id: string;
   name: string;
+  description?: string;
   duration: number; // in months
   price: number;
 };

@@ -122,8 +122,8 @@
           "description": "Price of the plan."
         },
         "duration": {
-          "type": "string",
-          "description": "Duration of the plan (e.g., monthly, yearly)."
+          "type": "number",
+          "description": "Duration of the plan in months."
         }
       },
       "required": [
@@ -131,6 +131,75 @@
         "planName",
         "price",
         "duration"
+      ]
+    },
+    "Member": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Member",
+      "type": "object",
+      "description": "Represents a gym member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the member."
+        },
+        "name": {
+          "type": "string",
+          "description": "The member's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The member's email address.",
+          "format": "email"
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "The member's mobile phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The member's physical address."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to the selected Plan."
+        },
+        "joinDate": {
+          "type": "string",
+          "description": "The date the member joined.",
+          "format": "date-time"
+        },
+        "expiryDate": {
+          "type": "string",
+          "description": "The date the membership expires.",
+          "format": "date-time"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the member's profile picture.",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "The member's current status.",
+          "enum": [
+            "active",
+            "expired",
+            "due"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "mobileNumber",
+        "address",
+        "planId",
+        "joinDate",
+        "expiryDate",
+        "imageUrl",
+        "status"
       ]
     }
   },
@@ -163,6 +232,12 @@
         "$ref": "#/entities/Plan"
       },
       "description": "Stores gym membership plans."
+    },
+    "/members/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/Member"
+      },
+      "description": "Stores gym member profiles."
     }
   }
 }

@@ -121,6 +121,16 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isExistingDoc() && hasImmutableUserData();
       allow delete: if false;
     }
+    
+    /**
+     * @description Manages gym member profiles. Intended to be managed by authenticated staff.
+     * @path /members/{memberId}
+     * @allow (read, list, write) Any signed-in user (staff) can manage member records.
+     * @principle Allows dashboard users to perform CRUD operations on gym members.
+     */
+    match /members/{memberId} {
+      allow read, list, create, update, delete: if isSignedIn();
+    }
 
     /**
      * @description Manages member attendance records. Access is restricted to the member owner.

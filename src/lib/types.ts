@@ -1,13 +1,13 @@
-import type { ImagePlaceholder } from './placeholder-images';
-
 export type Member = {
   id: string;
   name: string;
   email: string;
-  avatar: ImagePlaceholder;
+  mobileNumber: string;
+  address: string;
+  imageUrl: string;
   planId: string;
-  joinDate: string;
-  expiryDate: string;
+  joinDate: string; // Should be ISO string
+  expiryDate: string; // Should be ISO string
   status: 'active' | 'expired' | 'due';
 };
 

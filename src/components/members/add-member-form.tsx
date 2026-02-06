@@ -188,6 +188,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   <FormControl>
                     <Button
                       variant={"outline"}
+                      type="button"
                       className={cn(
                         "w-full pl-3 text-left font-normal",
                         !field.value && "text-muted-foreground"

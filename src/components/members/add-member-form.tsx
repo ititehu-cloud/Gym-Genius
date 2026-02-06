@@ -85,11 +85,13 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     // TODO: Implement image upload to a service like imgbb.cc and get the URL.
     // For now, using a placeholder.
     const imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+
+    const { profilePic, ...memberData } = values;
     
     try {
       const membersCollection = collection(firestore, "members");
       await addDoc(membersCollection, {
-        ...values,
+        ...memberData,
         joinDate: values.joinDate.toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',

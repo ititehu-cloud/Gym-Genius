@@ -68,7 +68,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
       }
 
       // Create a File from the Blob
-      const file = new File([blob], `${member.name.replace(' ', '_')}_ID_Card.png`, { type: 'image/png' });
+      const file = new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: 'image/png' });
 
       // Use Web Share API if available
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -78,19 +78,25 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
           text: `Here is the ID card for ${member.name}.`,
         });
       } else {
-        // Fallback for browsers that don't support Web Share API or file sharing
+        // Fallback: Download the image
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${member.name.replace(/ /g, '_')}_ID_Card.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
         toast({
-            variant: "destructive",
-            title: "Sharing Not Supported",
-            description: "Your browser does not support sharing images directly. Please take a screenshot.",
+            title: "Sharing not supported",
+            description: "Your browser doesn't support sharing. The ID card image has been downloaded instead.",
         });
       }
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({
             variant: "destructive",
-            title: "Sharing Failed",
-            description: "Could not share the ID card. Please try again.",
+            title: "Operation Failed",
+            description: "Could not create or share the ID card. Please try again.",
         });
     } finally {
         setIsSharing(false);

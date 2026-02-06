@@ -61,13 +61,13 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
   };
 
   return (
-    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-2xl mx-auto">
-      <CardHeader className="bg-primary text-primary-foreground p-4 text-center font-headline">
-        <h2 className="text-lg font-bold">{gymName || 'Gym Member ID Card'}</h2>
+    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-md mx-auto">
+      <CardHeader className="bg-primary text-primary-foreground p-3 text-center font-headline">
+        <h2 className="text-md font-bold">{gymName || 'Gym Member ID Card'}</h2>
       </CardHeader>
-      <div className="flex flex-col md:flex-row md:items-start">
-        <div className="p-6 flex justify-center items-start md:w-1/3">
-            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-start">
+        <div className="p-4 flex justify-center items-start">
+            <div className="relative h-24 w-24 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
                 <Image
                     src={member.imageUrl}
                     alt={`Photo of ${member.name}`}
@@ -76,22 +76,22 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
                 />
             </div>
         </div>
-        <CardContent className="p-6 pt-0 md:pt-6 md:w-2/3 flex flex-col justify-center items-center md:items-start">
-            <div className='text-center md:text-left mb-4'>
-                <h3 className="text-2xl font-bold font-headline">{member.name}</h3>
-                <p className="text-md text-muted-foreground">{planName} Plan</p>
+        <CardContent className="p-4 pt-0 sm:pt-4 flex flex-col justify-center items-center sm:items-start">
+            <div className='text-center sm:text-left mb-3'>
+                <h3 className="text-xl font-bold font-headline">{member.name}</h3>
+                <p className="text-sm text-muted-foreground">{planName} Plan</p>
             </div>
-            <div className="text-left text-sm w-full space-y-2 text-muted-foreground mb-4">
-                <div className='flex items-center gap-3'><Mail className='w-4 h-4' /><span>{member.email}</span></div>
-                <div className='flex items-center gap-3'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
-                <div className='flex items-center gap-3'><Calendar className='w-4 h-4' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-                <div className='flex items-center gap-3'><Cake className='w-4 h-4' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
+            <div className="text-left text-xs w-full space-y-1 text-muted-foreground mb-3">
+                <div className='flex items-center gap-2'><Mail className='w-3 h-3' /><span>{member.email}</span></div>
+                <div className='flex items-center gap-2'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
+                <div className='flex items-center gap-2'><Calendar className='w-3 h-3' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
+                <div className='flex items-center gap-2'><Cake className='w-3 h-3' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
             </div>
             <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
         </CardContent>
       </div>
-      <CardFooter className="p-4 bg-muted/50">
-        <Button className="w-full" onClick={handleShare}>
+      <CardFooter className="p-3 bg-muted/50">
+        <Button className="w-full" size="sm" onClick={handleShare}>
           <Share2 className="mr-2 h-4 w-4" />
           Share on WhatsApp
         </Button>

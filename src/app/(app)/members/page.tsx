@@ -48,7 +48,7 @@ export default function MembersPage() {
         <AddMemberDialog />
       </div>
       {members && members.length > 0 ? (
-        <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-4 md:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {members.map((member) => (
             <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} />
           ))}

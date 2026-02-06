@@ -140,72 +140,29 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile data. The user ID is used for authentication and authorization. ",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
       },
-      {
-        "path": "/attendance/{attendanceId}",
-        "definition": {
-          "entityName": "Attendance",
-          "schema": {
-            "$ref": "#/backend/entities/Attendance"
-          },
-          "description": "Stores attendance records for members.",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The unique identifier for the attendance record."
-            }
-          ]
-        }
+      "description": "Stores user profile data. The user ID is used for authentication and authorization."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": {
+        "$ref": "#/entities/Attendance"
       },
-      {
-        "path": "/payments/{paymentId}",
-        "definition": {
-          "entityName": "Payment",
-          "schema": {
-            "$ref": "#/backend/entities/Payment"
-          },
-          "description": "Stores payment information for members.",
-          "params": [
-            {
-              "name": "paymentId",
-              "description": "The unique identifier for the payment."
-            }
-          ]
-        }
+      "description": "Stores attendance records for members."
+    },
+    "/payments/{paymentId}": {
+      "schema": {
+        "$ref": "#/entities/Payment"
       },
-      {
-        "path": "/plans/{planId}",
-        "definition": {
-          "entityName": "Plan",
-          "schema": {
-            "$ref": "#/backend/entities/Plan"
-          },
-          "description": "Stores gym membership plans.",
-          "params": [
-            {
-              "name": "planId",
-              "description": "The unique identifier for the plan."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to manage gym member data, attendance, payments, and plans. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. Instead, authorization context, such as roles, is denormalized directly into the documents requiring access control. Structural Segregation is achieved by storing different types of data (e.g., member profiles, attendance records) in separate collections, each with its own security posture.\n\nPath-based ownership is used for member-related data. The `/users/{userId}` collection stores the document with the user's `displayName`. This structure enables simple and efficient security rules based on user identity. The other collections do not use the `/users/{userId}` subcollection structure because these collections only deal with data that is not user specific. Rather, the application's data for all members can be handled in a single collection.\n\nQAPs (Rules are not Filters) are supported by ensuring that list operations can be securely performed on each collection. For instance, listing members can be secured by rules that check the user's role or ownership without needing to fetch related documents. The structure supports invariants such as ownership, timestamps, and denormalized data by enforcing strict naming conventions and data types in security rules."
+      "description": "Stores payment information for members."
+    },
+    "/plans/{planId}": {
+      "schema": {
+        "$ref": "#/entities/Plan"
+      },
+      "description": "Stores gym membership plans."
+    }
   }
 }

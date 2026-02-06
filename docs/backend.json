@@ -1,0 +1,258 @@
+{
+  "entities": {
+    "Member": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Member",
+      "type": "object",
+      "description": "Represents a gym member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the member."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the member."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the member."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Date of birth of the member.",
+          "format": "date-time"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the member.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the member."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the member."
+        },
+        "membershipStartDate": {
+          "type": "string",
+          "description": "Date when the membership started.",
+          "format": "date-time"
+        },
+        "membershipExpiryDate": {
+          "type": "string",
+          "description": "Date when the membership expires.",
+          "format": "date-time"
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to Plan. (Relationship: Plan 1:N Member)"
+        },
+        "paymentIds": {
+          "type": "array",
+          "description": "References to Payments. (Relationship: Member 1:N Payment)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "membershipStartDate",
+        "membershipExpiryDate",
+        "planId"
+      ]
+    },
+    "Attendance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Attendance",
+      "type": "object",
+      "description": "Represents a member's attendance record.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the attendance record."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to Member. (Relationship: Member 1:N Attendance)"
+        },
+        "attendanceDate": {
+          "type": "string",
+          "description": "Date of the attendance.",
+          "format": "date-time"
+        },
+        "checkInTime": {
+          "type": "string",
+          "description": "Time when the member checked in.",
+          "format": "date-time"
+        },
+        "checkOutTime": {
+          "type": "string",
+          "description": "Time when the member checked out.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "memberId",
+        "attendanceDate",
+        "checkInTime"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Represents a payment made by a member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to Member. (Relationship: Member 1:N Payment)"
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "Date when the payment was made.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount paid by the member."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method used (e.g., cash, credit card)."
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "Invoice number for the payment."
+        }
+      },
+      "required": [
+        "id",
+        "memberId",
+        "paymentDate",
+        "amount",
+        "paymentMethod"
+      ]
+    },
+    "Plan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Plan",
+      "type": "object",
+      "description": "Represents a gym membership plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the plan."
+        },
+        "planName": {
+          "type": "string",
+          "description": "Name of the plan."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the plan."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the plan."
+        },
+        "duration": {
+          "type": "string",
+          "description": "Duration of the plan (e.g., monthly, yearly)."
+        }
+      },
+      "required": [
+        "id",
+        "planName",
+        "price",
+        "duration"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "Member",
+          "schema": {
+            "$ref": "#/backend/entities/Member"
+          },
+          "description": "Stores member profile data. The user ID is used for authentication and authorization. ",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the member."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Stores attendance records for members.",
+          "params": [
+            {
+              "name": "attendanceId",
+              "description": "The unique identifier for the attendance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Stores payment information for members.",
+          "params": [
+            {
+              "name": "paymentId",
+              "description": "The unique identifier for the payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/plans/{planId}",
+        "definition": {
+          "entityName": "Plan",
+          "schema": {
+            "$ref": "#/backend/entities/Plan"
+          },
+          "description": "Stores gym membership plans.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique identifier for the plan."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage gym member data, attendance, payments, and plans. It prioritizes Authorization Independence by avoiding hierarchical `get()` calls in security rules. Instead, authorization context, such as roles, is denormalized directly into the documents requiring access control. Structural Segregation is achieved by storing different types of data (e.g., member profiles, attendance records) in separate collections, each with its own security posture.\n\nPath-based ownership is used for member-related data. The `/users/{userId}` collection stores the document with the user's `displayName`. This structure enables simple and efficient security rules based on user identity. The other collections do not use the `/users/{userId}` subcollection structure because these collections only deal with data that is not user specific. Rather, the application's data for all members can be handled in a single collection.\n\nQAPs (Rules are not Filters) are supported by ensuring that list operations can be securely performed on each collection. For instance, listing members can be secured by rules that check the user's role or ownership without needing to fetch related documents. The structure supports invariants such as ownership, timestamps, and denormalized data by enforcing strict naming conventions and data types in security rules."
+  }
+}

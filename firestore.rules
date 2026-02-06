@@ -1,0 +1,163 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model for all personal data.
+ * Each user can only access and manage their own information. Data intended for public
+ * consumption, such as gym membership plans, is readable by anyone but writable only by
+ * backend processes (i.e., blocked for all client-side users).
+ *
+ * Data Structure: A flat, collection-based structure is used to promote security and
+ * query performance.
+ * - /users/{userId}: Contains private member profile data, secured by user ID.
+ * - /attendance/{attendanceId}: Contains individual attendance records.
+ * - /payments/{paymentId}: Contains individual payment records.
+ * - /plans/{planId}: Contains publicly readable membership plan details.
+ *
+ * Key Security Decisions:
+ * - User Isolation: Users are strictly isolated. They cannot read, list, or modify the
+ *   data of any other user. The rule `allow list: if false;` on the `/users` collection
+ *   is critical to prevent enumeration of all gym members.
+ * - Deny All by Default: The default security posture is to deny all access. Rules
+ *   explicitly grant permissions on a per-collection basis.
+ * - Protection of Private Collections: The `/attendance` and `/payments` collections
+ *   contain sensitive user information. Listing these entire collections is disabled
+ *   to prevent data leaks. Access to individual documents is granted only if the
+ *   requesting user's ID matches the `memberId` field on the document.
+ * - Immutable Ownership: Once a document is created (e.g., a user profile or an
+ *   attendance record), its core ownership link (the `id` in a user profile or the
+ *   `memberId` in a related record) cannot be changed. This prevents records from
+ *   being maliciously reassigned to other users.
+ * - Safe Deletes: Users are not permitted to delete their own `/users/{userId}` document
+ *   to prevent accidental data loss or orphaned records. Deletions should be handled
+
+ *   by a trusted backend process.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for improved readability and reusability.
+
+    /**
+     * Checks if the request is from an authenticated user.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the document's path ID.
+     * This is the primary mechanism for ownership-based security.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Verifies that a document exists before an update or delete operation.
+     * This prevents unauthorized actions on non-existent paths.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+    
+    /**
+     * On create, validates that the user document's internal 'id' field
+     * matches the user's auth UID and the document's path.
+     */
+    function hasValidUserDataOnCreate(userId) {
+      let incomingData = request.resource.data;
+      return isOwner(userId) && incomingData.id == userId;
+    }
+
+    /**
+     * On update, ensures the user document's internal 'id' field is immutable.
+     */
+    function hasImmutableUserData() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * On create, validates that a record's 'memberId' field
+     * matches the authenticated user's UID.
+     */
+    function isIncomingRecordOwner() {
+      return isSignedIn() && request.resource.data.memberId == request.auth.uid;
+    }
+
+    /**
+     * For existing records, checks if the 'memberId' field matches
+     * the authenticated user's UID.
+     */
+    function isExistingRecordOwner() {
+      return isSignedIn() && resource.data.memberId == request.auth.uid;
+    }
+
+    /**
+     * On update, ensures a record's 'memberId' is immutable, preventing
+     * the record from being reassigned to another user.
+     */
+    function hasImmutableRecordMembership() {
+      return request.resource.data.memberId == resource.data.memberId;
+    }
+
+
+    /**
+     * @description Manages member profile data.
+     * @path /users/{userId}
+     * @allow (create) A new user 'user_123' can create their own profile at /users/user_123.
+     * @deny (list) A user 'user_123' cannot list all documents in the /users collection.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if hasValidUserDataOnCreate(userId);
+      allow update: if isOwner(userId) && isExistingDoc() && hasImmutableUserData();
+      allow delete: if false;
+    }
+
+    /**
+     * @description Manages member attendance records. Access is restricted to the member owner.
+     * @path /attendance/{attendanceId}
+     * @allow (create) User 'user_123' can create an attendance record with { memberId: 'user_123', ... }.
+     * @deny (list) No user can list all attendance records in the collection.
+     * @principle Enforces document ownership for reads and writes via a denormalized 'memberId' field.
+     */
+    match /attendance/{attendanceId} {
+      allow get: if isExistingRecordOwner();
+      allow list: if false;
+      allow create: if isIncomingRecordOwner();
+      allow update: if isExistingRecordOwner() && isExistingDoc() && hasImmutableRecordMembership();
+      allow delete: if isExistingRecordOwner() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages member payment records. Access is restricted to the member owner.
+     * @path /payments/{paymentId}
+     * @allow (get) User 'user_123' can read a payment document where `resource.data.memberId` is 'user_123'.
+     * @deny (update) User 'user_456' cannot update a payment document where `resource.data.memberId` is 'user_123'.
+     * @principle Enforces document ownership for reads and writes via a denormalized 'memberId' field.
+     */
+    match /payments/{paymentId} {
+      allow get: if isExistingRecordOwner();
+      allow list: if false;
+      allow create: if isIncomingRecordOwner();
+      allow update: if isExistingRecordOwner() && isExistingDoc() && hasImmutableRecordMembership();
+      allow delete: if isExistingRecordOwner() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages gym membership plans, which are public to all users.
+     * @path /plans/{planId}
+     * @allow (list) Any user, signed in or not, can list all available membership plans.
+     * @deny (create) No client-side user can create, update, or delete a plan.
+     * @principle Provides public read access for non-sensitive data while restricting all writes.
+     */
+    match /plans/{planId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

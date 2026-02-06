@@ -22,22 +22,22 @@ export default function DashboardPage() {
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <h1 className="text-2xl font-headline font-semibold col-span-full">Today's Statistics ({format(today, "MMMM do, yyyy")})</h1>
-        <StatsCard title="Active Members" value={activeMembers} icon={Users} color="text-primary" />
-        <StatsCard title="Present Today" value={presentToday} icon={UserCheck} color="text-accent" />
-        <StatsCard title="Expiry Today" value={expiryToday} icon={CalendarX} color="text-destructive" />
-        <StatsCard title="Today's Collection" value={`₹${todaysCollection.toLocaleString()}`} icon={DollarSign} color="text-chart-2" />
+        <StatsCard title="Active Members" value={activeMembers} icon={Users} color="text-primary" className="bg-primary/10" />
+        <StatsCard title="Present Today" value={presentToday} icon={UserCheck} color="text-accent" className="bg-accent/10" />
+        <StatsCard title="Expiry Today" value={expiryToday} icon={CalendarX} color="text-chart-3" className="bg-chart-3/10" />
+        <StatsCard title="Today's Collection" value={`₹${todaysCollection.toLocaleString()}`} icon={DollarSign} color="text-chart-2" className="bg-chart-2/10" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
          <h2 className="text-2xl font-headline font-semibold col-span-full">Monthly Statistics ({format(today, "MMMM")})</h2>
-        <StatsCard title="Monthly Collection" value={`₹${monthlyCollection.toLocaleString()}`} icon={Wallet} color="text-chart-4" />
-        <StatsCard title="Pending Dues" value={pendingDues} icon={TrendingDown} color="text-chart-1" />
+        <StatsCard title="Monthly Collection" value={`₹${monthlyCollection.toLocaleString()}`} icon={Wallet} color="text-chart-4" className="bg-chart-4/10" />
+        <StatsCard title="Pending Dues" value={pendingDues} icon={TrendingDown} color="text-chart-1" className="bg-chart-1/10" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
          <h2 className="text-2xl font-headline font-semibold col-span-full">Overall Statistics</h2>
-        <StatsCard title="Total Collection" value={`₹${totalCollection.toLocaleString()}`} icon={TrendingUp} color="text-chart-5" />
-        <StatsCard title="Total Dues" value={`₹${totalDues.toLocaleString()}`} icon={TrendingDown} color="text-destructive" />
+        <StatsCard title="Total Collection" value={`₹${totalCollection.toLocaleString()}`} icon={TrendingUp} color="text-chart-5" className="bg-chart-5/10" />
+        <StatsCard title="Total Dues" value={`₹${totalDues.toLocaleString()}`} icon={TrendingDown} color="text-destructive" className="bg-destructive/10" />
       </div>
       
       <AtRiskMembers />

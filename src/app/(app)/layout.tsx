@@ -49,7 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <Logo displayName={userProfile?.displayName} />
+          <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarNav />
@@ -90,7 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 sticky top-0 z-30 md:hidden">
           <SidebarTrigger />
-          <Logo displayName={userProfile?.displayName} />
+          <Logo displayName={displayName} />
         </header>
         {children}
       </SidebarInset>

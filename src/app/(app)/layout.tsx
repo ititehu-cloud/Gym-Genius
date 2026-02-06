@@ -44,13 +44,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     signOut(auth);
   };
   
-  const userInitial = userProfile?.displayName ? userProfile.displayName.charAt(0).toUpperCase() : '?';
+  const displayName = userProfile?.displayName || user?.email;
+  const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <Logo displayName={userProfile?.displayName} />
+          <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarNav />
@@ -60,19 +61,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2 h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.photoURL ?? undefined} alt={userProfile?.displayName ?? 'User'} />
+                  <AvatarImage src={user.photoURL ?? undefined} alt={displayName ?? 'User'} />
                   <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                  <span className="font-medium text-sm">{userProfile?.displayName}</span>
-                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                  <span className="font-medium text-sm">{displayName}</span>
+                  {userProfile?.displayName && <span className="text-xs text-muted-foreground">{user.email}</span>}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
-                <p className="text-sm font-medium">{userProfile?.displayName}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium">{displayName}</p>
+                {userProfile?.displayName && <p className="text-xs text-muted-foreground">{user.email}</p>}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
@@ -91,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 sticky top-0 z-30 md:hidden">
           <SidebarTrigger />
-          <Logo displayName={userProfile?.displayName} />
+          <Logo displayName={displayName} />
         </header>
         {children}
       </SidebarInset>

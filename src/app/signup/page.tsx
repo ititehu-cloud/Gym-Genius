@@ -76,7 +76,6 @@ export default function SignupPage() {
 
       // Redirect is handled by the layout component
     } catch (error: any) {
-      console.error(error.code, error.message);
       let errorMessage = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'This email is already registered. Please login instead.';

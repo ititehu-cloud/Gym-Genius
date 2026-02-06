@@ -55,7 +55,6 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       // Redirect is handled by the layout component
     } catch (error: any) {
-      console.error(error.code, error.message);
       let errorMessage = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'Invalid email or password. Please try again.';

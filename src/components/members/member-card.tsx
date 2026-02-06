@@ -6,7 +6,7 @@ import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Mail, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
+import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -131,7 +131,6 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                 <p className="text-xs text-muted-foreground">{planName} Plan</p>
             </div>
             <div className="text-left text-xs w-full space-y-1 text-muted-foreground mb-3">
-                <div className='flex items-center gap-2'><Mail className='w-3 h-3' /><span>{member.email}</span></div>
                 <div className='flex items-center gap-2'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
                 <div className='flex items-center gap-2'><MapPin className='w-3 h-3' /><span>{member.address}</span></div>
                 <div className='flex items-center gap-2'><Calendar className='w-3 h-3' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>

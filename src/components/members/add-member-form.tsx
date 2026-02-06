@@ -22,23 +22,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { LoaderCircle } from "lucide-react";
-import { addMonths } from "date-fns";
+import { CalendarIcon, LoaderCircle } from "lucide-react";
+import { addMonths, format } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
   address: z.string().min(5, { message: "Address is too short." }),
   planId: z.string({ required_error: "Please select a membership plan." }),
   joinDate: z.date({ required_error: "Please select a joining date." }),
-  profilePic: z.any().optional(), // File upload validation can be complex, keeping it simple for now
 });
 
 type AddMemberFormProps = {
@@ -57,7 +57,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      email: "",
       mobileNumber: "",
       address: "",
       joinDate: new Date(),
@@ -81,17 +80,12 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     }
     
     const expiryDate = addMonths(values.joinDate, selectedPlan.duration);
-
-    // TODO: Implement image upload to a service like imgbb.cc and get the URL.
-    // For now, using a placeholder.
     const imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
 
-    const { profilePic, ...memberData } = values;
-    
     try {
       const membersCollection = collection(firestore, "members");
       await addDoc(membersCollection, {
-        ...memberData,
+        ...values,
         joinDate: values.joinDate.toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
@@ -135,19 +129,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         />
         <FormField
           control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Address</FormLabel>
-              <FormControl>
-                <Input placeholder="name@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
           name="mobileNumber"
           render={({ field }) => (
             <FormItem>
@@ -168,22 +149,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               <FormControl>
                 <Textarea placeholder="123, Main Street, Anytown..." {...field} />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="profilePic"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Profile Picture</FormLabel>
-              <FormControl>
-                <Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files)} />
-              </FormControl>
-               <FormDescription>
-                Image upload to imgbb is not implemented. A placeholder will be used.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -218,14 +183,34 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Joining Date</FormLabel>
-              <FormControl>
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  className="rounded-md border w-full"
-                />
-              </FormControl>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}

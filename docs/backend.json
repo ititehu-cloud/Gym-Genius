@@ -151,11 +151,6 @@
           "type": "string",
           "description": "The member's full name."
         },
-        "email": {
-          "type": "string",
-          "description": "The member's email address.",
-          "format": "email"
-        },
         "mobileNumber": {
           "type": "string",
           "description": "The member's mobile phone number."
@@ -196,7 +191,6 @@
       "required": [
         "id",
         "name",
-        "email",
         "mobileNumber",
         "address",
         "planId",

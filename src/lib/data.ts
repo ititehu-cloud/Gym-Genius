@@ -11,12 +11,12 @@ export const plans: Plan[] = [
 ];
 
 export const members: Member[] = [
-  { id: 'mem-1', name: 'Alicia Rodriguez', email: 'alicia.r@example.com', avatar: PlaceHolderImages[0], planId: 'plan-2', joinDate: format(subMonths(today, 5), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
-  { id: 'mem-2', name: 'David Chen', email: 'david.c@example.com', avatar: PlaceHolderImages[1], planId: 'plan-1', joinDate: format(subMonths(today, 1), 'yyyy-MM-dd'), expiryDate: format(addDays(today, 5), 'yyyy-MM-dd'), status: 'active' },
-  { id: 'mem-3', name: 'Priya Sharma', email: 'priya.s@example.com', avatar: PlaceHolderImages[2], planId: 'plan-3', joinDate: format(subMonths(today, 11), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
-  { id: 'mem-4', name: 'Michael Johnson', email: 'michael.j@example.com', avatar: PlaceHolderImages[3], planId: 'plan-1', joinDate: format(subMonths(today, 2), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 10), 'yyyy-MM-dd'), status: 'expired' },
-  { id: 'mem-5', name: 'Chloe Kim', email: 'chloe.k@example.com', avatar: PlaceHolderImages[4], planId: 'plan-2', joinDate: format(subMonths(today, 4), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 2), 'yyyy-MM-dd'), status: 'due' },
-  { id: 'mem-6', name: 'Samuel Green', email: 'samuel.g@example.com', avatar: PlaceHolderImages[5], planId: 'plan-1', joinDate: format(subMonths(today, 0), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-1', name: 'Alicia Rodriguez', mobileNumber: '111-222-3333', address: '123 Main St, Anytown', imageUrl: PlaceHolderImages[0].imageUrl, planId: 'plan-2', joinDate: format(subMonths(today, 5), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-2', name: 'David Chen', mobileNumber: '222-333-4444', address: '456 Oak Ave, Anytown', imageUrl: PlaceHolderImages[1].imageUrl, planId: 'plan-1', joinDate: format(subMonths(today, 1), 'yyyy-MM-dd'), expiryDate: format(addDays(today, 5), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-3', name: 'Priya Sharma', mobileNumber: '333-444-5555', address: '789 Pine Ln, Anytown', imageUrl: PlaceHolderImages[2].imageUrl, planId: 'plan-3', joinDate: format(subMonths(today, 11), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-4', name: 'Michael Johnson', mobileNumber: '444-555-6666', address: '101 Maple Dr, Anytown', imageUrl: PlaceHolderImages[3].imageUrl, planId: 'plan-1', joinDate: format(subMonths(today, 2), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 10), 'yyyy-MM-dd'), status: 'expired' },
+  { id: 'mem-5', name: 'Chloe Kim', mobileNumber: '555-666-7777', address: '212 Birch Ct, Anytown', imageUrl: PlaceHolderImages[4].imageUrl, planId: 'plan-2', joinDate: format(subMonths(today, 4), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 2), 'yyyy-MM-dd'), status: 'due' },
+  { id: 'mem-6', name: 'Samuel Green', mobileNumber: '666-777-8888', address: '333 Cedar Rd, Anytown', imageUrl: PlaceHolderImages[5].imageUrl, planId: 'plan-1', joinDate: format(subMonths(today, 0), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
 ];
 
 export const payments: Payment[] = [

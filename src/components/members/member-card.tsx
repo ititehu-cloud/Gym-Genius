@@ -6,7 +6,7 @@ import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Mail, Phone, Share2 } from 'lucide-react';
+import { Cake, Calendar, Mail, Phone, Share2, MapPin } from 'lucide-react';
 
 type MemberCardProps = {
   member: Member;
@@ -61,8 +61,8 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
   };
 
   return (
-    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-md mx-auto">
-      <CardHeader className="bg-primary text-primary-foreground p-3 text-center font-headline">
+    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-sm mx-auto">
+      <CardHeader className="bg-primary text-primary-foreground p-3 text-left font-headline">
         <h2 className="text-md font-bold">{gymName || 'Gym Member ID Card'}</h2>
       </CardHeader>
       <div className="flex flex-col sm:flex-row sm:items-start">
@@ -84,6 +84,7 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
             <div className="text-left text-xs w-full space-y-1 text-muted-foreground mb-3">
                 <div className='flex items-center gap-2'><Mail className='w-3 h-3' /><span>{member.email}</span></div>
                 <div className='flex items-center gap-2'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
+                <div className='flex items-center gap-2'><MapPin className='w-3 h-3' /><span>{member.address}</span></div>
                 <div className='flex items-center gap-2'><Calendar className='w-3 h-3' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                 <div className='flex items-center gap-2'><Cake className='w-3 h-3' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
             </div>

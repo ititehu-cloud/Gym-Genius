@@ -32,6 +32,7 @@ export default function MembersPage() {
   }, [plans]);
 
   const gymName = userProfile?.displayName || user?.email;
+  const gymAddress = userProfile?.address;
 
   if (isLoading) {
     return (
@@ -50,7 +51,7 @@ export default function MembersPage() {
       {members && members.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:gap-8">
           {members.map((member) => (
-            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} />
+            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} gymAddress={gymAddress} />
           ))}
         </div>
       ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -11,10 +11,11 @@ import { Cake, Calendar, Mail, Phone, Share2, MapPin } from 'lucide-react';
 type MemberCardProps = {
   member: Member;
   planName: string;
-  gymName?: string;
+  gymName?: string | null;
+  gymAddress?: string;
 };
 
-export default function MemberCard({ member, planName, gymName }: MemberCardProps) {
+export default function MemberCard({ member, planName, gymName, gymAddress }: MemberCardProps) {
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -62,12 +63,17 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
 
   return (
     <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-sm mx-auto">
-      <CardHeader className="bg-primary text-primary-foreground p-3 text-left font-headline">
-        <h2 className="text-md font-bold">{gymName || 'Gym Member ID Card'}</h2>
-      </CardHeader>
-      <div className="flex flex-col sm:flex-row sm:items-start">
+      <div className="flex bg-primary text-primary-foreground font-headline">
+          <div className="p-3 text-left w-1/2 flex items-center">
+            <h2 className="text-md font-bold truncate">{gymName}</h2>
+          </div>
+          <div className="p-3 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
+             <p className="text-sm truncate">{gymAddress || 'Address not set'}</p>
+          </div>
+      </div>
+      <div className="flex">
         <div className="p-4 flex justify-center items-start">
-            <div className="relative h-24 w-24 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
+            <div className="relative h-20 w-20 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
                 <Image
                     src={member.imageUrl}
                     alt={`Photo of ${member.name}`}
@@ -76,10 +82,10 @@ export default function MemberCard({ member, planName, gymName }: MemberCardProp
                 />
             </div>
         </div>
-        <CardContent className="p-4 pt-0 sm:pt-4 flex flex-col justify-center items-center sm:items-start">
-            <div className='text-center sm:text-left mb-3'>
-                <h3 className="text-xl font-bold font-headline">{member.name}</h3>
-                <p className="text-sm text-muted-foreground">{planName} Plan</p>
+        <CardContent className="p-4 pt-4 flex flex-col justify-center items-start">
+            <div className='text-left mb-3'>
+                <h3 className="text-lg font-bold font-headline">{member.name}</h3>
+                <p className="text-xs text-muted-foreground">{planName} Plan</p>
             </div>
             <div className="text-left text-xs w-full space-y-1 text-muted-foreground mb-3">
                 <div className='flex items-center gap-2'><Mail className='w-3 h-3' /><span>{member.email}</span></div>

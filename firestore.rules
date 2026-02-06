@@ -6,7 +6,7 @@
  *
  * Data Structure: A flat, collection-based structure is used to promote security and
  * query performance.
- * - /users/{userId}: Contains private member profile data, secured by user ID.
+ * - /users/{userId}: Contains private user profile data, secured by user ID.
  * - /attendance/{attendanceId}: Contains individual attendance records.
  * - /payments/{paymentId}: Contains individual payment records.
  * - /plans/{planId}: Contains publicly readable membership plan details.
@@ -61,18 +61,25 @@ service cloud.firestore {
     
     /**
      * On create, validates that the user document's internal 'id' field
-     * matches the user's auth UID and the document's path.
+     * matches the user's auth UID and the document's path, and that a
+     * valid displayName is provided.
      */
     function hasValidUserDataOnCreate(userId) {
       let incomingData = request.resource.data;
-      return isOwner(userId) && incomingData.id == userId;
+      return isOwner(userId) 
+        && incomingData.id == userId
+        && incomingData.displayName is string
+        && incomingData.displayName.size() > 0
+        && incomingData.email == request.auth.token.email;
     }
 
     /**
-     * On update, ensures the user document's internal 'id' field is immutable.
+     * On update, ensures the user document's internal 'id' and 'email' fields are immutable.
      */
     function hasImmutableUserData() {
-      return request.resource.data.id == resource.data.id;
+      let incomingData = request.resource.data;
+      return incomingData.id == resource.data.id
+        && incomingData.email == resource.data.email;
     }
 
     /**
@@ -101,7 +108,7 @@ service cloud.firestore {
 
 
     /**
-     * @description Manages member profile data.
+     * @description Manages user profile data.
      * @path /users/{userId}
      * @allow (create) A new user 'user_123' can create their own profile at /users/user_123.
      * @deny (list) A user 'user_123' cannot list all documents in the /users collection.

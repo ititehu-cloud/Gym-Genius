@@ -60,31 +60,35 @@ export default function MemberCard({ member, planName }: MemberCardProps) {
   };
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-sm mx-auto">
+    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full">
       <CardHeader className="bg-primary text-primary-foreground p-4 text-center font-headline">
-        <h2 className="text-lg font-bold">Gym Member</h2>
+        <h2 className="text-lg font-bold">Gym Member ID Card</h2>
       </CardHeader>
-      <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-        <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-primary/50">
-            <Image
-                src={member.imageUrl}
-                alt={`Photo of ${member.name}`}
-                fill
-                className="object-cover"
-            />
+      <div className="flex flex-col md:flex-row md:items-start">
+        <div className="p-6 flex justify-center items-start md:w-1/3">
+            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
+                <Image
+                    src={member.imageUrl}
+                    alt={`Photo of ${member.name}`}
+                    fill
+                    className="object-cover"
+                />
+            </div>
         </div>
-        <div className='text-center'>
-            <h3 className="text-xl font-bold font-headline">{member.name}</h3>
-            <p className="text-sm text-muted-foreground">{planName} Plan</p>
-        </div>
-        <div className="text-left text-sm w-full space-y-2 text-muted-foreground">
-            <div className='flex items-center gap-3'><Mail className='w-4 h-4' /><span>{member.email}</span></div>
-            <div className='flex items-center gap-3'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
-            <div className='flex items-center gap-3'><Calendar className='w-4 h-4' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-            <div className='flex items-center gap-3'><Cake className='w-4 h-4' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
-        </div>
-         <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
-      </CardContent>
+        <CardContent className="p-6 pt-0 md:pt-6 md:w-2/3 flex flex-col justify-center items-center md:items-start">
+            <div className='text-center md:text-left mb-4'>
+                <h3 className="text-2xl font-bold font-headline">{member.name}</h3>
+                <p className="text-md text-muted-foreground">{planName} Plan</p>
+            </div>
+            <div className="text-left text-sm w-full space-y-2 text-muted-foreground mb-4">
+                <div className='flex items-center gap-3'><Mail className='w-4 h-4' /><span>{member.email}</span></div>
+                <div className='flex items-center gap-3'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
+                <div className='flex items-center gap-3'><Calendar className='w-4 h-4' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
+                <div className='flex items-center gap-3'><Cake className='w-4 h-4' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
+            </div>
+            <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
+        </CardContent>
+      </div>
       <CardFooter className="p-4 bg-muted/50">
         <Button className="w-full" onClick={handleShare}>
           <Share2 className="mr-2 h-4 w-4" />

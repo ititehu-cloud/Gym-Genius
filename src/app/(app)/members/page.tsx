@@ -6,6 +6,7 @@ import { collection } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
 import type { Member, Plan } from "@/lib/types";
+import { useMemo } from "react";
 
 export default function MembersPage() {
   const firestore = useFirestore();
@@ -18,7 +19,7 @@ export default function MembersPage() {
 
   const isLoading = isLoadingMembers || isLoadingPlans;
 
-  const planMap = useMemoFirebase(() => {
+  const planMap = useMemo(() => {
     if (!plans) return new Map();
     return new Map(plans.map(p => [p.id, p.name]));
   }, [plans]);
@@ -39,7 +40,7 @@ export default function MembersPage() {
         <AddMemberDialog />
       </div>
       {members && members.length > 0 ? (
-        <div className="grid gap-4 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
           {members.map((member) => (
             <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"}/>
           ))}

@@ -107,10 +107,10 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
     <Card ref={cardRef} className="overflow-hidden bg-card w-full max-w-sm mx-auto">
       <div className="flex bg-primary text-primary-foreground font-headline">
           <div className="p-3 text-left w-1/2 flex items-center">
-            <h2 className="text-md font-bold">{gymName}</h2>
+            <h2 className="text-md font-bold whitespace-pre-wrap">{gymName}</h2>
           </div>
           <div className="p-3 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
-             <p className="text-sm">{gymAddress || 'Address not set'}</p>
+             <p className="text-sm whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
           </div>
       </div>
       <div className="flex">
@@ -134,8 +134,8 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                 <div className='flex items-center gap-2'><Mail className='w-3 h-3' /><span>{member.email}</span></div>
                 <div className='flex items-center gap-2'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
                 <div className='flex items-center gap-2'><MapPin className='w-3 h-3' /><span>{member.address}</span></div>
-                <div className='flex items-center gap-2'><Calendar className='w-3 h-3' /><span>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-                <div className='flex items-center gap-2'><Cake className='w-3 h-3' /><span>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
+                <div className='flex items-center gap-2'><Calendar className='w-3 h-3' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
+                <div className='flex items-center gap-2'><Cake className='w-3 h-3' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
             </div>
             <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
         </CardContent>

@@ -11,9 +11,10 @@ import { Cake, Calendar, Mail, Phone, Share2 } from 'lucide-react';
 type MemberCardProps = {
   member: Member;
   planName: string;
+  gymName?: string;
 };
 
-export default function MemberCard({ member, planName }: MemberCardProps) {
+export default function MemberCard({ member, planName, gymName }: MemberCardProps) {
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -42,7 +43,7 @@ export default function MemberCard({ member, planName }: MemberCardProps) {
   
   const handleShare = () => {
     const cardDetails = `
-*Gym Member ID Card*
+*${gymName || 'Gym Member'} ID Card*
 ---------------------
 *Name:* ${member.name}
 *Plan:* ${planName}
@@ -60,9 +61,9 @@ export default function MemberCard({ member, planName }: MemberCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full">
+    <Card className="overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-xl w-full max-w-2xl mx-auto">
       <CardHeader className="bg-primary text-primary-foreground p-4 text-center font-headline">
-        <h2 className="text-lg font-bold">Gym Member ID Card</h2>
+        <h2 className="text-lg font-bold">{gymName || 'Gym Member ID Card'}</h2>
       </CardHeader>
       <div className="flex flex-col md:flex-row md:items-start">
         <div className="p-6 flex justify-center items-start md:w-1/3">

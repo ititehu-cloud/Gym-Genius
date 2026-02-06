@@ -1,8 +1,8 @@
 'use client';
 
 import MemberCard from "@/components/members/member-card";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
 import type { Member, Plan } from "@/lib/types";
@@ -10,20 +10,28 @@ import { useMemo } from "react";
 
 export default function MembersPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading: isAuthLoading } = useUser();
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  const isLoading = isLoadingMembers || isLoadingPlans;
+  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
 
   const planMap = useMemo(() => {
     if (!plans) return new Map();
     return new Map(plans.map(p => [p.id, p.name]));
   }, [plans]);
 
+  const gymName = userProfile?.displayName || user?.email;
 
   if (isLoading) {
     return (
@@ -42,7 +50,7 @@ export default function MembersPage() {
       {members && members.length > 0 ? (
         <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2">
           {members.map((member) => (
-            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"}/>
+            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} />
           ))}
         </div>
       ) : (

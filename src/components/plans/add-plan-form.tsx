@@ -109,7 +109,7 @@ export default function AddPlanForm({ setDialogOpen }: AddPlanFormProps) {
                 <FormItem>
                     <FormLabel>Price (₹)</FormLabel>
                     <FormControl>
-                        <Input type="number" placeholder="500" {...field} />
+                        <Input type="number" placeholder="500" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -122,7 +122,7 @@ export default function AddPlanForm({ setDialogOpen }: AddPlanFormProps) {
                 <FormItem>
                     <FormLabel>Duration (Months)</FormLabel>
                     <FormControl>
-                        <Input type="number" placeholder="1" {...field} />
+                        <Input type="number" placeholder="1" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>

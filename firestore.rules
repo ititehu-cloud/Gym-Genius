@@ -163,18 +163,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages gym membership plans, which are public to all users.
+     * @description Manages gym membership plans. Intended to be managed by authenticated staff.
      * @path /plans/{planId}
-     * @allow (list) Any user, signed in or not, can list all available membership plans.
-     * @deny (create) No client-side user can create, update, or delete a plan.
-     * @principle Provides public read access for non-sensitive data while restricting all writes.
+     * @allow (read, list, write) Any signed-in user (staff) can manage membership plans.
+     * @principle Allows dashboard users to perform CRUD operations on gym plans.
      */
     match /plans/{planId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, list, create, update, delete: if isSignedIn();
     }
   }
 }

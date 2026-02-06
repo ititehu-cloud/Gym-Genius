@@ -1,0 +1,45 @@
+import { subMonths, addMonths, format, subDays, addDays } from 'date-fns';
+import type { Member, Plan, Payment, Attendance } from './types';
+import { PlaceHolderImages } from './placeholder-images';
+
+const today = new Date();
+
+export const plans: Plan[] = [
+  { id: 'plan-1', name: 'Monthly', duration: 1, price: 50 },
+  { id: 'plan-2', name: 'Quarterly', duration: 3, price: 135 },
+  { id: 'plan-3', name: 'Annual', duration: 12, price: 500 },
+];
+
+export const members: Member[] = [
+  { id: 'mem-1', name: 'Alicia Rodriguez', email: 'alicia.r@example.com', avatar: PlaceHolderImages[0], planId: 'plan-2', joinDate: format(subMonths(today, 5), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-2', name: 'David Chen', email: 'david.c@example.com', avatar: PlaceHolderImages[1], planId: 'plan-1', joinDate: format(subMonths(today, 1), 'yyyy-MM-dd'), expiryDate: format(addDays(today, 5), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-3', name: 'Priya Sharma', email: 'priya.s@example.com', avatar: PlaceHolderImages[2], planId: 'plan-3', joinDate: format(subMonths(today, 11), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+  { id: 'mem-4', name: 'Michael Johnson', email: 'michael.j@example.com', avatar: PlaceHolderImages[3], planId: 'plan-1', joinDate: format(subMonths(today, 2), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 10), 'yyyy-MM-dd'), status: 'expired' },
+  { id: 'mem-5', name: 'Chloe Kim', email: 'chloe.k@example.com', avatar: PlaceHolderImages[4], planId: 'plan-2', joinDate: format(subMonths(today, 4), 'yyyy-MM-dd'), expiryDate: format(subDays(today, 2), 'yyyy-MM-dd'), status: 'due' },
+  { id: 'mem-6', name: 'Samuel Green', email: 'samuel.g@example.com', avatar: PlaceHolderImages[5], planId: 'plan-1', joinDate: format(subMonths(today, 0), 'yyyy-MM-dd'), expiryDate: format(addMonths(today, 1), 'yyyy-MM-dd'), status: 'active' },
+];
+
+export const payments: Payment[] = [
+  { id: 'pay-1', memberId: 'mem-1', amount: 135, date: format(subMonths(today, 2), 'yyyy-MM-dd'), status: 'paid' },
+  { id: 'pay-2', memberId: 'mem-2', amount: 50, date: format(subMonths(today, 1), 'yyyy-MM-dd'), status: 'paid' },
+  { id: 'pay-3', memberId: 'mem-3', amount: 500, date: format(subMonths(today, 11), 'yyyy-MM-dd'), status: 'paid' },
+  { id: 'pay-4', memberId: 'mem-4', amount: 50, date: format(subMonths(today, 2), 'yyyy-MM-dd'), status: 'paid' },
+  { id: 'pay-5', memberId: 'mem-5', amount: 135, date: format(subMonths(today, 1), 'yyyy-MM-dd'), status: 'pending' },
+  { id: 'pay-6', memberId: 'mem-6', amount: 50, date: format(today, 'yyyy-MM-dd'), status: 'paid' },
+  { id: 'pay-7', memberId: 'mem-2', amount: 50, date: format(today, 'yyyy-MM-dd'), status: 'paid' },
+];
+
+export const attendance: Attendance[] = [
+  // Member 1: regular attendance
+  { id: 'att-1', memberId: 'mem-1', date: format(today, 'yyyy-MM-dd'), status: 'present' },
+  { id: 'att-2', memberId: 'mem-1', date: format(subDays(today, 2), 'yyyy-MM-dd'), status: 'present' },
+  { id: 'att-3', memberId: 'mem-1', date: format(subDays(today, 4), 'yyyy-MM-dd'), status: 'present' },
+  // Member 2: recent drop-off
+  { id: 'att-4', memberId: 'mem-2', date: format(subDays(today, 15), 'yyyy-MM-dd'), status: 'present' },
+  { id: 'att-5', memberId: 'mem-2', date: format(subDays(today, 17), 'yyyy-MM-dd'), status: 'present' },
+  // Member 3: consistent
+  { id: 'att-6', memberId: 'mem-3', date: format(subDays(today, 1), 'yyyy-MM-dd'), status: 'present' },
+  { id: 'att-7', memberId: 'mem-3', date: format(subDays(today, 3), 'yyyy-MM-dd'), status: 'present' },
+  // Member 5: payment pending, still attending
+  { id: 'att-8', memberId: 'mem-5', date: format(subDays(today, 1), 'yyyy-MM-dd'), status: 'present' },
+];

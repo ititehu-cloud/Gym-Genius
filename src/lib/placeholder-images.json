@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "member-1",
+      "description": "Portrait of a smiling woman at the gym",
+      "imageUrl": "https://images.unsplash.com/photo-1592621385612-4d7129426394?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzcwMjk4NjkwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "member-2",
+      "description": "Portrait of a man lifting weights",
+      "imageUrl": "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBneW18ZW58MHx8fHwxNzcwMzU3Mzg0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man gym"
+    },
+    {
+      "id": "member-3",
+      "description": "Portrait of a person after a workout",
+      "imageUrl": "https://images.unsplash.com/photo-1485727749690-d091e8284ef3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwZXJzb24lMjBmaXRuZXNzfGVufDB8fHx8MTc3MDI2ODMyOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person fitness"
+    },
+    {
+      "id": "member-4",
+      "description": "Portrait of a smiling man at the gym",
+      "imageUrl": "https://images.unsplash.com/photo-1621624666561-84d0107001dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc3MDM1NTU2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "member-5",
+      "description": "Portrait of a woman with workout gear",
+      "imageUrl": "https://images.unsplash.com/photo-1445384763658-0400939829cd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3b21hbiUyMGZpdG5lc3N8ZW58MHx8fHwxNzcwMzA4ODc0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman fitness"
+    },
+    {
+      "id": "member-6",
+      "description": "Portrait of a gym member posing",
+      "imageUrl": "https://images.unsplash.com/photo-1692182549439-2a78c119dc40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBwb3Npbmd8ZW58MHx8fHwxNzcwMjgyNjMyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person posing"
+    }
+  ]
 }

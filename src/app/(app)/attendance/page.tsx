@@ -15,15 +15,24 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 export default function AttendancePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
     const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
+
+    const filteredMembers = useMemo(() => {
+        if (!members) return [];
+        return members.filter(member =>
+            member.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [members, searchQuery]);
 
     const selectedDateRange = useMemo(() => {
         const start = startOfDay(selectedDate);
@@ -111,30 +120,38 @@ export default function AttendancePage() {
 
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-headline font-semibold">Attendance</h1>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-[240px] justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => date && setSelectedDate(date)}
-                            initialFocus
-                        />
-                    </PopoverContent>
-                </Popover>
+            <div className="flex items-center justify-between gap-4">
+                 <h1 className="text-2xl font-headline font-semibold">Attendance</h1>
+                <div className="flex items-center gap-2">
+                    <Input
+                        placeholder="Search member..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-64"
+                    />
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "w-[240px] justify-start text-left font-normal",
+                                    !selectedDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => date && setSelectedDate(date)}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
             </div>
             <Card>
                 <CardHeader>
@@ -146,92 +163,99 @@ export default function AttendancePage() {
                 </CardHeader>
                 <CardContent>
                     {members && members.length > 0 ? (
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Member</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
-                                        <TableHead>Timestamps</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {members.map((member) => {
-                                        const attendanceRecord = attendanceMap.get(member.id);
-                                        const isCheckedOut = !!attendanceRecord?.checkOutTime;
-                                        
-                                        return (
-                                            <TableRow key={member.id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-4">
-                                                        <Avatar className="h-10 w-10">
-                                                            <AvatarImage src={member.imageUrl} alt={member.name} />
-                                                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div>
-                                                            <div className="font-medium">{member.name}</div>
-                                                            <div className="text-sm text-muted-foreground">ID: {member.memberId}</div>
+                        filteredMembers.length > 0 ? (
+                            <div className="border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Member</TableHead>
+                                            <TableHead className="text-center">Status</TableHead>
+                                            <TableHead>Timestamps</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredMembers.map((member) => {
+                                            const attendanceRecord = attendanceMap.get(member.id);
+                                            const isCheckedOut = !!attendanceRecord?.checkOutTime;
+                                            
+                                            return (
+                                                <TableRow key={member.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-4">
+                                                            <Avatar className="h-10 w-10">
+                                                                <AvatarImage src={member.imageUrl} alt={member.name} />
+                                                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <div>
+                                                                <div className="font-medium">{member.name}</div>
+                                                                <div className="text-sm text-muted-foreground">ID: {member.memberId}</div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {attendanceRecord ? (
-                                                        isCheckedOut ? (
-                                                            <Badge variant="outline">Completed</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {attendanceRecord ? (
+                                                            isCheckedOut ? (
+                                                                <Badge variant="outline">Completed</Badge>
+                                                            ) : (
+                                                                <Badge variant="default" className="bg-chart-2 text-primary-foreground hover:bg-chart-2/90">Checked In</Badge>
+                                                            )
                                                         ) : (
-                                                            <Badge variant="default" className="bg-chart-2 text-primary-foreground hover:bg-chart-2/90">Checked In</Badge>
-                                                        )
-                                                    ) : (
-                                                        <Badge variant="secondary">Not Here</Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-sm text-muted-foreground space-y-1">
-                                                        {attendanceRecord?.checkInTime && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-semibold text-foreground">In:</span>
-                                                                <span>{format(parseISO(attendanceRecord.checkInTime), 'p')}</span>
-                                                            </div>
+                                                            <Badge variant="secondary">Not Here</Badge>
                                                         )}
-                                                        {attendanceRecord?.checkOutTime && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-semibold text-foreground">Out:</span>
-                                                                <span>{format(parseISO(attendanceRecord.checkOutTime), 'p')}</span>
-                                                            </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="text-sm text-muted-foreground space-y-1">
+                                                            {attendanceRecord?.checkInTime && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-foreground">In:</span>
+                                                                    <span>{format(parseISO(attendanceRecord.checkInTime), 'p')}</span>
+                                                                </div>
+                                                            )}
+                                                            {attendanceRecord?.checkOutTime && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-foreground">Out:</span>
+                                                                    <span>{format(parseISO(attendanceRecord.checkOutTime), 'p')}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        {!attendanceRecord && isToday ? (
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleCheckIn(member)}
+                                                                disabled={loadingMemberId === member.id}
+                                                            >
+                                                                {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                                Check In
+                                                            </Button>
+                                                        ) : attendanceRecord && !isCheckedOut && isToday ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleCheckOut(attendanceRecord.id, member.id, member.name)}
+                                                                disabled={loadingMemberId === member.id}
+                                                            >
+                                                                {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+                                                                Check Out
+                                                            </Button>
+                                                        ) : (
+                                                          <span className="text-sm text-muted-foreground">-</span>
                                                         )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {!attendanceRecord && isToday ? (
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => handleCheckIn(member)}
-                                                            disabled={loadingMemberId === member.id}
-                                                        >
-                                                            {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                                            Check In
-                                                        </Button>
-                                                    ) : attendanceRecord && !isCheckedOut && isToday ? (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleCheckOut(attendanceRecord.id, member.id, member.name)}
-                                                            disabled={loadingMemberId === member.id}
-                                                        >
-                                                            {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
-                                                            Check Out
-                                                        </Button>
-                                                    ) : (
-                                                      <span className="text-sm text-muted-foreground">-</span>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        ) : (
+                             <div className="flex flex-col items-center justify-center text-center py-12">
+                                <h3 className="text-xl font-bold tracking-tight">No Members Found</h3>
+                                <p className="text-sm text-muted-foreground">Your search for "{searchQuery}" did not return any results.</p>
+                            </div>
+                        )
                     ) : (
                         <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm py-12">
                             <div className="text-center">

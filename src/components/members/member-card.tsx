@@ -106,16 +106,16 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
   };
 
   return (
-    <Card ref={cardRef} className="overflow-hidden bg-card w-full max-w-sm mx-auto">
+    <Card ref={cardRef} className="overflow-hidden bg-card w-[340px] aspect-[85.6/54] flex flex-col rounded-xl shadow-lg">
       <div className="flex bg-primary text-primary-foreground font-headline">
           <div className="p-3 text-left w-1/2 flex items-center">
             <h2 className="text-md font-bold whitespace-pre-wrap">{gymName}</h2>
           </div>
           <div className="p-3 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
-             <p className="text-[10px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+             <p className="text-[9px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
           </div>
       </div>
-      <div className="flex">
+      <div className="flex flex-grow">
         <div className="p-4 flex justify-center items-start">
             <div className="relative h-20 w-20 rounded-full overflow-hidden border-4 border-primary/50 flex-shrink-0">
                 <Image

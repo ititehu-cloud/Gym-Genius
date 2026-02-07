@@ -1,11 +1,11 @@
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, addDoc, serverTimestamp } from "firebase/firestore";
-import { LoaderCircle, UserCheck } from "lucide-react";
+import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { LoaderCircle, UserCheck, LogOut } from "lucide-react";
 import type { Member, Attendance } from "@/lib/types";
 import { useMemo, useState } from "react";
-import { startOfDay, endOfDay, format } from "date-fns";
+import { startOfDay, endOfDay, format, parseISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,15 +40,14 @@ export default function AttendancePage() {
 
     const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
-    const checkedInMemberIds = useMemo(() => {
-        if (!todaysAttendance) return new Set();
-        return new Set(todaysAttendance.map(att => att.memberId));
+    const todaysAttendanceMap = useMemo(() => {
+        if (!todaysAttendance) return new Map<string, Attendance>();
+        return new Map(todaysAttendance.map(att => [att.memberId, att]));
     }, [todaysAttendance]);
 
     const isLoading = isLoadingMembers || isLoadingAttendance;
 
     const handleCheckIn = async (member: Member) => {
-        if (checkedInMemberIds.has(member.id)) return;
         setLoadingMemberId(member.id);
         const attendanceCollection = collection(firestore, "attendance");
         try {
@@ -73,6 +72,29 @@ export default function AttendancePage() {
         }
     };
     
+    const handleCheckOut = async (attendanceId: string, memberId: string, memberName: string) => {
+        setLoadingMemberId(memberId);
+        const attendanceDocRef = doc(firestore, "attendance", attendanceId);
+        try {
+            await updateDoc(attendanceDocRef, {
+                checkOutTime: new Date().toISOString()
+            });
+            toast({
+                title: "Checked Out!",
+                description: `${memberName} has been checked out for today.`
+            });
+        } catch (error) {
+            console.error("Error checking out member:", error);
+            toast({
+                variant: "destructive",
+                title: "Uh oh! Something went wrong.",
+                description: "There was a problem checking the member out.",
+            });
+        } finally {
+            setLoadingMemberId(null);
+        }
+    };
+    
     if (isLoading) {
         return (
             <div className="flex flex-1 items-center justify-center">
@@ -91,7 +113,7 @@ export default function AttendancePage() {
                 <CardHeader>
                     <CardTitle>Member Check-in</CardTitle>
                     <CardDescription>
-                        {`Mark members as present for today. ${checkedInMemberIds.size} out of ${members?.length || 0} members checked in.`}
+                        {`Mark members as present for today. ${todaysAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -102,12 +124,15 @@ export default function AttendancePage() {
                                     <TableRow>
                                         <TableHead>Member</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
+                                        <TableHead>Timestamps</TableHead>
                                         <TableHead className="text-right">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {members.map((member) => {
-                                        const isCheckedIn = checkedInMemberIds.has(member.id);
+                                        const attendanceRecord = todaysAttendanceMap.get(member.id);
+                                        const isCheckedOut = !!attendanceRecord?.checkOutTime;
+                                        
                                         return (
                                             <TableRow key={member.id}>
                                                 <TableCell>
@@ -123,21 +148,55 @@ export default function AttendancePage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    {isCheckedIn ? (
-                                                        <Badge variant="default" className="bg-chart-2 text-primary-foreground hover:bg-chart-2/90">Checked In</Badge>
+                                                    {attendanceRecord ? (
+                                                        isCheckedOut ? (
+                                                            <Badge variant="outline">Completed</Badge>
+                                                        ) : (
+                                                            <Badge variant="default" className="bg-chart-2 text-primary-foreground hover:bg-chart-2/90">Checked In</Badge>
+                                                        )
                                                     ) : (
                                                         <Badge variant="secondary">Not Here</Badge>
                                                     )}
                                                 </TableCell>
+                                                <TableCell>
+                                                    <div className="text-sm text-muted-foreground space-y-1">
+                                                        {attendanceRecord?.checkInTime && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-semibold text-foreground">In:</span>
+                                                                <span>{format(parseISO(attendanceRecord.checkInTime), 'p')}</span>
+                                                            </div>
+                                                        )}
+                                                        {attendanceRecord?.checkOutTime && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-semibold text-foreground">Out:</span>
+                                                                <span>{format(parseISO(attendanceRecord.checkOutTime), 'p')}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => handleCheckIn(member)}
-                                                        disabled={isCheckedIn || loadingMemberId === member.id}
-                                                    >
-                                                        {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                                        Check In
-                                                    </Button>
+                                                    {!attendanceRecord ? (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleCheckIn(member)}
+                                                            disabled={loadingMemberId === member.id}
+                                                        >
+                                                            {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                            Check In
+                                                        </Button>
+                                                    ) : !isCheckedOut ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => handleCheckOut(attendanceRecord.id, member.id, member.name)}
+                                                            disabled={loadingMemberId === member.id}
+                                                        >
+                                                            {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+                                                            Check Out
+                                                        </Button>
+                                                    ) : (
+                                                      <span className="text-sm text-muted-foreground">-</span>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         )

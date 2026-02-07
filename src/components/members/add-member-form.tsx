@@ -28,6 +28,8 @@ import type { Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
+import Image from "next/image";
+import { uploadImage } from "@/app/actions";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -36,6 +38,7 @@ const formSchema = z.object({
   address: z.string().min(5, { message: "Address is too short." }),
   planId: z.string({ required_error: "Please select a membership plan." }),
   joinDate: z.string({ required_error: "Please select a joining date." }),
+  profilePicture: z.any().optional(),
 });
 
 type AddMemberFormProps = {
@@ -46,6 +49,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -64,6 +68,30 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     
+    let imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+
+    const imageFile = values.profilePicture?.[0];
+
+    if (imageFile) {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        const uploadResult = await uploadImage(formData);
+
+        if (uploadResult.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Image Upload Failed',
+                description: uploadResult.error,
+            });
+            setIsSubmitting(false);
+            return;
+        }
+        if (uploadResult.url) {
+            imageUrl = uploadResult.url;
+        }
+    }
+
+
     if (!plans) {
         toast({ variant: 'destructive', title: 'Error', description: 'Plans not loaded. Cannot calculate expiry date.' });
         setIsSubmitting(false);
@@ -78,12 +106,13 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     }
     
     const expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
-    const imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+    
+    const { profilePicture, ...dataToSave } = values;
 
     try {
       const membersCollection = collection(firestore, "members");
       await addDoc(membersCollection, {
-        ...values,
+        ...dataToSave,
         joinDate: new Date(values.joinDate).toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
@@ -112,7 +141,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
           <FormField
             control={form.control}
             name="memberId"
@@ -139,8 +168,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="mobileNumber"
@@ -170,44 +197,80 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               </FormItem>
             )}
           />
-        </div>
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Textarea placeholder="123, Main Street, Anytown..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="planId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Membership Plan</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
-                  </SelectTrigger>
+                  <Textarea placeholder="123, Main Street, Anytown..." {...field} />
                 </FormControl>
-                <SelectContent>
-                  {plans?.map(plan => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name} - ₹{plan.price}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="planId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Membership Plan</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {plans?.map(plan => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} - ₹{plan.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="profilePicture"
+            render={({ field: { onChange, value, ...rest } }) => (
+              <FormItem>
+                <FormLabel>Profile Picture</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        form.setValue('profilePicture', e.target.files)
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setImagePreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {imagePreview && (
+            <div className="col-span-2 flex items-center justify-center gap-4">
+                <Image src={imagePreview} alt="Profile preview" width={100} height={100} className="rounded-full object-cover aspect-square" />
+                 <Button type="button" variant="outline" size="sm" onClick={() => {
+                    form.setValue('profilePicture', null);
+                    setImagePreview(null);
+                 }}>Remove</Button>
+            </div>
           )}
-        />
+        </div>
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>

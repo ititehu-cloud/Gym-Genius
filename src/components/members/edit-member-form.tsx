@@ -37,7 +37,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "../ui/alert-dialog";
-
+import Image from "next/image";
+import { uploadImage } from "@/app/actions";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -47,6 +48,7 @@ const formSchema = z.object({
   planId: z.string({ required_error: "Please select a membership plan." }),
   joinDate: z.string({ required_error: "Please select a joining date." }),
   status: z.enum(['active', 'expired', 'due']),
+  profilePicture: z.any().optional(),
 });
 
 type EditMemberFormProps = {
@@ -60,6 +62,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(member.imageUrl);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -93,6 +96,31 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     setIsSubmitting(true);
     setConfirmationOpen(false);
 
+    let imageUrl = member.imageUrl;
+    const imageFile = values.profilePicture?.[0];
+
+    if (imageFile) {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        const uploadResult = await uploadImage(formData);
+
+        if (uploadResult.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Image Upload Failed',
+                description: uploadResult.error,
+            });
+            setIsSubmitting(false);
+            return;
+        }
+        if (uploadResult.url) {
+            imageUrl = uploadResult.url;
+        }
+    } else if (imagePreview === null) {
+        // This means the image was removed by the user
+        imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+    }
+
     if (!plans) {
       toast({ variant: 'destructive', title: 'Error', description: 'Plans not loaded.' });
       setIsSubmitting(false);
@@ -100,10 +128,13 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     }
 
     const memberDocRef = doc(firestore, "members", member.id);
+    
+    const { profilePicture, ...dataToSave } = values;
 
     const updateData: Partial<Member & {updatedAt: any}> = {
-        ...values,
+        ...dataToSave,
         joinDate: new Date(values.joinDate).toISOString(),
+        imageUrl: imageUrl,
         updatedAt: serverTimestamp()
     };
     
@@ -126,7 +157,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
         title: "Member Updated!",
         description: `${values.name}'s details have been successfully updated.`,
       });
-      form.reset(values);
+      form.reset({ ...values, profilePicture: null });
       setDialogOpen(false);
     } catch (error) {
       console.error("Error updating member:", error);
@@ -144,7 +175,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <FormField
               control={form.control}
               name="memberId"
@@ -171,8 +202,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 </FormItem>
               )}
             />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="mobileNumber"
@@ -202,21 +231,19 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                   </FormItem>
               )}
             />
-          </div>
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Address</FormLabel>
-                <FormControl>
-                  <Textarea placeholder="123, Main Street, Anytown..." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-2 gap-4">
+             <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="123, Main Street, Anytown..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="planId"
@@ -263,6 +290,42 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                       </FormItem>
                   )}
               />
+            <FormField
+            control={form.control}
+            name="profilePicture"
+            render={({ field: { onChange, value, ...rest } }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Profile Picture</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        form.setValue('profilePicture', e.target.files)
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setImagePreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           {imagePreview && (
+            <div className="col-span-2 flex items-center justify-center gap-4">
+                <Image src={imagePreview} alt="Profile preview" width={100} height={100} className="rounded-full object-cover aspect-square" />
+                 <Button type="button" variant="outline" size="sm" onClick={() => {
+                    form.setValue('profilePicture', null);
+                    setImagePreview(null);
+                 }}>Remove</Button>
+            </div>
+          )}
           </div>
           <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

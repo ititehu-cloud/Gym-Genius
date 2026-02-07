@@ -106,14 +106,14 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
   };
 
   return (
-    <Card ref={cardRef} className="overflow-hidden bg-card w-[322px] aspect-[85.6/54] flex flex-col rounded-xl shadow-lg justify-between">
+    <Card ref={cardRef} className="overflow-hidden bg-card w-[350px] aspect-[85.6/54] flex flex-col rounded-xl shadow-lg justify-between">
       <div>
           <div className="flex bg-primary text-primary-foreground font-headline">
               <div className="p-1 px-2 text-left w-1/2 flex items-center">
                 <h2 className="text-sm font-bold whitespace-pre-wrap">{gymName}</h2>
               </div>
               <div className="p-1 px-2 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
-                 <p className="text-[8px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+                 <p className="text-[7px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
               </div>
           </div>
           <div className="flex">
@@ -136,7 +136,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                 </div>
                 <div className="text-left text-[10px] w-full space-y-0 text-muted-foreground">
                     <div className='flex items-center gap-1'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
-                    <div className='flex items-center gap-1'><MapPin className='w-3 h-3' /><span className="truncate w-40">{member.address}</span></div>
+                    <div className='flex items-center gap-1'><MapPin className='w-3 h-3' /><span className="truncate w-48">{member.address}</span></div>
                     <div className='flex items-center gap-1'><Calendar className='w-3 h-3' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                     <div className='flex items-center gap-1'><Cake className='w-3 h-3' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
                 </div>

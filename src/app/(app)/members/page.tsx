@@ -110,7 +110,7 @@ function MemberList() {
         </div>
       </div>
       {filteredMembers && filteredMembers.length > 0 ? (
-        <div className="flex flex-wrap gap-6 justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 justify-items-center">
           {filteredMembers.map((member) => (
             <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} gymAddress={gymAddress} />
           ))}

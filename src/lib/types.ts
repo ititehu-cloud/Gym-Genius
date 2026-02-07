@@ -30,6 +30,6 @@ export type Payment = {
 export type Attendance = {
   id: string;
   memberId: string;
-  date: string;
-  status: 'present' | 'absent';
+  checkInTime: string; // ISO string
+  checkOutTime?: string; // ISO string
 };

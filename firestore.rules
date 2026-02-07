@@ -133,18 +133,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages member attendance records. Access is restricted to the member owner.
+     * @description Manages member attendance records. Intended to be managed by authenticated staff.
      * @path /attendance/{attendanceId}
-     * @allow (create) User 'user_123' can create an attendance record with { memberId: 'user_123', ... }.
-     * @deny (list) No user can list all attendance records in the collection.
-     * @principle Enforces document ownership for reads and writes via a denormalized 'memberId' field.
+     * @allow (read, list, create, update, delete) Any signed-in user (staff) can manage attendance records.
+     * @principle Allows dashboard users to perform CRUD operations on gym member attendance.
      */
     match /attendance/{attendanceId} {
-      allow get: if isExistingRecordOwner();
-      allow list: if false;
-      allow create: if isIncomingRecordOwner();
-      allow update: if isExistingRecordOwner() && isExistingDoc() && hasImmutableRecordMembership();
-      allow delete: if isExistingRecordOwner() && isExistingDoc();
+      allow read, list, create, update, delete: if isSignedIn();
     }
 
     /**

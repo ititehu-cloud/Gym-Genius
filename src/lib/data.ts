@@ -1,5 +1,5 @@
 import { subMonths, addMonths, format, subDays, addDays } from 'date-fns';
-import type { Member, Plan, Payment, Attendance } from './types';
+import type { Member, Plan, Payment } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const today = new Date();
@@ -27,19 +27,4 @@ export const payments: Payment[] = [
   { id: 'pay-5', memberId: 'mem-5', amount: 135, date: format(subMonths(today, 1), 'yyyy-MM-dd'), status: 'pending' },
   { id: 'pay-6', memberId: 'mem-6', amount: 50, date: format(today, 'yyyy-MM-dd'), status: 'paid' },
   { id: 'pay-7', memberId: 'mem-2', amount: 50, date: format(today, 'yyyy-MM-dd'), status: 'paid' },
-];
-
-export const attendance: Attendance[] = [
-  // Member 1: regular attendance
-  { id: 'att-1', memberId: 'mem-1', date: format(today, 'yyyy-MM-dd'), status: 'present' },
-  { id: 'att-2', memberId: 'mem-1', date: format(subDays(today, 2), 'yyyy-MM-dd'), status: 'present' },
-  { id: 'att-3', memberId: 'mem-1', date: format(subDays(today, 4), 'yyyy-MM-dd'), status: 'present' },
-  // Member 2: recent drop-off
-  { id: 'att-4', memberId: 'mem-2', date: format(subDays(today, 15), 'yyyy-MM-dd'), status: 'present' },
-  { id: 'att-5', memberId: 'mem-2', date: format(subDays(today, 17), 'yyyy-MM-dd'), status: 'present' },
-  // Member 3: consistent
-  { id: 'att-6', memberId: 'mem-3', date: format(subDays(today, 1), 'yyyy-MM-dd'), status: 'present' },
-  { id: 'att-7', memberId: 'mem-3', date: format(subDays(today, 3), 'yyyy-MM-dd'), status: 'present' },
-  // Member 5: payment pending, still attending
-  { id: 'att-8', memberId: 'mem-5', date: format(subDays(today, 1), 'yyyy-MM-dd'), status: 'present' },
 ];

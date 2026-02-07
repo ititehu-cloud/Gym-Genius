@@ -38,28 +38,21 @@
         },
         "memberId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Attendance)"
-        },
-        "attendanceDate": {
-          "type": "string",
-          "description": "Date of the attendance.",
-          "format": "date-time"
+          "description": "Reference to Member. (Relationship: Member 1:N Attendance)"
         },
         "checkInTime": {
           "type": "string",
-          "description": "Time when the member checked in.",
+          "description": "Timestamp when the member checked in.",
           "format": "date-time"
         },
         "checkOutTime": {
           "type": "string",
-          "description": "Time when the member checked out.",
+          "description": "Timestamp when the member checked out.",
           "format": "date-time"
         }
       },
       "required": [
-        "id",
         "memberId",
-        "attendanceDate",
         "checkInTime"
       ]
     },
@@ -75,7 +68,7 @@
         },
         "memberId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Payment)"
+          "description": "Reference to Member. (Relationship: Member 1:N Payment)"
         },
         "paymentDate": {
           "type": "string",

@@ -19,7 +19,7 @@
           "description": "The user's email address.",
           "format": "email"
         },
-        "address": {
+        "displayAddress": {
           "type": "string",
           "description": "The gym's display address."
         }

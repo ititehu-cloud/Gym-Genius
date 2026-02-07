@@ -70,7 +70,7 @@ function MemberList() {
   const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
 
   const gymName = userProfile?.displayName || user?.email;
-  const gymAddress = userProfile?.address;
+  const gymAddress = userProfile?.displayAddress;
 
   if (isLoading) {
     return (

@@ -2,50 +2,56 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { LoaderCircle, UserCheck, LogOut } from "lucide-react";
+import { LoaderCircle, UserCheck, LogOut, CalendarIcon } from "lucide-react";
 import type { Member, Attendance } from "@/lib/types";
 import { useMemo, useState } from "react";
-import { startOfDay, endOfDay, format, parseISO } from "date-fns";
+import { startOfDay, endOfDay, format, parseISO, isSameDay } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 export default function AttendancePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
     const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
-    const todayRange = useMemo(() => {
-        const now = new Date();
+    const selectedDateRange = useMemo(() => {
+        const start = startOfDay(selectedDate);
+        const end = endOfDay(selectedDate);
         return {
-            start: startOfDay(now).toISOString(),
-            end: endOfDay(now).toISOString()
+            start: start.toISOString(),
+            end: end.toISOString()
         };
-    }, []);
+    }, [selectedDate]);
 
     const attendanceQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
             collection(firestore, "attendance"),
-            where("checkInTime", ">=", todayRange.start),
-            where("checkInTime", "<=", todayRange.end)
+            where("checkInTime", ">=", selectedDateRange.start),
+            where("checkInTime", "<=", selectedDateRange.end)
         );
-    }, [firestore, todayRange]);
+    }, [firestore, selectedDateRange]);
 
-    const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+    const { data: selectedDateAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
-    const todaysAttendanceMap = useMemo(() => {
-        if (!todaysAttendance) return new Map<string, Attendance>();
-        return new Map(todaysAttendance.map(att => [att.memberId, att]));
-    }, [todaysAttendance]);
+    const attendanceMap = useMemo(() => {
+        if (!selectedDateAttendance) return new Map<string, Attendance>();
+        return new Map(selectedDateAttendance.map(att => [att.memberId, att]));
+    }, [selectedDateAttendance]);
 
     const isLoading = isLoadingMembers || isLoadingAttendance;
+    const isToday = isSameDay(selectedDate, new Date());
 
     const handleCheckIn = async (member: Member) => {
         setLoadingMemberId(member.id);
@@ -105,15 +111,37 @@ export default function AttendancePage() {
 
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            <div className="flex items-center">
-                <h1 className="text-2xl font-headline font-semibold">Today's Attendance</h1>
-                <Badge variant="outline" className="ml-4">{format(new Date(), 'MMMM do, yyyy')}</Badge>
+            <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-headline font-semibold">Attendance</h1>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-[240px] justify-start text-left font-normal",
+                                !selectedDate && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => date && setSelectedDate(date)}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Member Check-in</CardTitle>
                     <CardDescription>
-                        {`Mark members as present for today. ${todaysAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
+                        {isToday ? 'Mark members as present for today. ' : `Viewing attendance for ${format(selectedDate, 'MMMM do, yyyy')}. `}
+                        {`${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -130,7 +158,7 @@ export default function AttendancePage() {
                                 </TableHeader>
                                 <TableBody>
                                     {members.map((member) => {
-                                        const attendanceRecord = todaysAttendanceMap.get(member.id);
+                                        const attendanceRecord = attendanceMap.get(member.id);
                                         const isCheckedOut = !!attendanceRecord?.checkOutTime;
                                         
                                         return (
@@ -175,7 +203,7 @@ export default function AttendancePage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {!attendanceRecord ? (
+                                                    {!attendanceRecord && isToday ? (
                                                         <Button
                                                             size="sm"
                                                             onClick={() => handleCheckIn(member)}
@@ -184,7 +212,7 @@ export default function AttendancePage() {
                                                             {loadingMemberId === member.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                                             Check In
                                                         </Button>
-                                                    ) : !isCheckedOut ? (
+                                                    ) : attendanceRecord && !isCheckedOut && isToday ? (
                                                         <Button
                                                             size="sm"
                                                             variant="outline"

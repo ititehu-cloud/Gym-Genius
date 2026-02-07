@@ -8,7 +8,7 @@ import { format, parseISO, isSameDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Member, Payment } from "@/lib/types";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, Suspense } from "react";
 import RecordPaymentDialog from "@/components/payments/record-payment-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,14 +19,29 @@ import DeletePaymentDialog from "@/components/payments/delete-payment-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 
 
-export default function PaymentsPage() {
+function PaymentsList() {
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get('status') as "all" | "paid" | "pending" | null;
+  const dateParam = searchParams.get('date');
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+    if (dateParam === 'today') {
+      setSelectedDate(new Date());
+    }
+  }, [statusParam, dateParam]);
 
   const paymentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -79,7 +94,7 @@ export default function PaymentsPage() {
         });
         return;
     }
-    const message = `Hello ${member.name}, your payment has been received.\n\nDetails:\nAmount: ₹${payment.amount.toFixed(2)}\nDate: ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}\nType: ${payment.paymentType}\nStatus: ${payment.status}\n\nThank you!`;
+    const message = `Hello ${member.name}, your payment of ₹${payment.amount.toFixed(2)} for ${payment.paymentType} plan has been received on ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}.\n\nStatus: ${payment.status}\n\nThank you!`;
     const whatsappUrl = `https://wa.me/${member.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -206,4 +221,12 @@ export default function PaymentsPage() {
       </Card>
     </main>
   );
+}
+
+export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <PaymentsList />
+    </Suspense>
+  )
 }

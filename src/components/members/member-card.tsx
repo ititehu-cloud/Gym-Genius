@@ -27,12 +27,12 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const expiry = parseISO(member.expiryDate);
     if (expiry < today) {
       return 'expired';
     }
-    // You could add 'due' logic here if needed
-    return 'active';
+    return member.status;
   }
 
   const status = getStatus();
@@ -106,43 +106,45 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
   };
 
   return (
-    <Card ref={cardRef} className="overflow-hidden bg-card w-[322px] aspect-[85.6/54] flex flex-col rounded-xl shadow-lg">
-      <div className="flex bg-primary text-primary-foreground font-headline">
-          <div className="p-3 text-left w-1/2 flex items-center">
-            <h2 className="text-md font-bold whitespace-pre-wrap">{gymName}</h2>
+    <Card ref={cardRef} className="overflow-hidden bg-card w-[322px] aspect-[85.6/54] flex flex-col rounded-xl shadow-lg justify-between">
+      <div>
+          <div className="flex bg-primary text-primary-foreground font-headline">
+              <div className="p-2 text-left w-1/2 flex items-center">
+                <h2 className="text-sm font-bold whitespace-pre-wrap">{gymName}</h2>
+              </div>
+              <div className="p-1 px-2 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
+                 <p className="text-[9px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+              </div>
           </div>
-          <div className="p-2 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
-             <p className="text-[10px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+          <div className="flex">
+            <div className="p-2 flex justify-center items-center">
+                <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
+                    <Image
+                        src={member.imageUrl}
+                        alt={`Photo of ${member.name}`}
+                        fill
+                        className="object-cover"
+                        crossOrigin="anonymous" // Required for html2canvas with external images
+                    />
+                </div>
+            </div>
+            <CardContent className="p-2 pt-2 flex flex-col justify-center items-start">
+                <div className='text-left mb-1'>
+                    <h3 className="text-base font-bold font-headline leading-tight">{member.name}</h3>
+                    {member.memberId && <p className="text-xs text-muted-foreground">ID: {member.memberId}</p>}
+                    <p className="text-xs text-muted-foreground">{planName} Plan</p>
+                </div>
+                <div className="text-left text-[10px] w-full space-y-0 text-muted-foreground">
+                    <div className='flex items-center gap-1'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
+                    <div className='flex items-center gap-1'><MapPin className='w-3 h-3' /><span>{member.address}</span></div>
+                    <div className='flex items-center gap-1'><Calendar className='w-3 h-3' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
+                    <div className='flex items-center gap-1'><Cake className='w-3 h-3' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
+                </div>
+                <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-xs px-1.5 py-0 mt-1">{status}</Badge>
+            </CardContent>
           </div>
       </div>
-      <div className="flex flex-grow">
-        <div className="p-3 flex justify-center items-start">
-            <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
-                <Image
-                    src={member.imageUrl}
-                    alt={`Photo of ${member.name}`}
-                    fill
-                    className="object-cover"
-                    crossOrigin="anonymous" // Required for html2canvas with external images
-                />
-            </div>
-        </div>
-        <CardContent className="p-3 pt-2 flex flex-col justify-center items-start">
-            <div className='text-left mb-2'>
-                <h3 className="text-base font-bold font-headline">{member.name}</h3>
-                {member.memberId && <p className="text-xs text-muted-foreground">ID: {member.memberId}</p>}
-                <p className="text-xs text-muted-foreground">{planName} Plan</p>
-            </div>
-            <div className="text-left text-[11px] w-full space-y-0.5 text-muted-foreground mb-2">
-                <div className='flex items-center gap-1.5'><Phone className='w-3 h-3' /><span>{member.mobileNumber}</span></div>
-                <div className='flex items-center gap-1.5'><MapPin className='w-3 h-3' /><span>{member.address}</span></div>
-                <div className='flex items-center gap-1.5'><Calendar className='w-3 h-3' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-                <div className='flex items-center gap-1.5'><Cake className='w-3 h-3' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
-            </div>
-            <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
-        </CardContent>
-      </div>
-      <CardFooter className="p-2 bg-muted/50 flex items-center justify-around">
+      <CardFooter className="p-1 bg-muted/50 flex items-center justify-around">
         <EditMemberDialog member={member} />
         <DeleteMemberDialog memberId={member.id} memberName={member.name} />
         <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing}>

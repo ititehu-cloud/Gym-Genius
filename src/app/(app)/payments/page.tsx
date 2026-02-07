@@ -1,10 +1,10 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoaderCircle, Share2 } from "lucide-react";
+import { LoaderCircle, Share2, CalendarIcon, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Member, Payment } from "@/lib/types";
@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import EditPaymentDialog from "@/components/payments/edit-payment-dialog";
 import DeletePaymentDialog from "@/components/payments/delete-payment-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 
 export default function PaymentsPage() {
@@ -23,6 +26,7 @@ export default function PaymentsPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const paymentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -45,6 +49,10 @@ export default function PaymentsPage() {
     if (!payments) return [];
     let filtered = payments;
 
+    if (selectedDate) {
+        filtered = filtered.filter(p => isSameDay(parseISO(p.paymentDate), selectedDate));
+    }
+
     if (statusFilter !== "all") {
       filtered = filtered.filter(p => p.status === statusFilter);
     }
@@ -57,7 +65,7 @@ export default function PaymentsPage() {
     }
 
     return filtered;
-  }, [payments, searchQuery, statusFilter, memberMap]);
+  }, [payments, searchQuery, statusFilter, memberMap, selectedDate]);
   
   const isLoading = isLoadingPayments || isLoadingMembers;
 
@@ -105,6 +113,34 @@ export default function PaymentsPage() {
                     <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
             </Select>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-[240px] justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
+            {selectedDate && (
+                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Clear date filter</span>
+                </Button>
+            )}
             <RecordPaymentDialog members={members || []} />
         </div>
       </div>
@@ -161,7 +197,7 @@ export default function PaymentsPage() {
                     <div className="text-center">
                         <h3 className="text-2xl font-bold tracking-tight">No payments found</h3>
                         <p className="text-sm text-muted-foreground">
-                            {searchQuery || statusFilter !== 'all' ? "Your filter returned no results." : "Record a payment to see it here."}
+                            {searchQuery || statusFilter !== 'all' || selectedDate ? "Your filter returned no results." : "Record a payment to see it here."}
                         </p>
                     </div>
                 </div>

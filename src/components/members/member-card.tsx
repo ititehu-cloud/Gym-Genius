@@ -10,6 +10,8 @@ import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle } from 'lucide-reac
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
+import EditMemberDialog from './edit-member-dialog';
+import DeleteMemberDialog from './delete-member-dialog';
 
 type MemberCardProps = {
   member: Member;
@@ -139,14 +141,16 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
             <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
         </CardContent>
       </div>
-      <CardFooter className="p-3 bg-muted/50">
-        <Button className="w-full" size="sm" onClick={handleShare} disabled={isSharing}>
+      <CardFooter className="p-2 bg-muted/50 grid grid-cols-3 gap-2">
+        <EditMemberDialog member={member} />
+        <DeleteMemberDialog memberId={member.id} memberName={member.name} />
+        <Button variant="outline" size="sm" onClick={handleShare} disabled={isSharing}>
           {isSharing ? (
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            <LoaderCircle className="h-4 w-4 animate-spin" />
           ) : (
-            <Share2 className="mr-2 h-4 w-4" />
+            <Share2 className="h-4 w-4" />
           )}
-          Share on WhatsApp
+          <span className='hidden sm:inline ml-2'>Share</span>
         </Button>
       </CardFooter>
     </Card>

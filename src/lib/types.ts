@@ -23,8 +23,10 @@ export type Payment = {
   id: string;
   memberId: string;
   amount: number;
-  date: string;
+  paymentDate: string; // Should be ISO string
   status: 'paid' | 'pending';
+  paymentMethod: string;
+  invoiceNumber?: string;
 };
 
 export type Attendance = {

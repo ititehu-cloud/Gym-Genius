@@ -143,18 +143,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages member payment records. Access is restricted to the member owner.
+     * @description Manages member payment records. Intended to be managed by authenticated staff.
      * @path /payments/{paymentId}
-     * @allow (get) User 'user_123' can read a payment document where `resource.data.memberId` is 'user_123'.
-     * @deny (update) User 'user_456' cannot update a payment document where `resource.data.memberId` is 'user_123'.
-     * @principle Enforces document ownership for reads and writes via a denormalized 'memberId' field.
+     * @allow (read, list, write) Any signed-in user (staff) can manage payment records.
+     * @principle Allows dashboard users to perform CRUD operations on gym member payments.
      */
     match /payments/{paymentId} {
-      allow get: if isExistingRecordOwner();
-      allow list: if false;
-      allow create: if isIncomingRecordOwner();
-      allow update: if isExistingRecordOwner() && isExistingDoc() && hasImmutableRecordMembership();
-      allow delete: if isExistingRecordOwner() && isExistingDoc();
+      allow read, list, create, update, delete: if isSignedIn();
     }
 
     /**

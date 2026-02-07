@@ -86,6 +86,14 @@
         "invoiceNumber": {
           "type": "string",
           "description": "Invoice number for the payment."
+        },
+        "status": {
+          "type": "string",
+          "description": "The payment's current status.",
+          "enum": [
+            "paid",
+            "pending"
+          ]
         }
       },
       "required": [
@@ -93,7 +101,8 @@
         "memberId",
         "paymentDate",
         "amount",
-        "paymentMethod"
+        "paymentMethod",
+        "status"
       ]
     },
     "Plan": {

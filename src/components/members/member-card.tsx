@@ -112,7 +112,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
             <h2 className="text-md font-bold whitespace-pre-wrap">{gymName}</h2>
           </div>
           <div className="p-3 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
-             <p className="text-xs whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+             <p className="text-[10px] leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
           </div>
       </div>
       <div className="flex">

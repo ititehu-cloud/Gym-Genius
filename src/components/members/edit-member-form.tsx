@@ -20,8 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { addMonths, format, parseISO } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -29,8 +28,6 @@ import type { Member, Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -227,41 +224,24 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             control={form.control}
             name="joinDate"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Joining Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+                <FormItem>
+                    <FormLabel>Joining Date</FormLabel>
                     <FormControl>
-                      <Button
-                        variant={"outline"}
-                        type="button"
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
+                        <Input
+                            type="date"
+                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                            onChange={(e) => {
+                                const date = e.target.value ? new Date(`${e.target.value}T00:00:00`) : null;
+                                if (date) {
+                                    field.onChange(date);
+                                }
+                            }}
+                        />
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
+                    <FormMessage />
+                </FormItem>
             )}
-          />
+            />
            <FormField
                 control={form.control}
                 name="status"
@@ -311,7 +291,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </>
+      </>
   );
 }

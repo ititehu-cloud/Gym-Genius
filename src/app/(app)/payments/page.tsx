@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import EditPaymentDialog from "@/components/payments/edit-payment-dialog";
+import DeletePaymentDialog from "@/components/payments/delete-payment-dialog";
 
 
 export default function PaymentsPage() {
@@ -127,9 +129,11 @@ export default function PaymentsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredPayments.map(payment => (
+                            {filteredPayments.map(payment => {
+                                const memberName = memberMap.get(payment.memberId)?.name || 'Unknown Member';
+                                return (
                                 <TableRow key={payment.id}>
-                                    <TableCell>{memberMap.get(payment.memberId)?.name || 'Unknown Member'}</TableCell>
+                                    <TableCell>{memberName}</TableCell>
                                     <TableCell>₹{payment.amount.toFixed(2)}</TableCell>
                                     <TableCell>{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</TableCell>
                                     <TableCell className="capitalize">{payment.paymentMethod}</TableCell>
@@ -138,13 +142,17 @@ export default function PaymentsPage() {
                                         <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className="capitalize">{payment.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="outline" size="icon" onClick={() => handleShare(payment)}>
-                                            <Share2 className="h-4 w-4" />
-                                            <span className="sr-only">Share on WhatsApp</span>
-                                        </Button>
+                                        <div className="flex justify-end items-center gap-2">
+                                            <EditPaymentDialog payment={payment} members={members || []} />
+                                            <DeletePaymentDialog paymentId={payment.id} memberName={memberName} />
+                                            <Button variant="outline" size="icon" onClick={() => handleShare(payment)}>
+                                                <Share2 className="h-4 w-4" />
+                                                <span className="sr-only">Share on WhatsApp</span>
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </div>

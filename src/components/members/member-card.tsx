@@ -130,6 +130,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
         <CardContent className="p-4 pt-4 flex flex-col justify-center items-start">
             <div className='text-left mb-3'>
                 <h3 className="text-lg font-bold font-headline">{member.name}</h3>
+                {member.memberId && <p className="text-sm text-muted-foreground">ID: {member.memberId}</p>}
                 <p className="text-xs text-muted-foreground">{planName} Plan</p>
             </div>
             <div className="text-left text-xs w-full space-y-1 text-muted-foreground mb-3">

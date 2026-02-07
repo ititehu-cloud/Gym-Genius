@@ -147,6 +147,10 @@
           "type": "string",
           "description": "Unique identifier for the member."
         },
+        "memberId": {
+          "type": "string",
+          "description": "The member's custom display ID."
+        },
         "name": {
           "type": "string",
           "description": "The member's full name."
@@ -190,6 +194,7 @@
       },
       "required": [
         "id",
+        "memberId",
         "name",
         "mobileNumber",
         "address",

@@ -34,6 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
+  memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
   address: z.string().min(5, { message: "Address is too short." }),
@@ -56,6 +57,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      memberId: "",
       name: "",
       mobileNumber: "",
       address: "",
@@ -114,6 +116,19 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="memberId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Member ID</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., GYM-001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="name"

@@ -43,6 +43,7 @@ import {
 
 
 const formSchema = z.object({
+  memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
   address: z.string().min(5, { message: "Address is too short." }),
@@ -69,6 +70,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      memberId: member.memberId || '',
       name: member.name,
       mobileNumber: member.mobileNumber,
       address: member.address,
@@ -145,6 +147,19 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="memberId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Member ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., GYM-001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="name"

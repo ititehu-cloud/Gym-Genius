@@ -291,6 +291,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
-      </>
+      </AlertDialog>
+    </>
   );
 }

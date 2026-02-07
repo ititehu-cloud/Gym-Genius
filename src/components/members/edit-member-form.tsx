@@ -63,7 +63,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -230,7 +229,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Joining Date</FormLabel>
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -254,10 +253,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={(date) => {
-                        field.onChange(date);
-                        setIsCalendarOpen(false);
-                      }}
+                      onSelect={field.onChange}
                       initialFocus
                     />
                   </PopoverContent>

@@ -2,7 +2,6 @@
 
 import { DollarSign, UserCheck, Users, CalendarX, Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import StatsCard from "@/components/dashboard/stats-card";
-import AtRiskMembers from "@/components/dashboard/at-risk-members";
 import { format, isSameDay, isThisMonth, parseISO } from "date-fns";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -119,8 +118,6 @@ export default function DashboardPage() {
         <Link href="/payments?status=paid"><StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} color="text-chart-5" className="bg-chart-5/10" /></Link>
         <Link href="/payments?status=pending"><StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} color="text-destructive" className="bg-destructive/10" /></Link>
       </div>
-      
-      <AtRiskMembers />
     </main>
   );
 }

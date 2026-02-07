@@ -64,11 +64,16 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
     
     try {
       const paymentsCollection = collection(firestore, "payments");
-      await addDoc(paymentsCollection, {
-        ...values,
+      const { invoiceNumber, ...rest } = values;
+
+      const dataToSave = {
+        ...rest,
         paymentDate: values.paymentDate.toISOString(),
-        createdAt: serverTimestamp()
-      });
+        createdAt: serverTimestamp(),
+        ...(invoiceNumber && { invoiceNumber }), // Conditionally add invoiceNumber if it has a value
+      };
+
+      await addDoc(paymentsCollection, dataToSave);
 
       toast({
         title: "Payment Recorded!",

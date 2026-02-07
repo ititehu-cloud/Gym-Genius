@@ -36,6 +36,7 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   paymentDate: z.date({ required_error: "Please select a payment date." }),
   paymentMethod: z.string().min(1, { message: "Payment method cannot be empty." }),
+  paymentType: z.enum(['monthly', 'renewal', 'advance'], { required_error: "Please select a payment type." }),
   status: z.enum(['paid', 'pending']),
   invoiceNumber: z.string().optional(),
 });
@@ -56,6 +57,7 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
       paymentDate: new Date(),
       status: 'paid',
       paymentMethod: 'cash',
+      paymentType: 'monthly',
     },
   });
 
@@ -192,6 +194,29 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
                     <SelectItem value="credit card">Credit Card</SelectItem>
                     <SelectItem value="bank transfer">Bank Transfer</SelectItem>
                     <SelectItem value="upi">UPI</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="paymentType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Type</FormLabel>
+               <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a payment type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="renewal">Renewal</SelectItem>
+                    <SelectItem value="advance">Advance</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

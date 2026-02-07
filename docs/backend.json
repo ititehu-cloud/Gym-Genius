@@ -83,6 +83,15 @@
           "type": "string",
           "description": "Payment method used (e.g., cash, credit card)."
         },
+        "paymentType": {
+          "type": "string",
+          "description": "The type of payment.",
+          "enum": [
+            "monthly",
+            "renewal",
+            "advance"
+          ]
+        },
         "invoiceNumber": {
           "type": "string",
           "description": "Invoice number for the payment."
@@ -102,6 +111,7 @@
         "paymentDate",
         "amount",
         "paymentMethod",
+        "paymentType",
         "status"
       ]
     },

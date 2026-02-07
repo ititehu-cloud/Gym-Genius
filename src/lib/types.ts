@@ -26,6 +26,7 @@ export type Payment = {
   paymentDate: string; // Should be ISO string
   status: 'paid' | 'pending';
   paymentMethod: string;
+  paymentType: 'monthly' | 'renewal' | 'advance';
   invoiceNumber?: string;
 };
 

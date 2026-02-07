@@ -1,12 +1,12 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { LoaderCircle, Tags } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
 import AddPlanDialog from "@/components/plans/add-plan-dialog";
+import EditPlanDialog from "@/components/plans/edit-plan-dialog";
 
 export default function PlansPage() {
   const firestore = useFirestore();
@@ -44,7 +44,7 @@ export default function PlansPage() {
                       <p className="text-4xl font-bold">₹{plan.price}</p>
                   </CardContent>
                   <CardFooter>
-                      <Button variant="outline" className="w-full">Edit Plan</Button>
+                      <EditPlanDialog plan={plan} />
                   </CardFooter>
               </Card>
           ))}

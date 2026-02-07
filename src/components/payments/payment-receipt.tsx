@@ -27,6 +27,9 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <div className="w-1/3 text-right">
             <h1 className="text-2xl font-bold uppercase">Receipt</h1>
             <p className="text-xs">#{payment.invoiceNumber || payment.id.slice(-6).toUpperCase()}</p>
+            <div className={`mt-2 text-lg font-bold uppercase ${payment.status === 'paid' ? 'text-chart-2' : 'text-destructive'}`}>
+              {payment.status}
+            </div>
           </div>
         </header>
 

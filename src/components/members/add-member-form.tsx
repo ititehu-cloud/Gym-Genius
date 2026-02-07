@@ -35,7 +35,7 @@ const formSchema = z.object({
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
   address: z.string().min(5, { message: "Address is too short." }),
   planId: z.string({ required_error: "Please select a membership plan." }),
-  joinDate: z.date({ required_error: "Please select a joining date." }),
+  joinDate: z.string({ required_error: "Please select a joining date." }),
 });
 
 type AddMemberFormProps = {
@@ -57,7 +57,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       name: "",
       mobileNumber: "",
       address: "",
-      joinDate: new Date(),
+      joinDate: format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
@@ -77,14 +77,14 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         return;
     }
     
-    const expiryDate = addMonths(values.joinDate, selectedPlan.duration);
+    const expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
     const imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
 
     try {
       const membersCollection = collection(firestore, "members");
       await addDoc(membersCollection, {
         ...values,
-        joinDate: values.joinDate.toISOString(),
+        joinDate: new Date(values.joinDate).toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
         imageUrl: imageUrl,
@@ -112,45 +112,65 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="memberId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Member ID</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., GYM-001" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="mobileNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mobile Number</FormLabel>
-              <FormControl>
-                <Input placeholder="9876543210" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="memberId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Member ID</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., GYM-001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="mobileNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="9876543210" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="joinDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Joining Date</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="address"
@@ -184,28 +204,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="joinDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Joining Date</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                  onChange={(e) => {
-                    const date = e.target.value ? new Date(`${e.target.value}T00:00:00`) : null;
-                    if (date) {
-                      field.onChange(date);
-                    }
-                  }}
-                />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}

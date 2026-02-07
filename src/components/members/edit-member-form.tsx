@@ -45,7 +45,7 @@ const formSchema = z.object({
   mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
   address: z.string().min(5, { message: "Address is too short." }),
   planId: z.string({ required_error: "Please select a membership plan." }),
-  joinDate: z.date({ required_error: "Please select a joining date." }),
+  joinDate: z.string({ required_error: "Please select a joining date." }),
   status: z.enum(['active', 'expired', 'due']),
 });
 
@@ -72,13 +72,13 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
       mobileNumber: member.mobileNumber,
       address: member.address,
       planId: member.planId,
-      joinDate: parseISO(member.joinDate),
+      joinDate: format(parseISO(member.joinDate), 'yyyy-MM-dd'),
       status: member.status,
     },
   });
 
   const planChanged = form.watch('planId') !== member.planId;
-  const joinDateChanged = form.watch('joinDate')?.toISOString().split('T')[0] !== parseISO(member.joinDate).toISOString().split('T')[0];
+  const joinDateChanged = form.watch('joinDate') !== format(parseISO(member.joinDate), 'yyyy-MM-dd');
 
   function onFormSubmit(values: z.infer<typeof formSchema>) {
     setFormData(values);
@@ -103,7 +103,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
 
     const updateData: Partial<Member & {updatedAt: any}> = {
         ...values,
-        joinDate: values.joinDate.toISOString(),
+        joinDate: new Date(values.joinDate).toISOString(),
         updatedAt: serverTimestamp()
     };
     
@@ -114,7 +114,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             setIsSubmitting(false);
             return;
         }
-        const newExpiryDate = addMonths(values.joinDate, selectedPlan.duration);
+        const newExpiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
         updateData.expiryDate = newExpiryDate.toISOString();
     }
 
@@ -144,45 +144,65 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="memberId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Member ID</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., GYM-001" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="mobileNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mobile Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="9876543210" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="memberId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Member ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., GYM-001" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="mobileNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="9876543210" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="joinDate"
+              render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Joining Date</FormLabel>
+                      <FormControl>
+                          <Input
+                              type="date"
+                              {...field}
+                          />
+                      </FormControl>
+                      <FormMessage />
+                  </FormItem>
+              )}
+            />
+          </div>
           <FormField
             control={form.control}
             name="address"
@@ -196,74 +216,54 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="planId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Membership Plan</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {plans?.map(plan => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name} - ₹{plan.price}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="joinDate"
-            render={({ field }) => (
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="planId"
+              render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Joining Date</FormLabel>
+                  <FormLabel>Membership Plan</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
                     <FormControl>
-                        <Input
-                            type="date"
-                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                                const date = e.target.value ? new Date(`${e.target.value}T00:00:00`) : null;
-                                if (date) {
-                                    field.onChange(date);
-                                }
-                            }}
-                        />
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingPlans ? "Loading plans..." : "Select a plan"} />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
+                    <SelectContent>
+                      {plans?.map(plan => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name} - ₹{plan.price}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
-           <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select member status" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="expired">Expired</SelectItem>
-                                <SelectItem value="due">Due</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
+            <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select member status" />
+                                  </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="active">Active</SelectItem>
+                                  <SelectItem value="expired">Expired</SelectItem>
+                                  <SelectItem value="due">Due</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                  )}
+              />
+          </div>
           <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>

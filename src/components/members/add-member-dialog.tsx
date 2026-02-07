@@ -24,7 +24,7 @@ export default function AddMemberDialog() {
           Add Member
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add New Member</DialogTitle>
           <DialogDescription>

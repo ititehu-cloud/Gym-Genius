@@ -29,7 +29,7 @@ export default function EditMemberDialog({ member }: EditMemberDialogProps) {
           <span className="sr-only">Edit Member</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit Member Details</DialogTitle>
           <DialogDescription>

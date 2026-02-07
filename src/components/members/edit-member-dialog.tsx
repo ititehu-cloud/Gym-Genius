@@ -24,9 +24,9 @@ export default function EditMemberDialog({ member }: EditMemberDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="icon">
           <FilePenLine className="h-4 w-4" />
-          <span className="hidden sm:inline ml-2">Edit</span>
+          <span className="sr-only">Edit Member</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">

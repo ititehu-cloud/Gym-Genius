@@ -50,6 +50,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -198,7 +199,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Joining Date</FormLabel>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -222,7 +223,10 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      field.onChange(date);
+                      setIsCalendarOpen(false);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>

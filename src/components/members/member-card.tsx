@@ -107,7 +107,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
 
   return (
     <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
-      <div ref={cardRef} className="p-4">
+      <div ref={cardRef} className="p-4 bg-white pb-6">
           <div className="flex bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center">
                 <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>
@@ -136,7 +136,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                 </div>
                 <div className="text-left text-xs w-full space-y-0.5 text-muted-foreground mt-2">
                     <div className='flex items-center gap-2'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
-                    <div className='flex items-center gap-2'><MapPin className='w-4 h-4' /><span className="truncate w-56">{member.address}</span></div>
+                    <div className='flex items-start gap-2'><MapPin className='w-4 h-4 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
                     <div className='flex items-center gap-2'><Calendar className='w-4 h-4' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                     <div className='flex items-center gap-2'><Cake className='w-4 h-4' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
                 </div>

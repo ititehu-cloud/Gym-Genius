@@ -116,7 +116,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                  <p className="text-xs leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
               </div>
           </div>
-          <div className="flex">
+          <div className="flex pb-4">
             <div className="p-3 flex justify-center items-center">
                 <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
                     <Image

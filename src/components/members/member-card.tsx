@@ -107,7 +107,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
 
   return (
     <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
-      <div ref={cardRef} className="p-4 bg-white pb-6">
+      <div ref={cardRef} className="p-4 bg-white pb-8">
           <div className="flex bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center">
                 <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>

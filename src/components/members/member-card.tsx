@@ -119,7 +119,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   return (
     <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
       <div ref={cardRef} className="p-4 bg-white pb-12">
-          <div className="flex bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
+          <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center gap-2">
                 {gymIconUrl && (
                   <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
@@ -134,7 +134,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
                 )}
                 <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>
               </div>
-              <div className="p-2 px-3 text-left w-1/2 border-l-2 border-primary-foreground/30 flex items-center">
+              <div className="p-2 px-3 text-left w-1/2 border-l-2 border-primary-foreground/30">
                  <p className="text-xs leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
               </div>
           </div>

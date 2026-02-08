@@ -46,18 +46,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <Sidebar>
         <SidebarHeader>
           <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
-          {/* Page content takes up the space, pushing footer down */}
-        </SidebarContent>
-        <SidebarFooter>
           <div className="p-2">
             <SidebarNav />
           </div>
+        </SidebarContent>
+        <SidebarFooter>
           <SidebarSeparator />
           <div className="p-2">
             <DropdownMenu>

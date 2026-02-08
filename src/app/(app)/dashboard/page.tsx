@@ -2,14 +2,13 @@
 
 import { DollarSign, UserCheck, Users, CalendarX, Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import StatsCard from "@/components/dashboard/stats-card";
-import { format, isSameDay, isThisMonth, parseISO } from "date-fns";
+import { format, isSameDay, isThisMonth, parseISO, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance } from "@/lib/types";
 import Link from "next/link";
-import { startOfDay } from 'date-fns';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -35,7 +34,12 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
       const today = new Date();
-      const activeMembers = members?.filter(m => m.status === 'active').length ?? 0;
+      const startOfToday = startOfDay(today);
+      
+      const activeMembers = members?.filter(m => {
+        const expiryDate = parseISO(m.expiryDate);
+        return expiryDate >= startOfToday;
+      }).length ?? 0;
       
       const paidPayments = payments?.filter(p => p.status === 'paid') ?? [];
 

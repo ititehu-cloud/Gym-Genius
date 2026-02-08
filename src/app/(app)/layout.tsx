@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { doc } from "firebase/firestore";
 import { BottomNavigation } from "@/components/bottom-navigation";
+import { Header } from "@/components/header";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -47,17 +48,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={false}>
       <Sidebar>
         <SidebarHeader>
           <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarSeparator />
           <div className="p-2">
             <SidebarNav />
           </div>
-        </SidebarContent>
-        <SidebarFooter>
           <SidebarSeparator />
           <div className="p-2">
             <DropdownMenu>
@@ -89,7 +91,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="flex-1 pb-16 md:pb-0">
+        <Header displayName={displayName} />
+        <div className="flex-1 pb-16 md:pb-0 overflow-y-auto">
             {children}
         </div>
         <BottomNavigation />

@@ -59,7 +59,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
       const canvas = await html2canvas(cardRef.current, {
         useCORS: true, // Important for external images
         scale: 2, // Increase resolution
-        backgroundColor: null, // Use transparent background
+        backgroundColor: '#ffffff', // Use a solid background for consistency
       });
 
       // Convert canvas to a Blob
@@ -106,9 +106,9 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
   };
 
   return (
-    <Card ref={cardRef} className="overflow-hidden bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
-      <div>
-          <div className="flex bg-primary text-primary-foreground font-headline">
+    <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
+      <div ref={cardRef} className="p-4">
+          <div className="flex bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center">
                 <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>
               </div>
@@ -116,7 +116,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                  <p className="text-xs leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
               </div>
           </div>
-          <div className="flex pb-4">
+          <div className="flex">
             <div className="p-3 flex justify-center items-center">
                 <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
                     <Image
@@ -128,7 +128,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                     />
                 </div>
             </div>
-            <CardContent className="p-3 pt-3 flex flex-col justify-center items-start">
+            <CardContent className="p-3 pt-0 flex flex-col justify-center items-start">
                 <div className='text-left'>
                     <h3 className="text-xl font-bold font-headline leading-tight">{member.name}</h3>
                     {member.memberId && <p className="text-sm text-muted-foreground">ID: {member.memberId}</p>}

@@ -10,7 +10,7 @@ import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isSameDay, parseISO } from "date-fns";
+import { isSameDay, parseISO, startOfDay } from "date-fns";
 
 function MemberList() {
   const firestore = useFirestore();
@@ -49,8 +49,11 @@ function MemberList() {
   const filteredMembers = useMemo(() => {
     if (!members) return [];
     let filtered = [...members];
+    const today = startOfDay(new Date());
     
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+        filtered = filtered.filter(m => parseISO(m.expiryDate) >= today);
+    } else if (statusFilter !== 'all') {
         filtered = filtered.filter(m => m.status === statusFilter);
     }
 

@@ -22,6 +22,11 @@
         "displayAddress": {
           "type": "string",
           "description": "The gym's display address."
+        },
+        "icon": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for the user's profile icon, typically the gym logo."
         }
       },
       "required": ["id", "displayName", "email"]

@@ -91,7 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <Header displayName={displayName} />
+        <Header displayName={displayName} iconUrl={userProfile?.icon} />
         <div className="flex-1 pb-16 md:pb-0 overflow-y-auto">
             {children}
         </div>

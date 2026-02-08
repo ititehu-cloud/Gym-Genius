@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarInset, SidebarTrigger, SidebarSeparator } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarInset, SidebarSeparator } from "@/components/ui/sidebar";
 import { LogOut, LoaderCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -11,6 +11,7 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { redirect } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { doc } from "firebase/firestore";
+import { BottomNavigation } from "@/components/bottom-navigation";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -46,7 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <Sidebar>
         <SidebarHeader>
           <Logo displayName={displayName} />
@@ -88,11 +89,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6 sticky top-0 z-30 md:hidden">
-          <SidebarTrigger />
-          <Logo displayName={displayName} />
-        </header>
-        {children}
+        <div className="flex-1 pb-16 md:pb-0">
+            {children}
+        </div>
+        <BottomNavigation />
       </SidebarInset>
     </SidebarProvider>
   );

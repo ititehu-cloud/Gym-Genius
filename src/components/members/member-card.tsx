@@ -54,9 +54,16 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
     if (!cardRef.current) return;
     setIsSharing(true);
 
+    const cardElement = cardRef.current;
+    const badgeElement = cardElement.querySelector('[data-badge="status"]');
+    
+    if (badgeElement) {
+        (badgeElement as HTMLElement).style.visibility = 'hidden';
+    }
+
     try {
       // Use html2canvas to capture the card element
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(cardElement, {
         useCORS: true, // Important for external images
         scale: 2, // Increase resolution
         backgroundColor: '#ffffff', // Use a solid background for consistency
@@ -101,13 +108,16 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
             description: "Could not create or share the ID card. Please try again.",
         });
     } finally {
+        if (badgeElement) {
+            (badgeElement as HTMLElement).style.visibility = 'visible';
+        }
         setIsSharing(false);
     }
   };
 
   return (
     <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
-      <div ref={cardRef} className="p-4 bg-white pb-8">
+      <div ref={cardRef} className="p-4 bg-white pb-12">
           <div className="flex bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center">
                 <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>
@@ -140,7 +150,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress }: Me
                     <div className='flex items-center gap-2'><Calendar className='w-4 h-4' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                     <div className='flex items-center gap-2'><Cake className='w-4 h-4' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
                 </div>
-                <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-sm px-2 py-0.5 mt-2">{status}</Badge>
+                <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-sm px-2 py-0.5 mt-2" data-badge="status">{status}</Badge>
             </CardContent>
           </div>
       </div>

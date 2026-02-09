@@ -38,7 +38,7 @@ export function BottomNavigation() {
   const displayName = userProfile?.displayName || user?.email;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur-sm">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground">
       <div className="flex h-16 items-stretch justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -48,7 +48,7 @@ export function BottomNavigation() {
               href={item.href}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors w-full',
-                isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-primary/5'
+                isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10'
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -60,7 +60,7 @@ export function BottomNavigation() {
             <DropdownMenuTrigger asChild>
                 <div className={cn(
                     "flex flex-col items-center justify-center gap-1 p-2 text-xs font-medium transition-colors w-full cursor-pointer",
-                    "text-muted-foreground hover:text-primary hover:bg-primary/5"
+                    "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
                 )}>
                     <User className="h-5 w-5" />
                     <span>Profile</span>

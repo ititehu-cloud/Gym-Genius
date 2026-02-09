@@ -4,22 +4,36 @@ import React from 'react';
 import type { Payment, Member } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { Dumbbell } from 'lucide-react';
+import Image from 'next/image';
 
 type PaymentReceiptProps = {
   payment: Payment;
   member: Member;
   gymName?: string | null;
   gymAddress?: string;
+  gymIconUrl?: string | null;
 };
 
 export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptProps>(
-  ({ payment, member, gymName, gymAddress }, ref) => {
+  ({ payment, member, gymName, gymAddress, gymIconUrl }, ref) => {
     return (
       <div ref={ref} className="p-8 max-w-2xl mx-auto bg-white text-black font-sans text-sm">
         <header className="flex justify-between items-start mb-8 border-b pb-4">
           <div className="w-2/3">
             <div className="flex items-center gap-2 font-headline text-lg font-bold text-black">
-              <Dumbbell className="h-6 w-6 shrink-0" />
+              {gymIconUrl ? (
+                  <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                      <Image
+                          src={gymIconUrl}
+                          alt={`${gymName || 'Gym'} logo`}
+                          fill
+                          className="object-cover"
+                          crossOrigin="anonymous"
+                      />
+                  </div>
+              ) : (
+                  <Dumbbell className="h-6 w-6 shrink-0" />
+              )}
               <span>{gymName || 'Gym Genius'}</span>
             </div>
             <p className="text-xs mt-1">{gymAddress}</p>

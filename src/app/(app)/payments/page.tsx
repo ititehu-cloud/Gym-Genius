@@ -98,6 +98,7 @@ function PaymentsList() {
   const isLoading = isLoadingPayments || isLoadingMembers || isAuthLoading || isProfileLoading;
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
+  const gymIconUrl = userProfile?.icon;
 
   const handleShare = (payment: Payment) => {
     const member = memberMap.get(payment.memberId);
@@ -162,13 +163,32 @@ function PaymentsList() {
           </html>
         `);
         printWindow.document.close();
-        printWindow.focus();
+        
+        printWindow.onload = () => {
+          printWindow.print();
+          printWindow.onafterprint = () => {
+              printWindow.close();
+              setPrintingPaymentId(null);
+              setPaymentToPrint(null);
+          };
+           // For browsers that don't support onafterprint well (like some mobile browsers)
+           // a timeout can be a fallback, though less reliable.
+           setTimeout(() => {
+            if (!printWindow.closed) {
+              printWindow.close();
+              setPrintingPaymentId(null);
+              setPaymentToPrint(null);
+            }
+          }, 2000); // Close after 2 seconds as a fallback
+        };
       } else {
         toast({
             variant: "destructive",
             title: "Popup Blocked",
             description: "Please allow popups for this site to print the receipt.",
         });
+        setPrintingPaymentId(null);
+        setPaymentToPrint(null);
       }
     } catch (error) {
       console.error("Failed to generate print image:", error);
@@ -177,7 +197,6 @@ function PaymentsList() {
         title: "Print Failed",
         description: "There was a problem generating the receipt image. Please try again.",
       });
-    } finally {
       setPrintingPaymentId(null);
       setPaymentToPrint(null);
     }
@@ -193,7 +212,7 @@ function PaymentsList() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20 md:pb-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">Payments</h1>
           <div className="flex items-center gap-2">
@@ -317,6 +336,7 @@ function PaymentsList() {
             member={memberMap.get(paymentToPrint.memberId)!}
             gymName={gymName}
             gymAddress={gymAddress}
+            gymIconUrl={gymIconUrl}
           />
         </div>
       )}

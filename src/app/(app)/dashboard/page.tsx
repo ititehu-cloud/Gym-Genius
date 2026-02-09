@@ -106,7 +106,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
         <h1 className="text-2xl font-headline font-semibold col-span-full">Today's Statistics ({stats.todayString})</h1>
         <Link href="/members?status=active"><StatsCard title="Active Members" value={stats.activeMembers} icon={Users} color="text-primary" className="bg-primary/10" /></Link>
-        <Link href="/attendance"><StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} color="text-accent" className="bg-accent/10" /></Link>
+        <Link href="/attendance?filter=present"><StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} color="text-accent" className="bg-accent/10" /></Link>
         <Link href="/members?expiry=today"><StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarX} color="text-chart-3" className="bg-chart-3/10" /></Link>
         <Link href="/payments?date=today"><StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={DollarSign} color="text-chart-2" className="bg-chart-2/10" /></Link>
       </div>

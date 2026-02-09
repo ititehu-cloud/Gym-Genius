@@ -4,7 +4,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { LoaderCircle, UserCheck, LogOut, CalendarIcon } from "lucide-react";
 import type { Member, Attendance } from "@/lib/types";
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { startOfDay, endOfDay, format, parseISO, isSameDay } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,23 +16,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useSearchParams } from "next/navigation";
 
-export default function AttendancePage() {
+function AttendanceList() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [searchQuery, setSearchQuery] = useState<string>("");
 
+    const searchParams = useSearchParams();
+    const filter = searchParams.get('filter');
+
     const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
     const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
-
-    const filteredMembers = useMemo(() => {
-        if (!members) return [];
-        return members.filter(member =>
-            member.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [members, searchQuery]);
 
     const selectedDateRange = useMemo(() => {
         const start = startOfDay(selectedDate);
@@ -58,6 +55,23 @@ export default function AttendancePage() {
         if (!selectedDateAttendance) return new Map<string, Attendance>();
         return new Map(selectedDateAttendance.map(att => [att.memberId, att]));
     }, [selectedDateAttendance]);
+    
+    const filteredMembers = useMemo(() => {
+        if (!members) return [];
+
+        let tempMembers = [...members];
+        
+        if (filter === 'present') {
+            tempMembers = tempMembers.filter(member => attendanceMap.has(member.id));
+        }
+
+        if (searchQuery) {
+            return tempMembers.filter(member =>
+                member.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        return tempMembers;
+    }, [members, searchQuery, filter, attendanceMap]);
 
     const isLoading = isLoadingMembers || isLoadingAttendance;
     const isToday = isSameDay(selectedDate, new Date());
@@ -157,8 +171,10 @@ export default function AttendancePage() {
                 <CardHeader>
                     <CardTitle>Member Check-in</CardTitle>
                     <CardDescription>
-                        {isToday ? 'Mark members as present for today. ' : `Viewing attendance for ${format(selectedDate, 'MMMM do, yyyy')}. `}
-                        {`${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
+                        {filter === 'present' ? 'Showing members who are present today.' 
+                            : isToday ? 'Mark members as present for today. ' 
+                            : `Viewing attendance for ${format(selectedDate, 'MMMM do, yyyy')}. `}
+                        {filter !== 'present' && `${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -252,8 +268,17 @@ export default function AttendancePage() {
                             </div>
                         ) : (
                              <div className="flex flex-col items-center justify-center text-center py-12">
-                                <h3 className="text-xl font-bold tracking-tight">No Members Found</h3>
-                                <p className="text-sm text-muted-foreground">Your search for "{searchQuery}" did not return any results.</p>
+                                {filter === 'present' ? (
+                                    <>
+                                        <h3 className="text-xl font-bold tracking-tight">No Members Present Today</h3>
+                                        <p className="text-sm text-muted-foreground">{searchQuery ? `Your search for "${searchQuery}" did not return any results from present members.` : 'No one has checked in yet for today.'}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h3 className="text-xl font-bold tracking-tight">No Members Found</h3>
+                                        <p className="text-sm text-muted-foreground">Your search for "{searchQuery}" did not return any results.</p>
+                                    </>
+                                )}
                             </div>
                         )
                     ) : (
@@ -268,4 +293,13 @@ export default function AttendancePage() {
             </Card>
         </main>
     );
+}
+
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <AttendanceList />
+    </Suspense>
+  )
 }

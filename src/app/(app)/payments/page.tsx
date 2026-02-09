@@ -122,6 +122,7 @@ function PaymentsList() {
       setPaymentToPrint(payment);
     });
     
+    // Give the browser a moment to paint the newly rendered component before capturing.
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const receiptElement = receiptRef.current;
@@ -129,7 +130,7 @@ function PaymentsList() {
       toast({
         variant: "destructive",
         title: "Print Error",
-        description: "Could not find the receipt element to print.",
+        description: "Could not find the receipt to print. Please try again.",
       });
       setPrintingPaymentId(null);
       setPaymentToPrint(null);
@@ -142,53 +143,23 @@ function PaymentsList() {
         useCORS: true,
         backgroundColor: '#ffffff',
       });
-      const imageUrl = canvas.toDataURL('image/png');
 
-      const printWindow = window.open('', '_blank');
+      const imageUrl = canvas.toDataURL('image/png');
+      const printWindow = window.open(imageUrl, '_blank');
+      
       if (!printWindow) {
         toast({
             variant: "destructive",
             title: "Popup Blocked",
             description: "Please allow popups for this site to print the receipt.",
         });
-        setPrintingPaymentId(null);
-        setPaymentToPrint(null);
-        return;
       }
-      
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Receipt</title>
-            <style>
-              @page { size: auto; margin: 0; }
-              body { margin: 0; padding: 0; }
-              img { max-width: 100%; height: auto; }
-            </style>
-          </head>
-          <body>
-            <img id="receipt-image" />
-            <script>
-              const img = document.getElementById('receipt-image');
-              img.onload = function() {
-                window.print();
-              };
-              img.src = "${imageUrl}";
-              window.onafterprint = function() {
-                window.close();
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-
     } catch (error) {
       console.error("Failed to generate print image:", error);
       toast({
         variant: "destructive",
         title: "Print Failed",
-        description: "An error occurred while preparing the receipt for printing.",
+        description: "There was a problem generating the receipt image. Please try again.",
       });
     } finally {
       setPrintingPaymentId(null);

@@ -116,10 +116,19 @@ function PaymentsList() {
   };
   
   useEffect(() => {
+    const handleAfterPrint = () => {
+      setPaymentToPrint(null);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+
     if (paymentToPrint && receiptRef.current) {
+      window.addEventListener('afterprint', handleAfterPrint);
       window.print();
-      setPaymentToPrint(null); // Reset after printing to hide component
     }
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, [paymentToPrint]);
 
   if (isLoading) {

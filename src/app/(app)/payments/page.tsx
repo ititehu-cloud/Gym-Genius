@@ -153,16 +153,22 @@ function PaymentsList() {
             <head>
               <title>Print Receipt - ${memberMap.get(payment.memberId)?.name || ''}</title>
               <style>
-                body { margin: 0; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-                img { max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
                 @media print {
-                  body { background-color: #fff; }
-                  img { box-shadow: none; }
+                  @page { margin: 0; size: auto; }
+                  body { margin: 0; }
+                  img { width: 100%; height: auto; page-break-inside: avoid; }
                 }
+                body { margin: 0; }
+                img { max-width: 100%; height: auto; display: block; margin-inline: auto; }
               </style>
             </head>
             <body>
               <img src="${imageUrl}" alt="Payment Receipt" />
+              <script>
+                window.onload = function() {
+                  window.print();
+                }
+              </script>
             </body>
           </html>
         `);

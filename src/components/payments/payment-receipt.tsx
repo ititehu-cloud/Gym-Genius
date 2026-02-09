@@ -20,17 +20,16 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
       <div ref={ref} className="p-8 max-w-2xl mx-auto bg-white text-black font-sans text-sm">
         <header className="flex justify-between items-start mb-8 border-b pb-4">
           <div className="w-2/3">
-            <div className="flex items-center gap-2 font-headline text-lg font-bold text-black">
+            <div className="flex items-center gap-3 font-headline text-lg font-bold text-black">
               {gymIconUrl ? (
-                  <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
-                      <Image
-                          src={gymIconUrl}
-                          alt={`${gymName || 'Gym'} logo`}
-                          fill
-                          className="object-cover"
-                          crossOrigin="anonymous"
-                      />
-                  </div>
+                  <Image
+                      src={gymIconUrl}
+                      alt={`${gymName || 'Gym'} logo`}
+                      width={32}
+                      height={32}
+                      className="rounded-full object-cover h-8 w-8 flex-shrink-0"
+                      crossOrigin="anonymous"
+                  />
               ) : (
                   <Dumbbell className="h-6 w-6 shrink-0" />
               )}

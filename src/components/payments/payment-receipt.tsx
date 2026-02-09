@@ -4,7 +4,6 @@ import React from 'react';
 import type { Payment, Member } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { Dumbbell } from 'lucide-react';
-import Image from 'next/image';
 
 type PaymentReceiptProps = {
   payment: Payment;
@@ -22,7 +21,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <div className="w-2/3">
             <div className="flex items-center gap-3 font-headline text-lg font-bold text-black">
               {gymIconUrl ? (
-                  <Image
+                  <img
                       src={gymIconUrl}
                       alt={`${gymName || 'Gym'} logo`}
                       width={32}

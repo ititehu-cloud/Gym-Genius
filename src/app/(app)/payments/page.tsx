@@ -111,8 +111,20 @@ function PaymentsList() {
       return;
     }
     
-    const gymName = userProfile?.displayName || 'the gym';
-    const message = `Hello ${member.name}, this is a receipt for your payment of ₹${payment.amount.toFixed(2)} at ${gymName}. Thank you for your payment!`;
+    const gymName = userProfile?.displayName || 'your gym';
+
+    const messageLines = [
+        `*Payment Receipt from ${gymName}*`,
+        '',
+        `Member: ${member.name}`,
+        `Amount: ₹${payment.amount.toFixed(2)}`,
+        `Payment Date: ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}`,
+        `Payment Method: ${payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}`,
+        `Payment Type: ${payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)}`,
+        '',
+        'Thank you for your payment!'
+    ];
+    const message = messageLines.join('\n');
     const encodedMessage = encodeURIComponent(message);
     
     // This assumes the mobile number includes the country code for WhatsApp.
@@ -149,23 +161,46 @@ function PaymentsList() {
         useCORS: true,
         backgroundColor: '#ffffff',
       });
-
+      
       const imageUrl = canvas.toDataURL('image/png');
-      const printWindow = window.open('', '_blank');
+      const printWindow = window.open();
       
       if (printWindow) {
         printWindow.document.write(`
           <html>
             <head>
-              <title>Print Receipt - ${memberMap.get(payment.memberId)?.name || ''}</title>
+              <title>Print Receipt</title>
               <style>
                 @media print {
-                  @page { margin: 0; size: auto; }
-                  body { margin: 0; }
-                  img { width: 100%; height: auto; page-break-inside: avoid; }
+                  @page { 
+                    size: auto;
+                    margin: 0mm;
+                  }
+                  html, body {
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
+                  }
+                  img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    page-break-inside: avoid;
+                  }
                 }
-                body { margin: 0; }
-                img { max-width: 100%; height: auto; display: block; margin-inline: auto; }
+                body {
+                  margin: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  height: 100vh;
+                  background-color: #f0f0f0;
+                }
+                img {
+                  max-width: 100%;
+                  max-height: 100%;
+                  object-fit: contain;
+                }
               </style>
             </head>
             <body>
@@ -193,6 +228,7 @@ function PaymentsList() {
             description: "Please allow popups for this site to print the receipt.",
         });
       }
+
     } catch (error) {
       console.error("Failed to generate print image:", error);
       toast({

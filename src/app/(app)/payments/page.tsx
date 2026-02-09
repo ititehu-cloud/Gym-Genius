@@ -116,11 +116,11 @@ function PaymentsList() {
     const messageLines = [
         `*Payment Receipt from ${gymName}*`,
         '',
-        `Member: ${member.name}`,
-        `Amount: ₹${payment.amount.toFixed(2)}`,
-        `Payment Date: ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}`,
-        `Payment Method: ${payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}`,
-        `Payment Type: ${payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)}`,
+        `👤 *Member:* ${member.name}`,
+        `💰 *Amount:* ₹${payment.amount.toFixed(2)}`,
+        `📅 *Payment Date:* ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}`,
+        `💳 *Payment Method:* ${payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}`,
+        `🧾 *Payment Type:* ${payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)}`,
         '',
         'Thank you for your payment!'
     ];
@@ -163,65 +163,9 @@ function PaymentsList() {
       });
       
       const imageUrl = canvas.toDataURL('image/png');
-      const printWindow = window.open();
+      const printWindow = window.open(imageUrl, '_blank');
       
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Print Receipt</title>
-              <style>
-                @media print {
-                  @page { 
-                    size: auto;
-                    margin: 0mm;
-                  }
-                  html, body {
-                    height: 100%;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: contain;
-                    page-break-inside: avoid;
-                  }
-                }
-                body {
-                  margin: 0;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  height: 100vh;
-                  background-color: #f0f0f0;
-                }
-                img {
-                  max-width: 100%;
-                  max-height: 100%;
-                  object-fit: contain;
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${imageUrl}" alt="Payment Receipt" />
-              <script>
-                window.onload = function() {
-                  const img = document.querySelector('img');
-                  if (img.complete) {
-                    window.print();
-                  } else {
-                    img.onload = function() {
-                      window.print();
-                    }
-                  }
-                }
-              </script>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      } else {
+      if (!printWindow) {
         toast({
             variant: "destructive",
             title: "Popup Blocked",

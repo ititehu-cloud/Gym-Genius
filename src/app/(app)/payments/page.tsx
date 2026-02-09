@@ -163,7 +163,7 @@ function PaymentsList() {
       });
       
       const imageUrl = canvas.toDataURL('image/png');
-      const printWindow = window.open(imageUrl, '_blank');
+      const printWindow = window.open('', '_blank');
       
       if (!printWindow) {
         toast({
@@ -171,6 +171,23 @@ function PaymentsList() {
             title: "Popup Blocked",
             description: "Please allow popups for this site to print the receipt.",
         });
+      } else {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Print Receipt</title>
+              <style>
+                @page { size: auto; margin: 0; }
+                body { margin: 0; }
+                img { width: 100%; height: 100%; object-fit: contain; }
+              </style>
+            </head>
+            <body>
+              <img src="${imageUrl}" onload="window.print();" />
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
       }
 
     } catch (error) {
@@ -196,7 +213,7 @@ function PaymentsList() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">Payments</h1>
           <div className="flex items-center gap-2">

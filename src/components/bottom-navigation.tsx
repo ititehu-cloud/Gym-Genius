@@ -39,7 +39,7 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground">
-      <div className="flex h-16 items-stretch justify-around">
+      <div className="flex h-20 items-stretch justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (

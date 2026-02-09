@@ -54,10 +54,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
+          {/* Main content of sidebar is empty, nav is in footer */}
         </SidebarContent>
         <SidebarFooter>
           <SidebarSeparator />
-          <div className="p-2">
+          <div className="p-2 hidden md:block">
             <SidebarNav />
           </div>
           <SidebarSeparator />

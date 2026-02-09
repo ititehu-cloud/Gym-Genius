@@ -58,10 +58,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
         <SidebarFooter>
           <SidebarSeparator />
-          <div className="p-2 hidden md:block">
-            <SidebarNav />
-          </div>
-          <SidebarSeparator />
           <div className="p-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -93,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <Header displayName={displayName} iconUrl={userProfile?.icon} />
-        <div className="flex-1 pb-16 md:pb-0 overflow-y-auto">
+        <div className="flex-1 pb-16 overflow-y-auto">
             {children}
         </div>
         <BottomNavigation />

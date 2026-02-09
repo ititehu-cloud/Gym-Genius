@@ -38,7 +38,7 @@ export function BottomNavigation() {
   const displayName = userProfile?.displayName || user?.email;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur-sm md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur-sm">
       <div className="flex h-16 items-stretch justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);

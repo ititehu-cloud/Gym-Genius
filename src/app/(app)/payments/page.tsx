@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import { flushSync } from "react-dom";
+import html2canvas from 'html2canvas';
 
 
 function PaymentsList() {
@@ -43,6 +44,7 @@ function PaymentsList() {
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentToPrint, setPaymentToPrint] = useState<Payment | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,29 +114,83 @@ function PaymentsList() {
     window.open(whatsappUrl, '_blank');
   };
   
-  const handlePrint = (payment: Payment) => {
-    // Force React to synchronously update the DOM with the receipt component
+  const handlePrint = async (payment: Payment) => {
+    if (isPrinting) return;
+    setIsPrinting(true);
+
     flushSync(() => {
       setPaymentToPrint(payment);
     });
-    // Now that the DOM is updated, call window.print()
-    // This maintains the "user-initiated" context required by mobile browsers
-    window.print();
+
+    await new Promise(resolve => setTimeout(resolve, 50)); 
+    
+    const receiptElement = receiptRef.current;
+    if (!receiptElement) {
+      toast({
+        variant: "destructive",
+        title: "Print Error",
+        description: "Could not find the receipt element to print.",
+      });
+      setIsPrinting(false);
+      setPaymentToPrint(null);
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(receiptElement, {
+        scale: 2,
+        useCORS: true,
+      });
+      const imageUrl = canvas.toDataURL('image/png');
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+            variant: "destructive",
+            title: "Popup Blocked",
+            description: "Please allow popups for this site to print the receipt.",
+        });
+        setIsPrinting(false);
+        setPaymentToPrint(null);
+        return;
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Receipt</title>
+            <style>
+              @page { size: auto; margin: 0; }
+              body { margin: 0; padding: 0; }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            <img src="${imageUrl}" />
+            <script>
+              window.onload = function() {
+                window.print();
+                window.onafterprint = window.close;
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+    } catch (error) {
+      console.error("Failed to generate print image:", error);
+      toast({
+        variant: "destructive",
+        title: "Print Failed",
+        description: "An error occurred while preparing the receipt for printing.",
+      });
+    } finally {
+      setIsPrinting(false);
+      setPaymentToPrint(null);
+    }
   };
   
-  // This effect sets up a listener to clean up the view after printing is done.
-  useEffect(() => {
-    const handleAfterPrint = () => {
-      setPaymentToPrint(null);
-    };
-
-    window.addEventListener('afterprint', handleAfterPrint);
-
-    return () => {
-      window.removeEventListener('afterprint', handleAfterPrint);
-    };
-  }, []);
-
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -145,7 +201,7 @@ function PaymentsList() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 print:hidden">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20 md:pb-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">Payments</h1>
           <div className="flex items-center gap-2">
@@ -237,9 +293,9 @@ function PaymentsList() {
                                                   <Share2 className="h-4 w-4" />
                                                   <span className="sr-only">Share on WhatsApp</span>
                                               </Button>
-                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)}>
-                                                  <Printer className="h-4 w-4" />
-                                                  <span className="sr-only">Print Receipt</span>
+                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={isPrinting}>
+                                                {isPrinting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                                                <span className="sr-only">Print Receipt</span>
                                               </Button>
                                           </div>
                                       </TableCell>
@@ -262,7 +318,7 @@ function PaymentsList() {
         </Card>
       </main>
       {paymentToPrint && memberMap.has(paymentToPrint.memberId) && (
-        <div className="hidden print:block">
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <PaymentReceipt
             ref={receiptRef}
             payment={paymentToPrint}

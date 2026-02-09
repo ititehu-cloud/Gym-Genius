@@ -122,7 +122,6 @@ function PaymentsList() {
       setPaymentToPrint(payment);
     });
     
-    // Give the browser a moment to paint the newly rendered component before capturing.
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const receiptElement = receiptRef.current;
@@ -145,9 +144,26 @@ function PaymentsList() {
       });
 
       const imageUrl = canvas.toDataURL('image/png');
-      const printWindow = window.open(imageUrl, '_blank');
+      const printWindow = window.open('', '_blank');
       
-      if (!printWindow) {
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Print Receipt</title>
+              <style>
+                body { margin: 0; }
+                img { max-width: 100%; height: auto; }
+              </style>
+            </head>
+            <body>
+              <img src="${imageUrl}" />
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+      } else {
         toast({
             variant: "destructive",
             title: "Popup Blocked",

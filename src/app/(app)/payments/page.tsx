@@ -45,6 +45,7 @@ function PaymentsList() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentToPrint, setPaymentToPrint] = useState<Payment | null>(null);
   const [printingPaymentId, setPrintingPaymentId] = useState<string | null>(null);
+  const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,23 +101,84 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
 
-  const handleShare = (payment: Payment) => {
-    const member = memberMap.get(payment.memberId);
-    if (!member || !member.mobileNumber) {
-        toast({
-            variant: "destructive",
-            title: "Cannot Share",
-            description: "Member's mobile number is not available.",
-        });
-        return;
+  const handleShare = async (payment: Payment) => {
+    if (sharingPaymentId || printingPaymentId) return;
+    setSharingPaymentId(payment.id);
+
+    flushSync(() => {
+      setPaymentToPrint(payment);
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const receiptElement = receiptRef.current;
+    if (!receiptElement) {
+      toast({
+        variant: "destructive",
+        title: "Share Error",
+        description: "Could not prepare the receipt to share. Please try again.",
+      });
+      setSharingPaymentId(null);
+      setPaymentToPrint(null);
+      return;
     }
-    const message = `Hello ${member.name}, your payment of ₹${payment.amount.toFixed(2)} for ${payment.paymentType} plan has been received on ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}.\n\nStatus: ${payment.status}\n\nThank you!`;
-    const whatsappUrl = `https://wa.me/${member.mobileNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+
+    try {
+      const canvas = await html2canvas(receiptElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+      
+      if (!blob) {
+        throw new Error('Could not create image blob.');
+      }
+
+      const member = memberMap.get(payment.memberId);
+      const fileName = `${member?.name.replace(/ /g, '_') || 'payment'}_receipt.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      const shareData = {
+        files: [file],
+        title: 'Payment Receipt',
+        text: `Here is the payment receipt for ${member?.name || 'your payment'}.`,
+      };
+
+      if (navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+          toast({
+              title: "Sharing not supported",
+              description: "Your browser doesn't support sharing files. The receipt image has been downloaded instead.",
+          });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // User cancelled the share dialog, do nothing.
+      } else {
+        console.error("Failed to share receipt:", error);
+        toast({
+          variant: "destructive",
+          title: "Share Failed",
+          description: "There was a problem generating the receipt image for sharing.",
+        });
+      }
+    } finally {
+      setSharingPaymentId(null);
+      setPaymentToPrint(null);
+    }
   };
   
   const handlePrint = async (payment: Payment) => {
-    if (printingPaymentId) return;
+    if (printingPaymentId || sharingPaymentId) return;
     setPrintingPaymentId(payment.id);
 
     flushSync(() => {
@@ -166,7 +228,14 @@ function PaymentsList() {
               <img src="${imageUrl}" alt="Payment Receipt" />
               <script>
                 window.onload = function() {
-                  window.print();
+                  const img = document.querySelector('img');
+                  if (img.complete) {
+                    window.print();
+                  } else {
+                    img.onload = function() {
+                      window.print();
+                    }
+                  }
                 }
               </script>
             </body>
@@ -291,11 +360,11 @@ function PaymentsList() {
                                           <div className="flex justify-end items-center gap-2">
                                               <EditPaymentDialog payment={payment} members={members || []} />
                                               <DeletePaymentDialog paymentId={payment.id} memberName={memberName} />
-                                              <Button variant="outline" size="icon" onClick={() => handleShare(payment)}>
-                                                  <Share2 className="h-4 w-4" />
-                                                  <span className="sr-only">Share on WhatsApp</span>
+                                              <Button variant="outline" size="icon" onClick={() => handleShare(payment)} disabled={!!sharingPaymentId || !!printingPaymentId}>
+                                                  {sharingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                                                  <span className="sr-only">Share Receipt</span>
                                               </Button>
-                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={!!printingPaymentId}>
+                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={!!printingPaymentId || !!sharingPaymentId}>
                                                 {printingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                                                 <span className="sr-only">Print Receipt</span>
                                               </Button>

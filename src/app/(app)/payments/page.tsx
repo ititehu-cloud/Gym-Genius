@@ -21,6 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
+import { flushSync } from "react-dom";
 
 
 function PaymentsList() {
@@ -112,24 +113,27 @@ function PaymentsList() {
   };
   
   const handlePrint = (payment: Payment) => {
-    setPaymentToPrint(payment);
+    // Force React to synchronously update the DOM with the receipt component
+    flushSync(() => {
+      setPaymentToPrint(payment);
+    });
+    // Now that the DOM is updated, call window.print()
+    // This maintains the "user-initiated" context required by mobile browsers
+    window.print();
   };
   
+  // This effect sets up a listener to clean up the view after printing is done.
   useEffect(() => {
     const handleAfterPrint = () => {
       setPaymentToPrint(null);
-      window.removeEventListener('afterprint', handleAfterPrint);
     };
 
-    if (paymentToPrint && receiptRef.current) {
-      window.addEventListener('afterprint', handleAfterPrint);
-      window.print();
-    }
+    window.addEventListener('afterprint', handleAfterPrint);
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [paymentToPrint]);
+  }, []);
 
   if (isLoading) {
     return (

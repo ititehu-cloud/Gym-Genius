@@ -44,7 +44,7 @@ function PaymentsList() {
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentToPrint, setPaymentToPrint] = useState<Payment | null>(null);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [printingPaymentId, setPrintingPaymentId] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -115,14 +115,14 @@ function PaymentsList() {
   };
   
   const handlePrint = async (payment: Payment) => {
-    if (isPrinting) return;
-    setIsPrinting(true);
+    if (printingPaymentId) return;
+    setPrintingPaymentId(payment.id);
 
     flushSync(() => {
       setPaymentToPrint(payment);
     });
-
-    await new Promise(resolve => setTimeout(resolve, 50)); 
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     const receiptElement = receiptRef.current;
     if (!receiptElement) {
@@ -131,7 +131,7 @@ function PaymentsList() {
         title: "Print Error",
         description: "Could not find the receipt element to print.",
       });
-      setIsPrinting(false);
+      setPrintingPaymentId(null);
       setPaymentToPrint(null);
       return;
     }
@@ -140,6 +140,7 @@ function PaymentsList() {
       const canvas = await html2canvas(receiptElement, {
         scale: 2,
         useCORS: true,
+        backgroundColor: '#ffffff',
       });
       const imageUrl = canvas.toDataURL('image/png');
 
@@ -150,7 +151,7 @@ function PaymentsList() {
             title: "Popup Blocked",
             description: "Please allow popups for this site to print the receipt.",
         });
-        setIsPrinting(false);
+        setPrintingPaymentId(null);
         setPaymentToPrint(null);
         return;
       }
@@ -166,12 +167,16 @@ function PaymentsList() {
             </style>
           </head>
           <body>
-            <img src="${imageUrl}" />
+            <img id="receipt-image" />
             <script>
-              window.onload = function() {
+              const img = document.getElementById('receipt-image');
+              img.onload = function() {
                 window.print();
-                window.onafterprint = window.close;
-              }
+              };
+              img.src = "${imageUrl}";
+              window.onafterprint = function() {
+                window.close();
+              };
             </script>
           </body>
         </html>
@@ -186,7 +191,7 @@ function PaymentsList() {
         description: "An error occurred while preparing the receipt for printing.",
       });
     } finally {
-      setIsPrinting(false);
+      setPrintingPaymentId(null);
       setPaymentToPrint(null);
     }
   };
@@ -201,7 +206,7 @@ function PaymentsList() {
 
   return (
     <>
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20 md:pb-8">
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">Payments</h1>
           <div className="flex items-center gap-2">
@@ -293,8 +298,8 @@ function PaymentsList() {
                                                   <Share2 className="h-4 w-4" />
                                                   <span className="sr-only">Share on WhatsApp</span>
                                               </Button>
-                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={isPrinting}>
-                                                {isPrinting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={!!printingPaymentId}>
+                                                {printingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                                                 <span className="sr-only">Print Receipt</span>
                                               </Button>
                                           </div>

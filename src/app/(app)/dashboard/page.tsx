@@ -116,26 +116,26 @@ export default function DashboardPage() {
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Today's Statistics ({stats.todayString})</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-                    <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" />
-                    <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" />
-                    <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" />
-                    <StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={IndianRupee} className="bg-chart-2/10" />
+                    <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" href="/members?status=active" />
+                    <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" href="/attendance?filter=present" />
+                    <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" href="/members?expiry=today" />
+                    <StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={IndianRupee} className="bg-chart-2/10" href="/payments?date=today&status=paid" />
                 </div>
             </div>
 
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Monthly Statistics ({stats.monthString})</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-                    <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" />
-                    <StatsCard title="Pending Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" />
+                    <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" href="/payments?status=paid" />
+                    <StatsCard title="Pending Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
                 </div>
             </div>
 
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Overall Statistics</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" />
-                    <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" />
+                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" href="/payments?status=paid" />
+                    <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
                 </div>
             </div>
         </div>

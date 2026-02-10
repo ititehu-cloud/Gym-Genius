@@ -12,7 +12,7 @@ type StatsCardProps = {
 
 export default function StatsCard({ title, value, icon: Icon, color, className }: StatsCardProps) {
   return (
-    <Card className={className}>
+    <Card className={cn("aspect-square flex flex-col justify-center", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className={cn("h-4 w-4 text-muted-foreground", color)} />

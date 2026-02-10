@@ -9,7 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance } from "@/lib/types";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -83,35 +83,18 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-8 w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
+              <Skeleton className="w-full aspect-square" />
             </div>
           </CardContent>
         </Card>
@@ -123,36 +106,17 @@ export default function DashboardPage() {
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Today's Statistics ({stats.todayString})</CardTitle>
+          <CardTitle className="font-headline text-2xl">Gym Statistics</CardTitle>
+          <CardDescription>An overview of your gym's performance as of {stats.todayString}.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <Link href="/members?status=active"><StatsCard title="Active Members" value={stats.activeMembers} icon={Users} color="text-primary" className="bg-primary/10" /></Link>
             <Link href="/attendance?filter=present"><StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} color="text-accent" className="bg-accent/10" /></Link>
             <Link href="/members?expiry=today"><StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarX} color="text-chart-3" className="bg-chart-3/10" /></Link>
             <Link href="/payments?date=today"><StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={DollarSign} color="text-chart-2" className="bg-chart-2/10" /></Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Monthly Statistics ({stats.monthString})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
             <Link href="/payments"><StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={Wallet} color="text-chart-4" className="bg-chart-4/10" /></Link>
             <Link href="/members?status=due"><StatsCard title="Pending Dues" value={stats.pendingDues} icon={TrendingDown} color="text-chart-1" className="bg-chart-1/10" /></Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl">Overall Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
             <Link href="/payments?status=paid"><StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} color="text-chart-5" className="bg-chart-5/10" /></Link>
             <Link href="/payments?status=pending"><StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} color="text-destructive" className="bg-destructive/10" /></Link>
           </div>

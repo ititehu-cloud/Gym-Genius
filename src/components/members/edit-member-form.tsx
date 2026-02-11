@@ -174,8 +174,8 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+        <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-0">
+          <div className="space-y-4 max-h-[65vh] overflow-y-auto p-1 pr-4">
             <FormField
               control={form.control}
               name="memberId"
@@ -235,7 +235,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
               control={form.control}
               name="address"
               render={({ field }) => (
-                <FormItem className="col-span-2">
+                <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
                     <Textarea placeholder="123, Main Street, Anytown..." {...field} />
@@ -294,7 +294,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             control={form.control}
             name="profilePicture"
             render={({ field: { onChange, value, ...rest } }) => (
-              <FormItem className="col-span-2">
+              <FormItem>
                 <FormLabel>Profile Picture</FormLabel>
                 <FormControl>
                   <Input 
@@ -318,7 +318,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             )}
           />
            {imagePreview && (
-            <div className="col-span-2 flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4">
                 <Image src={imagePreview} alt="Profile preview" width={100} height={100} className="rounded-full object-cover aspect-square" />
                  <Button type="button" variant="outline" size="sm" onClick={() => {
                     form.setValue('profilePicture', null);
@@ -327,7 +327,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             </div>
           )}
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}

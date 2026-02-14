@@ -78,32 +78,36 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
         scale: 2,
         backgroundColor: '#ffffff',
       });
+      
+      const canShareFiles = !!navigator.share && !!navigator.canShare;
+      if (canShareFiles) {
+          const file = await new Promise<File | null>((resolve) => {
+              canvas.toBlob((blob) => {
+                  if (!blob) {
+                      resolve(null);
+                      return;
+                  }
+                  resolve(new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: 'image/png' }));
+              }, 'image/png');
+          });
 
-      const file = await new Promise<File | null>((resolve) => {
-          canvas.toBlob((blob) => {
-              if (!blob) {
-                  resolve(null);
-                  return;
-              }
-              resolve(new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: 'image/png' }));
-          }, 'image/png');
-      });
-
-      if (!file) {
-        throw new Error('Could not create image file.');
+          if (file && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                  files: [file],
+                  title: `${member.name}'s ID Card`,
+                  text: `Here is the ID card for ${member.name}.`,
+              });
+              if (badgeElement) { (badgeElement as HTMLElement).style.visibility = 'visible'; }
+              setIsSharing(false);
+              return; 
+          }
       }
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `${member.name}'s ID Card`,
-          text: `Here is the ID card for ${member.name}.`,
-        });
-      } else {
-        const imageUrl = URL.createObjectURL(file);
-        setShareableImageUrl(imageUrl);
-        setShowSharePreview(true);
-      }
+      // Fallback for browsers/devices that don't support native sharing
+      const imageUrl = canvas.toDataURL('image/png');
+      setShareableImageUrl(imageUrl);
+      setShowSharePreview(true);
+
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({
@@ -185,8 +189,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
       </Card>
       <Dialog open={showSharePreview} onOpenChange={(isOpen) => {
           setShowSharePreview(isOpen);
-          if (!isOpen && shareableImageUrl) {
-              URL.revokeObjectURL(shareableImageUrl);
+          if (!isOpen) {
               setShareableImageUrl(null);
           }
       }}>
@@ -194,7 +197,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           <DialogHeader>
             <DialogTitle>Share ID Card</DialogTitle>
             <DialogDescription>
-              Direct sharing isn't available on this device. Press the download button or long-press the image to save or share it.
+              Click the download button to save the image, or long-press the image to see sharing options.
             </DialogDescription>
           </DialogHeader>
           {shareableImageUrl && (

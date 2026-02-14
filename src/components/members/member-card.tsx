@@ -6,20 +6,13 @@ import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, Download } from 'lucide-react';
+import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { uploadImage } from '@/app/actions';
 
 type MemberCardProps = {
   member: Member;
@@ -33,8 +26,6 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
-  const [showSharePreview, setShowSharePreview] = useState(false);
-  const [shareableImageUrl, setShareableImageUrl] = useState<string | null>(null);
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -79,47 +70,45 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
         backgroundColor: '#ffffff',
       });
       
-      const canShareFiles = !!navigator.share && !!navigator.canShare;
-      if (canShareFiles) {
-          const file = await new Promise<File | null>((resolve) => {
-              canvas.toBlob((blob) => {
-                  if (!blob) {
-                      resolve(null);
-                      return;
-                  }
-                  resolve(new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: 'image/png' }));
-              }, 'image/png');
-          });
-
-          if (file && navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                  files: [file],
-                  title: `${member.name}'s ID Card`,
-                  text: `Here is the ID card for ${member.name}.`,
-              });
-              if (badgeElement) { (badgeElement as HTMLElement).style.visibility = 'visible'; }
-              setIsSharing(false);
-              return; 
-          }
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        
+      if (!blob) {
+          throw new Error("Failed to create image from ID card.");
       }
 
-      // Fallback for browsers/devices that don't support native sharing
-      const imageUrl = canvas.toDataURL('image/png');
-      setShareableImageUrl(imageUrl);
-      setShowSharePreview(true);
+      const formData = new FormData();
+      formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
+      
+      const uploadResult = await uploadImage(formData);
+
+      if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not get image URL after upload.");
+      }
+
+      const imageUrl = uploadResult.url;
+      
+      if (!member.mobileNumber) {
+          toast({
+              variant: 'destructive',
+              title: 'Share Failed',
+              description: "This member doesn't have a mobile number saved.",
+          });
+          return;
+      }
+
+      const message = `Here is the ID card for ${member.name}:\n${imageUrl}`;
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
+      
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     } catch (error) {
-        // We can ignore the "AbortError" which happens when the user cancels the share sheet.
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Share was cancelled by the user.');
-        } else {
-            console.error("Sharing failed:", error);
-            toast({
-                variant: "destructive",
-                title: "Operation Failed",
-                description: "Could not create or share the ID card. Please try again.",
-            });
-        }
+        console.error("Sharing failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Share Failed",
+            description: error instanceof Error ? error.message : "Could not share the ID card. Please try again.",
+        });
     } finally {
         if (badgeElement) {
             (badgeElement as HTMLElement).style.visibility = 'visible';
@@ -127,6 +116,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
         setIsSharing(false);
     }
   };
+
 
   return (
     <>
@@ -192,37 +182,6 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           </Button>
         </CardFooter>
       </Card>
-      <Dialog open={showSharePreview} onOpenChange={(isOpen) => {
-          setShowSharePreview(isOpen);
-          if (!isOpen) {
-              setShareableImageUrl(null);
-          }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share ID Card</DialogTitle>
-            <DialogDescription>
-              Your browser doesn't support native sharing. Click the download button, or long-press the image to save or share.
-            </DialogDescription>
-          </DialogHeader>
-          {shareableImageUrl && (
-            <>
-                <div className="mt-4 flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={shareableImageUrl} alt="Member ID Card Preview" className="max-w-full rounded-md" />
-                </div>
-                <DialogFooter className="sm:justify-center mt-4">
-                    <Button asChild>
-                        <a href={shareableImageUrl} download={`${member.name.replace(/ /g, '_')}_ID_Card.png`}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Image
-                        </a>
-                    </Button>
-                </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

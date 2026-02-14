@@ -124,7 +124,10 @@ export default function DashboardPage() {
 
         <div className="space-y-8">
             <div>
-                <h2 className="text-xl font-semibold mb-4">Today's Stats</h2>
+                <div className="flex items-baseline gap-2 mb-4">
+                    <h2 className="text-xl font-semibold">Today's Stats</h2>
+                    <p className="text-sm text-muted-foreground">{format(new Date(), "d MMM yyyy")}</p>
+                </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Active Members" value={stats.activeMembers} href="/members?status=active" className="bg-chart-2/10" valueClassName="text-chart-2" />
                     <StatsCard title="Expiring Today" value={stats.expiryToday} href="/members?expiry=today" className="bg-chart-5/10" valueClassName="text-chart-5" />
@@ -135,7 +138,10 @@ export default function DashboardPage() {
             </div>
 
             <div>
-                <h2 className="text-xl font-semibold mb-4">Monthly Stats</h2>
+                <div className="flex items-baseline gap-2 mb-4">
+                    <h2 className="text-xl font-semibold">Monthly Stats</h2>
+                    <p className="text-sm text-muted-foreground">{format(new Date(), "MMMM yyyy")}</p>
+                </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-primary/10" valueClassName="text-primary" />
                     <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/payments?status=pending" className="bg-chart-5/10" valueClassName="text-chart-5" />

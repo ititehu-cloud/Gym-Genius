@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, LoaderCircle } from "lucide-react";
+import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
 import { addMonths, format, parseISO } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -187,19 +187,70 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                   <AlertDescription>{formError}</AlertDescription>
               </Alert>
           )}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+          <div className="flex items-center gap-4">
+            <div className="flex-grow">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+                <FormField
+                    control={form.control}
+                    name="profilePicture"
+                    render={() => (
+                        <FormItem>
+                            <FormControl>
+                                <label htmlFor="picture-upload-edit" className="cursor-pointer">
+                                    <div className="relative h-16 w-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden hover:bg-muted/80">
+                                    {imagePreview ? (
+                                        <Image src={imagePreview} alt="Profile preview" fill className="object-cover" />
+                                    ) : (
+                                        <Camera className="h-8 w-8" />
+                                    )}
+                                    </div>
+                                    <Input
+                                    id="picture-upload-edit"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                        form.setValue('profilePicture', e.target.files);
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            setImagePreview(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    />
+                                </label>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 {imagePreview && (
+                    <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => {
+                        form.setValue('profilePicture', null);
+                        setImagePreview(null);
+                    }}>Remove</Button>
+                )}
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -307,53 +358,14 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 )}
               />
           </div>
-          <div className="flex items-end gap-4">
-              {imagePreview && (
-              <div className="flex items-center flex-col gap-2">
-                  <Image src={imagePreview} alt="Profile preview" width={64} height={64} className="rounded-full object-cover aspect-square" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
-                      form.setValue('profilePicture', null);
-                      setImagePreview(null);
-                  }}>Remove</Button>
-              </div>
-              )}
-              <div className="w-full">
-                <FormField
-                  control={form.control}
-                  name="profilePicture"
-                  render={({ field: { onChange, value, ...rest } }) => (
-                    <FormItem>
-                      <FormLabel>Profile Picture</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              form.setValue('profilePicture', e.target.files)
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setImagePreview(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+              </Button>
           </div>
-        <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-            </Button>
-        </div>
         </form>
       </Form>
       <AlertDialog open={isConfirmationOpen} onOpenChange={setConfirmationOpen}>

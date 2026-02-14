@@ -1,27 +1,25 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
 import Link from 'next/link';
 
 type StatsCardProps = {
   title: string;
   value: string | number;
-  icon: LucideIcon;
   className?: string;
   href?: string;
+  valueClassName?: string;
 };
 
-export default function StatsCard({ title, value, icon: Icon, className, href }: StatsCardProps) {
+export default function StatsCard({ title, value, className, href, valueClassName }: StatsCardProps) {
   const cardContent = (
-    <Card className={cn("rounded-2xl shadow-sm transition-all hover:shadow-md", className)}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-            <Icon className="h-5 w-5 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-            <div className="text-3xl font-bold">{value}</div>
+    <Card className={cn("rounded-xl shadow-sm transition-all hover:shadow-md", className)}>
+        <CardContent className="p-4 flex flex-col items-center justify-center h-28 gap-1">
+            <div className={cn("text-4xl font-bold", valueClassName)}>
+                {value}
+            </div>
+            <p className={cn("text-sm font-medium", valueClassName ? valueClassName : 'text-muted-foreground', 'opacity-90')}>{title}</p>
         </CardContent>
     </Card>
   );

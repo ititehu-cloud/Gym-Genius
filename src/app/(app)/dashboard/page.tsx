@@ -7,7 +7,6 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
-import { Users, UserCheck, CalendarDays, IndianRupee, FileText, TrendingDown, TrendingUp } from "lucide-react";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -44,6 +43,8 @@ export default function DashboardPage() {
     
     const presentToday = todaysAttendance?.length ?? 0;
 
+    const absentToday = Math.max(0, activeMembers - presentToday);
+
     const paidPayments = payments?.filter(p => p.status === 'paid') ?? [];
     const pendingPayments = payments?.filter(p => p.status === 'pending') ?? [];
 
@@ -57,7 +58,7 @@ export default function DashboardPage() {
 
     const monthlyDues = pendingPayments.filter(p => 
         isThisMonth(parseISO(p.paymentDate))
-    ).length ?? 0;
+    ).reduce((sum, p) => sum + p.amount, 0);
 
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
     const totalDues = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -66,6 +67,7 @@ export default function DashboardPage() {
         activeMembers,
         expiryToday,
         presentToday,
+        absentToday,
         todaysCollection,
         monthlyCollection,
         monthlyDues,
@@ -78,18 +80,35 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="space-y-4">
-            <Skeleton className="h-8 w-64 mb-4" />
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
-                <Skeleton className="h-[108px] w-full rounded-2xl" />
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-muted/30">
+        <div className="text-center">
+            <Skeleton className="h-9 w-48 mx-auto mb-2" />
+            <Skeleton className="h-5 w-56 mx-auto" />
+        </div>
+        <div className="space-y-8 mt-4">
+            <div>
+                <Skeleton className="h-7 w-32 mb-4" />
+                <div className="grid gap-6 grid-cols-2">
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                </div>
+            </div>
+            <div>
+                <Skeleton className="h-7 w-32 mb-4" />
+                <div className="grid gap-6 grid-cols-2">
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                </div>
+            </div>
+            <div>
+                <Skeleton className="h-7 w-32 mb-4" />
+                <div className="grid gap-6 grid-cols-2">
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                    <Skeleton className="h-28 w-full rounded-xl" />
+                </div>
             </div>
         </div>
       </main>
@@ -97,18 +116,38 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="space-y-4">
-            <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" href="/members?status=active" />
-                <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" href="/attendance?filter=present" />
-                <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" href="/members?expiry=today" />
-                <StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={IndianRupee} className="bg-chart-2/10" href="/payments?date=today&status=paid" />
-                <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" href="/payments?status=paid" />
-                <StatsCard title="Monthly Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
-                <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" href="/payments?status=paid" />
-                <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
+    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-muted/30">
+        <div className="text-center">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Today - {format(new Date(), "d MMM yyyy")}</p>
+        </div>
+
+        <div className="space-y-8">
+            <div>
+                <h2 className="text-xl font-semibold mb-4">Today's Stats</h2>
+                <div className="grid gap-4 grid-cols-2">
+                    <StatsCard title="Active Members" value={stats.activeMembers} href="/members?status=active" className="bg-chart-2/10" valueClassName="text-chart-2" />
+                    <StatsCard title="Expiring Today" value={stats.expiryToday} href="/members?expiry=today" className="bg-chart-5/10" valueClassName="text-chart-5" />
+                    <StatsCard title="Present Today" value={stats.presentToday} href="/attendance?filter=present" className="bg-chart-2/10" valueClassName="text-chart-2" />
+                    <StatsCard title="Absent Today" value={stats.absentToday} href="/attendance" className="bg-destructive/10" valueClassName="text-destructive" />
+                    <StatsCard title="Collected Today" value={`₹${stats.todaysCollection.toLocaleString()}`} href="/payments?date=today&status=paid" className="bg-primary/10" valueClassName="text-primary" />
+                </div>
+            </div>
+
+            <div>
+                <h2 className="text-xl font-semibold mb-4">Monthly Stats</h2>
+                <div className="grid gap-4 grid-cols-2">
+                    <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-primary/10" valueClassName="text-primary" />
+                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/payments?status=pending" className="bg-chart-5/10" valueClassName="text-chart-5" />
+                </div>
+            </div>
+
+            <div>
+                <h2 className="text-xl font-semibold mb-4">Financial Summary</h2>
+                <div className="grid gap-4 grid-cols-2">
+                    <StatsCard title="Total Due" value={`₹${stats.totalDues.toLocaleString()}`} href="/payments?status=pending" className="bg-destructive/10" valueClassName="text-destructive" />
+                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-chart-2/10" valueClassName="text-chart-2" />
+                </div>
             </div>
         </div>
     </main>

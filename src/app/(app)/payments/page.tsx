@@ -44,7 +44,8 @@ function PaymentsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending">("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [paymentToPrint, setPaymentToPrint] = useState<Payment | null>(null);
+  const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
+  const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
   const [printingPaymentId, setPrintingPaymentId] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -101,25 +102,23 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
   
-  const handlePrint = async (payment: Payment) => {
-    if (printingPaymentId) return;
-
+  const generateReceiptImage = async (payment: Payment): Promise<string | null> => {
     const member = memberMap.get(payment.memberId);
-    if (!member || !member.mobileNumber) {
+    if (!member) {
       toast({
         variant: 'destructive',
         title: 'Action Failed',
-        description: 'Member mobile number not found. Cannot share receipt.',
+        description: 'Member data for this payment was not found.',
       });
-      return;
+      return null;
     }
 
-    setPrintingPaymentId(payment.id);
-
+    // This renders the receipt component off-screen to be captured.
     flushSync(() => {
-      setPaymentToPrint(payment);
+      setPaymentToProcess(payment);
     });
     
+    // Give React a moment to render the component before we try to capture it.
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const receiptElement = receiptRef.current;
@@ -127,11 +126,10 @@ function PaymentsList() {
       toast({
         variant: "destructive",
         title: "Action Failed",
-        description: "Could not find the receipt to process. Please try again.",
+        description: "Could not find the receipt component to process. Please try again.",
       });
-      setPrintingPaymentId(null);
-      setPaymentToPrint(null);
-      return;
+      setPaymentToProcess(null);
+      return null;
     }
 
     try {
@@ -144,7 +142,7 @@ function PaymentsList() {
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
         
       if (!blob) {
-          throw new Error("Failed to create image from receipt.");
+          throw new Error("Failed to create image from receipt canvas.");
       }
 
       const formData = new FormData();
@@ -155,26 +153,60 @@ function PaymentsList() {
       if (uploadResult.error || !uploadResult.url) {
           throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
       }
-
-      const imageUrl = uploadResult.url;
-      const gymName = userProfile?.displayName || 'your gym';
-      
-      const message = `Payment receipt from ${gymName} for ${member.name}:\n${imageUrl}`;
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-      
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-
+      return uploadResult.url;
     } catch (error) {
-      console.error("Failed to process and share receipt:", error);
+      console.error("Failed to generate or upload receipt image:", error);
       toast({
         variant: "destructive",
-        title: "Share Failed",
-        description: error instanceof Error ? error.message : "There was a problem sharing the receipt. Please try again.",
+        title: "Image Generation Failed",
+        description: error instanceof Error ? error.message : "There was a problem generating the receipt image.",
       });
+      return null;
     } finally {
-      setPrintingPaymentId(null);
-      setPaymentToPrint(null);
+      // Clean up the off-screen component after processing.
+      setPaymentToProcess(null);
+    }
+  };
+
+  const handleShareReceipt = async (payment: Payment) => {
+    if (sharingPaymentId || printingPaymentId) return;
+
+    const member = memberMap.get(payment.memberId);
+    if (!member || !member.mobileNumber) {
+      toast({
+        variant: 'destructive',
+        title: 'Action Failed',
+        description: 'Member mobile number not found. Cannot share receipt.',
+      });
+      return;
+    }
+
+    setSharingPaymentId(payment.id);
+    const imageUrl = await generateReceiptImage(payment);
+    setSharingPaymentId(null);
+    
+    if (imageUrl) {
+      const gymNameText = userProfile?.displayName || 'your gym';
+      const message = `Payment receipt from ${gymNameText} for ${member.name}:\n${imageUrl}`;
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handlePrintReceipt = async (payment: Payment) => {
+    if (sharingPaymentId || printingPaymentId) return;
+
+    setPrintingPaymentId(payment.id);
+    const imageUrl = await generateReceiptImage(payment);
+    setPrintingPaymentId(null);
+
+    if (imageUrl) {
+        window.open(imageUrl, '_blank');
+        toast({
+            title: "Receipt Ready",
+            description: "Your receipt has opened in a new tab. You can print it from there.",
+        });
     }
   };
   
@@ -262,6 +294,7 @@ function PaymentsList() {
                           <TableBody>
                               {filteredPayments.map(payment => {
                                   const memberName = memberMap.get(payment.memberId)?.name || 'Unknown Member';
+                                  const isProcessing = sharingPaymentId === payment.id || printingPaymentId === payment.id;
                                   return (
                                   <TableRow key={payment.id}>
                                       <TableCell>{memberName}</TableCell>
@@ -276,7 +309,11 @@ function PaymentsList() {
                                           <div className="flex justify-end items-center gap-2">
                                               <EditPaymentDialog payment={payment} members={members || []} />
                                               <DeletePaymentDialog paymentId={payment.id} memberName={memberName} />
-                                              <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={!!printingPaymentId}>
+                                              <Button variant="outline" size="icon" onClick={() => handleShareReceipt(payment)} disabled={isProcessing}>
+                                                {sharingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                                                <span className="sr-only">Share Receipt</span>
+                                              </Button>
+                                              <Button variant="outline" size="icon" onClick={() => handlePrintReceipt(payment)} disabled={isProcessing}>
                                                 {printingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                                                 <span className="sr-only">Print Receipt</span>
                                               </Button>
@@ -300,12 +337,12 @@ function PaymentsList() {
           </CardContent>
         </Card>
       </main>
-      {paymentToPrint && memberMap.has(paymentToPrint.memberId) && (
+      {paymentToProcess && memberMap.has(paymentToProcess.memberId) && (
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <PaymentReceipt
             ref={receiptRef}
-            payment={paymentToPrint}
-            member={memberMap.get(paymentToPrint.memberId)!}
+            payment={paymentToProcess}
+            member={memberMap.get(paymentToProcess.memberId)!}
             gymName={gymName}
             gymAddress={gymAddress}
             gymIconUrl={gymIconUrl}

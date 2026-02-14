@@ -84,7 +84,7 @@ export default function DashboardPage() {
         <div className="space-y-8">
             <div>
                 <Skeleton className="h-8 w-72 mb-4" />
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
@@ -93,14 +93,14 @@ export default function DashboardPage() {
             </div>
              <div>
                 <Skeleton className="h-8 w-64 mb-4" />
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                 </div>
             </div>
             <div>
                 <Skeleton className="h-8 w-56 mb-4" />
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                     <Skeleton className="h-[108px] w-full rounded-2xl" />
                 </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
         <div className="space-y-8">
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Today's Statistics ({stats.todayString})</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" href="/members?status=active" />
                     <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" href="/attendance?filter=present" />
                     <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" href="/members?expiry=today" />
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Monthly Statistics ({stats.monthString})</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
                     <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" href="/payments?status=paid" />
                     <StatsCard title="Pending Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
                 </div>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Overall Statistics</h2>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
                     <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" href="/payments?status=paid" />
                     <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
                 </div>

@@ -117,7 +117,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   };
 
   return (
-    <Card className="bg-card w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
+    <Card className="bg-card w-full max-w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
       <div ref={cardRef} className="p-4 bg-white pb-12">
           <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
               <div className="p-2 px-3 text-left w-1/2 flex items-center gap-2">
@@ -138,8 +138,8 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
                  <p className="text-xs leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
               </div>
           </div>
-          <div className="flex">
-            <div className="p-3 flex justify-center items-center">
+          <div className="flex flex-col sm:flex-row">
+            <div className="p-3 flex justify-center items-center w-full sm:w-auto">
                 <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
                     <Image
                         src={member.imageUrl}
@@ -150,7 +150,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
                     />
                 </div>
             </div>
-            <CardContent className="p-3 pt-0 flex flex-col justify-center items-start">
+            <CardContent className="p-3 pt-0 flex flex-col justify-center items-start w-full sm:w-auto">
                 <div className='text-left'>
                     <h3 className="text-xl font-bold font-headline leading-tight">{member.name}</h3>
                     {member.memberId && <p className="text-sm text-muted-foreground">ID: {member.memberId}</p>}

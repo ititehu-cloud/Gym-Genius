@@ -214,17 +214,17 @@ function PaymentsList() {
   return (
     <>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">Payments</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full md:w-auto">
               <Input
                   placeholder="Search by member name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64"
+                  className="w-full sm:w-64"
               />
               <Select value={statusFilter} onValueChange={(value: "all" | "paid" | "pending") => setStatusFilter(value)}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,7 +238,7 @@ function PaymentsList() {
                       <Button
                           variant={"outline"}
                           className={cn(
-                              "w-[240px] justify-start text-left font-normal",
+                              "w-full sm:w-[240px] justify-start text-left font-normal",
                               !selectedDate && "text-muted-foreground"
                           )}
                       >

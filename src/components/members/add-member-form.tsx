@@ -27,7 +27,6 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -220,7 +219,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="123, Main Street, Anytown..." {...field} />
+                <Input placeholder="123, Main Street, Anytown..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

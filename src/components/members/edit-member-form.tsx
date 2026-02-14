@@ -27,7 +27,6 @@ import { collection, doc, updateDoc, serverTimestamp } from "firebase/firestore"
 import type { Member, Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Textarea } from "../ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -250,7 +249,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
               <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="123, Main Street, Anytown..." {...field} />
+                  <Input placeholder="123, Main Street, Anytown..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

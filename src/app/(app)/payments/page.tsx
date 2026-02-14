@@ -23,6 +23,7 @@ import { useSearchParams } from "next/navigation";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import { flushSync } from "react-dom";
 import html2canvas from 'html2canvas';
+import { uploadImage } from "@/app/actions";
 
 
 function PaymentsList() {
@@ -99,42 +100,20 @@ function PaymentsList() {
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
+  
+  const handlePrint = async (payment: Payment) => {
+    if (printingPaymentId) return;
 
-  const handleShare = (payment: Payment) => {
     const member = memberMap.get(payment.memberId);
     if (!member || !member.mobileNumber) {
       toast({
         variant: 'destructive',
-        title: 'Share Failed',
-        description: 'Member mobile number not found for this payment.',
+        title: 'Action Failed',
+        description: 'Member mobile number not found. Cannot share receipt.',
       });
       return;
     }
-    
-    const gymName = userProfile?.displayName || 'your gym';
 
-    const messageLines = [
-        `*Payment Receipt from ${gymName}*`,
-        '',
-        `👤 *Member:* ${member.name}`,
-        `💰 *Amount:* ₹${payment.amount.toFixed(2)}`,
-        `📅 *Payment Date:* ${format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}`,
-        `💳 *Payment Method:* ${payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1)}`,
-        `🧾 *Payment Type:* ${payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)}`,
-        '',
-        'Thank you for your payment!'
-    ];
-    const message = messageLines.join('\n');
-    const encodedMessage = encodeURIComponent(message);
-    
-    // This assumes the mobile number includes the country code for WhatsApp.
-    const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-  };
-  
-  const handlePrint = async (payment: Payment) => {
-    if (printingPaymentId) return;
     setPrintingPaymentId(payment.id);
 
     flushSync(() => {
@@ -147,8 +126,8 @@ function PaymentsList() {
     if (!receiptElement) {
       toast({
         variant: "destructive",
-        title: "Print Error",
-        description: "Could not find the receipt to print. Please try again.",
+        title: "Action Failed",
+        description: "Could not find the receipt to process. Please try again.",
       });
       setPrintingPaymentId(null);
       setPaymentToPrint(null);
@@ -162,40 +141,36 @@ function PaymentsList() {
         backgroundColor: '#ffffff',
       });
       
-      const imageUrl = canvas.toDataURL('image/png');
-      const printWindow = window.open('', '_blank');
-      
-      if (!printWindow) {
-        toast({
-            variant: "destructive",
-            title: "Popup Blocked",
-            description: "Please allow popups for this site to print the receipt.",
-        });
-      } else {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Print Receipt</title>
-              <style>
-                @page { size: auto; margin: 0; }
-                body { margin: 0; }
-                img { width: 100%; height: 100%; object-fit: contain; }
-              </style>
-            </head>
-            <body>
-              <img src="${imageUrl}" onload="window.print();" />
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        
+      if (!blob) {
+          throw new Error("Failed to create image from receipt.");
       }
 
+      const formData = new FormData();
+      formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
+      
+      const uploadResult = await uploadImage(formData);
+
+      if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
+      }
+
+      const imageUrl = uploadResult.url;
+      const gymName = userProfile?.displayName || 'your gym';
+      
+      const message = `Payment receipt from ${gymName} for ${member.name}:\n${imageUrl}`;
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
+      
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
     } catch (error) {
-      console.error("Failed to generate print image:", error);
+      console.error("Failed to process and share receipt:", error);
       toast({
         variant: "destructive",
-        title: "Print Failed",
-        description: "There was a problem generating the receipt image. Please try again.",
+        title: "Share Failed",
+        description: error instanceof Error ? error.message : "There was a problem sharing the receipt. Please try again.",
       });
     } finally {
       setPrintingPaymentId(null);
@@ -301,10 +276,6 @@ function PaymentsList() {
                                           <div className="flex justify-end items-center gap-2">
                                               <EditPaymentDialog payment={payment} members={members || []} />
                                               <DeletePaymentDialog paymentId={payment.id} memberName={memberName} />
-                                              <Button variant="outline" size="icon" onClick={() => handleShare(payment)} disabled={!!printingPaymentId}>
-                                                  <Share2 className="h-4 w-4" />
-                                                  <span className="sr-only">Share Receipt</span>
-                                              </Button>
                                               <Button variant="outline" size="icon" onClick={() => handlePrint(payment)} disabled={!!printingPaymentId}>
                                                 {printingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                                                 <span className="sr-only">Print Receipt</span>

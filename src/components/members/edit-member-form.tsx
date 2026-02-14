@@ -40,6 +40,7 @@ import {
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { compressImage } from "@/lib/utils";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -104,17 +105,25 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     const imageFile = values.profilePicture?.[0];
 
     if (imageFile) {
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        const uploadResult = await uploadImage(formData);
+        try {
+            const compressedBlob = await compressImage(imageFile, { maxWidth: 800, quality: 0.8 });
+            const formData = new FormData();
+            formData.append('image', compressedBlob, imageFile.name.replace(/\.[^/.]+$/, ".jpg"));
+            const uploadResult = await uploadImage(formData);
 
-        if (uploadResult.error) {
-            setFormError(uploadResult.error);
+            if (uploadResult.error) {
+                setFormError(uploadResult.error);
+                setIsSubmitting(false);
+                return;
+            }
+            if (uploadResult.url) {
+                imageUrl = uploadResult.url;
+            }
+        } catch (compressionError: any) {
+            console.error("Image compression error:", compressionError);
+            setFormError(compressionError.message || "Failed to process image. Please try a different one.");
             setIsSubmitting(false);
             return;
-        }
-        if (uploadResult.url) {
-            imageUrl = uploadResult.url;
         }
     } else if (imagePreview === null) {
         // This means the image was removed by the user

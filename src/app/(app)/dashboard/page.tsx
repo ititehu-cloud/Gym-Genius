@@ -126,7 +126,7 @@ export default function DashboardPage() {
             <div>
                 <div className="flex items-baseline gap-2 mb-4">
                     <h2 className="text-xl font-semibold">Today's Stats</h2>
-                    <p className="text-sm text-muted-foreground">{format(new Date(), "d MMM yyyy")}</p>
+                    <p className="text-xl text-muted-foreground">{format(new Date(), "d MMM yyyy")}</p>
                 </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Active Members" value={stats.activeMembers} href="/members?status=active" className="bg-chart-2/10" valueClassName="text-chart-2" />
@@ -140,7 +140,7 @@ export default function DashboardPage() {
             <div>
                 <div className="flex items-baseline gap-2 mb-4">
                     <h2 className="text-xl font-semibold">Monthly Stats</h2>
-                    <p className="text-sm text-muted-foreground">{format(new Date(), "MMMM yyyy")}</p>
+                    <p className="text-xl text-muted-foreground">{format(new Date(), "MMMM yyyy")}</p>
                 </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-primary/10" valueClassName="text-primary" />

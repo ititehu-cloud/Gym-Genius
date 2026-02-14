@@ -63,8 +63,6 @@ export default function DashboardPage() {
     const totalDues = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
     return {
-        todayString: format(today, "MMMM do, yyyy"),
-        monthString: format(today, "MMMM"),
         activeMembers,
         expiryToday,
         presentToday,
@@ -81,29 +79,17 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="space-y-8">
-            <div>
-                <Skeleton className="h-8 w-72 mb-4" />
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                </div>
-            </div>
-             <div>
-                <Skeleton className="h-8 w-64 mb-4" />
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                </div>
-            </div>
-            <div>
-                <Skeleton className="h-8 w-56 mb-4" />
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                    <Skeleton className="h-[108px] w-full rounded-2xl" />
-                </div>
+        <div className="space-y-4">
+            <Skeleton className="h-8 w-64 mb-4" />
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
+                <Skeleton className="h-[108px] w-full rounded-2xl" />
             </div>
         </div>
       </main>
@@ -112,31 +98,17 @@ export default function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="space-y-8">
-            <div>
-                <h2 className="text-2xl font-semibold mb-4">Today's Statistics ({stats.todayString})</h2>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" href="/members?status=active" />
-                    <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" href="/attendance?filter=present" />
-                    <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" href="/members?expiry=today" />
-                    <StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={IndianRupee} className="bg-chart-2/10" href="/payments?date=today&status=paid" />
-                </div>
-            </div>
-
-            <div>
-                <h2 className="text-2xl font-semibold mb-4">Monthly Statistics ({stats.monthString})</h2>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-                    <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" href="/payments?status=paid" />
-                    <StatsCard title="Pending Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
-                </div>
-            </div>
-
-            <div>
-                <h2 className="text-2xl font-semibold mb-4">Overall Statistics</h2>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" href="/payments?status=paid" />
-                    <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
-                </div>
+        <div className="space-y-4">
+            <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <StatsCard title="Active Members" value={stats.activeMembers} icon={Users} className="bg-primary/10" href="/members?status=active" />
+                <StatsCard title="Present Today" value={stats.presentToday} icon={UserCheck} className="bg-primary/10" href="/attendance?filter=present" />
+                <StatsCard title="Expiry Today" value={stats.expiryToday} icon={CalendarDays} className="bg-muted" href="/members?expiry=today" />
+                <StatsCard title="Today's Collection" value={`₹${stats.todaysCollection.toLocaleString()}`} icon={IndianRupee} className="bg-chart-2/10" href="/payments?date=today&status=paid" />
+                <StatsCard title="Monthly Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} icon={FileText} className="bg-chart-4/10" href="/payments?status=paid" />
+                <StatsCard title="Monthly Dues" value={stats.monthlyDues} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
+                <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} icon={TrendingUp} className="bg-chart-5/10" href="/payments?status=paid" />
+                <StatsCard title="Total Dues" value={`₹${stats.totalDues.toLocaleString()}`} icon={TrendingDown} className="bg-destructive/10" href="/payments?status=pending" />
             </div>
         </div>
     </main>

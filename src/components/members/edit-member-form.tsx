@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderCircle } from "lucide-react";
+import { AlertTriangle, LoaderCircle } from "lucide-react";
 import { addMonths, format, parseISO } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -39,6 +39,7 @@ import {
 } from "../ui/alert-dialog";
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -63,6 +64,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(member.imageUrl);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -84,6 +86,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const joinDateChanged = form.watch('joinDate') !== format(parseISO(member.joinDate), 'yyyy-MM-dd');
 
   function onFormSubmit(values: z.infer<typeof formSchema>) {
+    setFormError(null);
     setFormData(values);
     if (planChanged || joinDateChanged) {
         setConfirmationOpen(true);
@@ -95,6 +98,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   async function handleUpdate(values: z.infer<typeof formSchema>, updateExpiry: boolean = false) {
     setIsSubmitting(true);
     setConfirmationOpen(false);
+    setFormError(null);
 
     let imageUrl = member.imageUrl;
     const imageFile = values.profilePicture?.[0];
@@ -105,11 +109,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
         const uploadResult = await uploadImage(formData);
 
         if (uploadResult.error) {
-            toast({
-                variant: 'destructive',
-                title: 'Image Upload Failed',
-                description: uploadResult.error,
-            });
+            setFormError(uploadResult.error);
             setIsSubmitting(false);
             return;
         }
@@ -122,7 +122,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     }
 
     if (!plans) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Plans not loaded.' });
+      setFormError('Plans not loaded.');
       setIsSubmitting(false);
       return;
     }
@@ -141,7 +141,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     if(updateExpiry) {
         const selectedPlan = plans.find(p => p.id === values.planId);
         if (!selectedPlan) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Selected plan not found.' });
+            setFormError('Selected plan not found.');
             setIsSubmitting(false);
             return;
         }
@@ -161,11 +161,8 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
       setDialogOpen(false);
     } catch (error) {
       console.error("Error updating member:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem updating the member. Please try again.",
-      });
+      const errorMessage = error instanceof Error ? error.message : "There was a problem updating the member. Please try again.";
+      setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,6 +172,13 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
+          {formError && (
+              <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+              </Alert>
+          )}
           <FormField
             control={form.control}
             name="memberId"

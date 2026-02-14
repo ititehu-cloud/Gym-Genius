@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderCircle } from "lucide-react";
+import { AlertTriangle, LoaderCircle } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -30,6 +30,7 @@ import { useState } from "react";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -50,6 +51,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
@@ -67,8 +69,9 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    setFormError(null);
     
-    let imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+    let imageUrl: string | undefined = undefined;
 
     const imageFile = values.profilePicture?.[0];
 
@@ -78,11 +81,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         const uploadResult = await uploadImage(formData);
 
         if (uploadResult.error) {
-            toast({
-                variant: 'destructive',
-                title: 'Image Upload Failed',
-                description: uploadResult.error,
-            });
+            setFormError(uploadResult.error);
             setIsSubmitting(false);
             return;
         }
@@ -91,16 +90,19 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         }
     }
 
+    if (!imageUrl) {
+      imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+    }
 
     if (!plans) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Plans not loaded. Cannot calculate expiry date.' });
+        setFormError('Plans not loaded. Cannot calculate expiry date.');
         setIsSubmitting(false);
         return;
     }
 
     const selectedPlan = plans.find(p => p.id === values.planId);
     if (!selectedPlan) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Selected plan not found.' });
+        setFormError('Selected plan not found.');
         setIsSubmitting(false);
         return;
     }
@@ -128,11 +130,8 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       setDialogOpen(false);
     } catch (error) {
       console.error("Error adding member:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem adding the member. Please try again.",
-      });
+      const errorMessage = error instanceof Error ? error.message : "There was a problem adding the member. Please try again.";
+      setFormError(errorMessage);
     } finally {
         setIsSubmitting(false);
     }
@@ -141,6 +140,13 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {formError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
         <FormField
           control={form.control}
           name="memberId"

@@ -109,12 +109,17 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
       setShowSharePreview(true);
 
     } catch (error) {
-        console.error("Sharing failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Operation Failed",
-            description: "Could not create or share the ID card. Please try again.",
-        });
+        // We can ignore the "AbortError" which happens when the user cancels the share sheet.
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Share was cancelled by the user.');
+        } else {
+            console.error("Sharing failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Operation Failed",
+                description: "Could not create or share the ID card. Please try again.",
+            });
+        }
     } finally {
         if (badgeElement) {
             (badgeElement as HTMLElement).style.visibility = 'visible';
@@ -197,7 +202,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           <DialogHeader>
             <DialogTitle>Share ID Card</DialogTitle>
             <DialogDescription>
-              Click the download button to save the image, or long-press the image to see sharing options.
+              Your browser doesn't support native sharing. Click the download button, or long-press the image to save or share.
             </DialogDescription>
           </DialogHeader>
           {shareableImageUrl && (

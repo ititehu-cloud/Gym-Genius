@@ -64,7 +64,12 @@ function MemberList() {
     }
 
     if (searchQuery) {
-        filtered = filtered.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        const lowercasedQuery = searchQuery.toLowerCase();
+        filtered = filtered.filter(m => 
+            m.name.toLowerCase().includes(lowercasedQuery) ||
+            m.mobileNumber.includes(searchQuery) ||
+            m.memberId.toLowerCase().includes(lowercasedQuery)
+        );
     }
 
     return filtered;
@@ -90,7 +95,7 @@ function MemberList() {
         <h1 className="text-2xl font-headline font-semibold">Members</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
             <Input
-                placeholder="Search by name..."
+                placeholder="Search by name, phone, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full sm:w-64"

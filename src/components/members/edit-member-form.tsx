@@ -179,7 +179,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-3">
           {formError && (
               <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

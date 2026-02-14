@@ -149,7 +149,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
         {formError && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />

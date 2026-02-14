@@ -24,6 +24,7 @@ import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import { flushSync } from "react-dom";
 import html2canvas from 'html2canvas';
 import { uploadImage } from "@/app/actions";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 
 function PaymentsList() {
@@ -47,6 +48,7 @@ function PaymentsList() {
   const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
   const [printingPaymentId, setPrintingPaymentId] = useState<string | null>(null);
+  const [receiptUrlForDialog, setReceiptUrlForDialog] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -202,11 +204,7 @@ function PaymentsList() {
     setPrintingPaymentId(null);
 
     if (imageUrl) {
-        window.open(imageUrl, '_blank');
-        toast({
-            title: "Receipt Ready",
-            description: "Your receipt has opened in a new tab. You can print it from there.",
-        });
+        setReceiptUrlForDialog(imageUrl);
     }
   };
   
@@ -349,6 +347,30 @@ function PaymentsList() {
           />
         </div>
       )}
+      <AlertDialog open={!!receiptUrlForDialog} onOpenChange={() => setReceiptUrlForDialog(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Ready to Print</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Your app environment prevents direct printing. To print, copy the link below and open it in a full browser (like Chrome or Safari).
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex items-center space-x-2">
+                <Input value={receiptUrlForDialog || ''} readOnly className="flex-1" />
+                <Button onClick={() => {
+                    if(receiptUrlForDialog) {
+                        navigator.clipboard.writeText(receiptUrlForDialog);
+                        toast({ title: "Link Copied!", description: "You can now paste it in your browser." });
+                    }
+                }}>
+                    Copy Link
+                </Button>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setReceiptUrlForDialog(null)}>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

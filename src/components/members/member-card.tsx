@@ -6,7 +6,7 @@ import type { Member } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
+import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, Download } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -193,15 +194,24 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           <DialogHeader>
             <DialogTitle>Share ID Card</DialogTitle>
             <DialogDescription>
-              Direct sharing is not supported on this device. Long-press the image below to save or share it.
+              Direct sharing isn't available on this device. Press the download button or long-press the image to save or share it.
             </DialogDescription>
           </DialogHeader>
           {shareableImageUrl && (
-            <div className="mt-4 flex justify-center">
-              {/* Using a standard img tag because Next/Image is not needed for a temporary blob URL */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={shareableImageUrl} alt="Member ID Card Preview" className="max-w-full rounded-md" />
-            </div>
+            <>
+                <div className="mt-4 flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={shareableImageUrl} alt="Member ID Card Preview" className="max-w-full rounded-md" />
+                </div>
+                <DialogFooter className="sm:justify-center mt-4">
+                    <Button asChild>
+                        <a href={shareableImageUrl} download={`${member.name.replace(/ /g, '_')}_ID_Card.png`}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Image
+                        </a>
+                    </Button>
+                </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>

@@ -53,7 +53,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   };
   
   const handleShare = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current || isSharing) return;
     setIsSharing(true);
 
     const cardElement = cardRef.current;
@@ -96,11 +96,40 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           return;
       }
 
-      const message = `Here is the ID card for ${member.name}:\n${imageUrl}`;
+      const message = `Here is the ID card for ${member.name}: ${imageUrl}`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
       
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>Member ID Card - ${member.name}</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin:0; padding: 20px; text-align:center; background-color: #f0f0f0; font-family: sans-serif;">
+              <h2 style="margin-bottom: 20px;">Member ID Card</h2>
+              <p style="color: #666; margin-top: -10px; margin-bottom: 20px;">
+                Click the button below to send a link to this ID card on WhatsApp.
+              </p>
+              <img src="${imageUrl}" alt="ID Card for ${member.name}" style="max-width:100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+              <div style="margin-top: 20px;">
+                <a href="${whatsappUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                  Share on WhatsApp
+                </a>
+              </div>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Could Not Open Tab",
+          description: "Please disable your pop-up blocker to share the ID card.",
+        });
+      }
 
     } catch (error) {
         console.error("Sharing failed:", error);

@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoaderCircle, Share2, CalendarIcon, X, Printer } from "lucide-react";
+import { LoaderCircle, Share2, CalendarIcon, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, isSameDay } from "date-fns";
@@ -24,7 +24,6 @@ import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import { flushSync } from "react-dom";
 import html2canvas from 'html2canvas';
 import { uploadImage } from "@/app/actions";
-import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 
 function PaymentsList() {
@@ -47,8 +46,6 @@ function PaymentsList() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
   const [sharingPaymentId, setSharingPaymentId] = useState<string | null>(null);
-  const [printingPaymentId, setPrintingPaymentId] = useState<string | null>(null);
-  const [receiptUrlForDialog, setReceiptUrlForDialog] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,7 +101,7 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
   
-  const generateReceiptImage = async (payment: Payment): Promise<string | null> => {
+  const generateReceiptBlob = async (payment: Payment): Promise<Blob | null> => {
     const member = memberMap.get(payment.memberId);
     if (!member) {
       toast({
@@ -146,18 +143,9 @@ function PaymentsList() {
       if (!blob) {
           throw new Error("Failed to create image from receipt canvas.");
       }
-
-      const formData = new FormData();
-      formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
-      
-      const uploadResult = await uploadImage(formData);
-
-      if (uploadResult.error || !uploadResult.url) {
-          throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
-      }
-      return uploadResult.url;
+      return blob;
     } catch (error) {
-      console.error("Failed to generate or upload receipt image:", error);
+      console.error("Failed to generate receipt blob:", error);
       toast({
         variant: "destructive",
         title: "Image Generation Failed",
@@ -171,40 +159,93 @@ function PaymentsList() {
   };
 
   const handleShareReceipt = async (payment: Payment) => {
-    if (sharingPaymentId || printingPaymentId) return;
+    if (sharingPaymentId) return;
 
     const member = memberMap.get(payment.memberId);
-    if (!member || !member.mobileNumber) {
+    if (!member) {
       toast({
         variant: 'destructive',
         title: 'Action Failed',
-        description: 'Member mobile number not found. Cannot share receipt.',
+        description: 'Member data for this payment was not found.',
       });
       return;
     }
 
     setSharingPaymentId(payment.id);
-    const imageUrl = await generateReceiptImage(payment);
-    setSharingPaymentId(null);
     
-    if (imageUrl) {
-      const gymNameText = userProfile?.displayName || 'your gym';
-      const message = `Payment receipt from ${gymNameText} for ${member.name}:\n${imageUrl}`;
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
+    try {
+        const blob = await generateReceiptBlob(payment);
+        if (!blob) {
+            // Error is already toasted inside generateReceiptBlob
+            return;
+        }
 
-  const handlePrintReceipt = async (payment: Payment) => {
-    if (sharingPaymentId || printingPaymentId) return;
+        const file = new File([blob], `Receipt_${member.name.replace(/ /g, '_')}.png`, { type: blob.type });
 
-    setPrintingPaymentId(payment.id);
-    const imageUrl = await generateReceiptImage(payment);
-    setPrintingPaymentId(null);
+        // Use Web Share API if available to share the file directly
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Payment Receipt',
+                text: `Here is the payment receipt for ${member.name}.`,
+            });
+        } else {
+            // Fallback: Upload the image and open it in a new tab with instructions.
+            const formData = new FormData();
+            formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
+            
+            const uploadResult = await uploadImage(formData);
 
-    if (imageUrl) {
-        setReceiptUrlForDialog(imageUrl);
+            if (uploadResult.error || !uploadResult.url) {
+                throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
+            }
+            
+            toast({
+              title: "Using Fallback Share",
+              description: "Please long-press the image in the new tab to share.",
+            });
+
+            const newWindow = window.open('', '_blank');
+            if (newWindow) {
+              newWindow.document.write(`
+                <html>
+                  <head>
+                    <title>Payment Receipt - ${member.name}</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                      body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh;}
+                      img { max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+                      .instructions { margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; }
+                    </style>
+                  </head>
+                  <body>
+                    <h2 style="margin-bottom: 20px;">Payment Receipt</h2>
+                    <img src="${uploadResult.url}" alt="Receipt for ${member.name}">
+                    <div class="instructions">
+                      <p><b>To share or print this receipt:</b></p>
+                      <p>Long-press the image and select 'Share Image'.</p>
+                    </div>
+                  </body>
+                </html>
+              `);
+              newWindow.document.close();
+            } else {
+                toast({
+                  variant: "destructive",
+                  title: "Could Not Open Tab",
+                  description: "Please disable your pop-up blocker to view the receipt.",
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Sharing failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Share Failed",
+            description: error instanceof Error ? error.message : "Could not share the receipt. Please try again.",
+        });
+    } finally {
+        setSharingPaymentId(null);
     }
   };
   
@@ -292,7 +333,7 @@ function PaymentsList() {
                           <TableBody>
                               {filteredPayments.map(payment => {
                                   const memberName = memberMap.get(payment.memberId)?.name || 'Unknown Member';
-                                  const isProcessing = sharingPaymentId === payment.id || printingPaymentId === payment.id;
+                                  const isProcessing = sharingPaymentId === payment.id;
                                   return (
                                   <TableRow key={payment.id}>
                                       <TableCell>{memberName}</TableCell>
@@ -310,10 +351,6 @@ function PaymentsList() {
                                               <Button variant="outline" size="icon" onClick={() => handleShareReceipt(payment)} disabled={isProcessing}>
                                                 {sharingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
                                                 <span className="sr-only">Share Receipt</span>
-                                              </Button>
-                                              <Button variant="outline" size="icon" onClick={() => handlePrintReceipt(payment)} disabled={isProcessing}>
-                                                {printingPaymentId === payment.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                                                <span className="sr-only">Print Receipt</span>
                                               </Button>
                                           </div>
                                       </TableCell>
@@ -347,30 +384,6 @@ function PaymentsList() {
           />
         </div>
       )}
-      <AlertDialog open={!!receiptUrlForDialog} onOpenChange={() => setReceiptUrlForDialog(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Ready to Print</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Your app environment prevents direct printing. To print, copy the link below and open it in a full browser (like Chrome or Safari).
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="flex items-center space-x-2">
-                <Input value={receiptUrlForDialog || ''} readOnly className="flex-1" />
-                <Button onClick={() => {
-                    if(receiptUrlForDialog) {
-                        navigator.clipboard.writeText(receiptUrlForDialog);
-                        toast({ title: "Link Copied!", description: "You can now paste it in your browser." });
-                    }
-                }}>
-                    Copy Link
-                </Button>
-            </div>
-            <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setReceiptUrlForDialog(null)}>Close</AlertDialogCancel>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

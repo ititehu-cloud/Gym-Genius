@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import { uploadImage } from '@/app/actions';
+import DueNotice from './due-notice';
+import { flushSync } from 'react-dom';
+
 
 type MemberCardProps = {
   member: Member;
@@ -25,7 +28,9 @@ type MemberCardProps = {
 
 export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [memberToProcess, setMemberToProcess] = useState<Member | null>(null);
   const { toast } = useToast();
   
   const getStatus = (): Member['status'] => {
@@ -59,47 +64,70 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     setIsSharing(true);
 
     if (isExpiryShare && plan) {
-        try {
-            if (!member.mobileNumber) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Share Failed',
-                    description: "This member doesn't have a mobile number saved.",
-                });
-                return;
-            }
+      if (!member.mobileNumber) {
+          toast({
+              variant: 'destructive',
+              title: 'Share Failed',
+              description: "This member doesn't have a mobile number saved.",
+          });
+          setIsSharing(false);
+          return;
+      }
+      
+      // Render notice off-screen
+      flushSync(() => {
+        setMemberToProcess(member);
+      });
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-            const gymNameText = gymName || 'your gym';
-            const planPriceText = plan?.price ? `₹${plan.price}` : 'N/A';
-            const joinDateText = format(parseISO(member.joinDate), 'PPP');
-            const expiryDateText = format(parseISO(member.expiryDate), 'PPP');
-            const planNameText = plan?.name || 'N/A';
-
-            const message = `*Due Details*\n\n` +
-                          `From: ${gymNameText}\n\n` +
-                          `Customer: ${member.name}\n` +
-                          `Mobile: ${member.mobileNumber}\n` +
-                          `Date of Joining: ${joinDateText}\n` +
-                          `Date of Expiry: ${expiryDateText}\n` +
-                          `Plan Type: ${planNameText}\n` +
-                          `Amount Due: ${planPriceText}\n\n` +
-                          `Please clear the due amount as soon as possible to continue your membership with the Gym.\n` +
-                          `Thank you!`;
-
-            const encodedMessage = encodeURIComponent(message);
-            const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-        } catch (error) {
-            console.error("WhatsApp share failed:", error);
-            toast({
-                variant: "destructive",
-                title: "Share Failed",
-                description: "Could not create the WhatsApp message.",
-            });
-        } finally {
-            setIsSharing(false);
-        }
+      const noticeElement = noticeRef.current;
+      if (!noticeElement) {
+        toast({ variant: "destructive", title: "Share Failed", description: "Cannot find notice element to share." });
+        setMemberToProcess(null);
+        setIsSharing(false);
         return;
+      }
+
+      try {
+        const canvas = await html2canvas(noticeElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error("Failed to create image from notice.");
+
+        const file = new File([blob], `Due_Notice_${member.name}.png`, { type: blob.type });
+
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Due Notice for ${member.name}`,
+          });
+        } else {
+          // Fallback: Upload and open in new tab
+          const formData = new FormData();
+          formData.append('image', blob, file.name);
+          const uploadResult = await uploadImage(formData);
+          if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not get image URL.");
+
+          toast({ title: "Using Fallback Share", description: "Please long-press the image in the new tab to share." });
+          const newWindow = window.open('', '_blank');
+          if (newWindow) {
+            newWindow.document.write(`<html><body style="margin:0; text-align:center; background-color:#f0f0f0;"><img src="${uploadResult.url}" style="max-width:100%;" alt="Due Notice" /><p>Long-press image to share.</p></body></html>`);
+            newWindow.document.close();
+          } else {
+            toast({ variant: "destructive", title: "Could Not Open Tab", description: "Please disable your pop-up blocker." });
+          }
+        }
+      } catch (error) {
+          console.error("WhatsApp share failed:", error);
+          toast({
+              variant: "destructive",
+              title: "Share Failed",
+              description: error instanceof Error ? error.message : "Could not create the WhatsApp message.",
+          });
+      } finally {
+          setMemberToProcess(null);
+          setIsSharing(false);
+      }
+      return;
     }
 
     // Default ID Card Sharing Logic
@@ -270,8 +298,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </Button>
         </CardFooter>
       </Card>
+      {memberToProcess && plan && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+            <DueNotice 
+                ref={noticeRef}
+                member={memberToProcess}
+                plan={plan}
+                gymName={gymName}
+            />
+        </div>
+      )}
     </>
   );
 }
-
-    

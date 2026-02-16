@@ -7,7 +7,6 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
-import AtRiskMembers from "@/components/dashboard/at-risk-members";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -168,9 +167,6 @@ export default function DashboardPage() {
                     <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-chart-2/10" valueClassName="text-chart-2" />
                 </div>
             </div>
-            {members && payments && plans && (
-                <AtRiskMembers members={members} payments={payments} plans={plans} />
-            )}
         </div>
     </main>
   );

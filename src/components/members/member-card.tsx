@@ -20,9 +20,10 @@ type MemberCardProps = {
   gymName?: string | null;
   gymAddress?: string;
   gymIconUrl?: string | null;
+  isExpiryShare?: boolean;
 };
 
-export default function MemberCard({ member, planName, gymName, gymAddress, gymIconUrl }: MemberCardProps) {
+export default function MemberCard({ member, planName, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
@@ -53,10 +54,51 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   };
   
   const handleShare = async () => {
-    if (!cardRef.current || isSharing) return;
+    if (isSharing) return;
+
+    if (isExpiryShare) {
+        setIsSharing(true);
+        try {
+            if (!member.mobileNumber) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Share Failed',
+                    description: "This member doesn't have a mobile number saved.",
+                });
+                return;
+            }
+
+            const gymNameText = gymName || 'your gym';
+            const message = `Hi ${member.name}, this is a friendly reminder from ${gymNameText} that your membership expires today, ${format(parseISO(member.expiryDate), 'PPP')}. Please contact us to renew. Thank you!`;
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
+
+            window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        } catch (error) {
+            console.error("WhatsApp share failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Share Failed",
+                description: "Could not open WhatsApp. Please try again.",
+            });
+        } finally {
+            setIsSharing(false);
+        }
+        return;
+    }
+
     setIsSharing(true);
 
     const cardElement = cardRef.current;
+    if (!cardElement) {
+        toast({
+            variant: "destructive",
+            title: "Share Failed",
+            description: "Cannot find ID card element.",
+        });
+        setIsSharing(false);
+        return;
+    }
     const badgeElement = cardElement.querySelector('[data-badge="status"]');
     
     if (badgeElement) {
@@ -96,7 +138,7 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
           return;
       }
 
-      const message = `Here is the ID card for ${member.name}: ${imageUrl}`;
+      const message = `Here is the ID card for ${member.name}:`;
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
       
@@ -107,15 +149,17 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
             <head>
               <title>Member ID Card - ${member.name}</title>
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; }
+                img { max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+                .share-btn { display: inline-block; padding: 12px 24px; margin-top: 20px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+              </style>
             </head>
-            <body style="margin:0; padding: 20px; text-align:center; background-color: #f0f0f0; font-family: sans-serif;">
+            <body>
               <h2 style="margin-bottom: 20px;">Member ID Card</h2>
-              <p style="color: #666; margin-top: -10px; margin-bottom: 20px;">
-                Click the button below to send a link to this ID card on WhatsApp.
-              </p>
-              <img src="${imageUrl}" alt="ID Card for ${member.name}" style="max-width:100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-              <div style="margin-top: 20px;">
-                <a href="${whatsappUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              <img src="${imageUrl}" alt="ID Card for ${member.name}">
+              <div>
+                <a href="${whatsappUrl}" target="_blank" rel="noopener noreferrer" class="share-btn">
                   Share on WhatsApp
                 </a>
               </div>

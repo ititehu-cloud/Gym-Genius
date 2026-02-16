@@ -122,7 +122,7 @@ function MemberList() {
       {filteredMembers && filteredMembers.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
           {filteredMembers.map((member) => (
-            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} gymAddress={gymAddress} gymIconUrl={gymIconUrl} />
+            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} gymAddress={gymAddress} gymIconUrl={gymIconUrl} isExpiryShare={expiryParam === 'today'} />
           ))}
         </div>
       ) : (

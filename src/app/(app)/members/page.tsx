@@ -43,7 +43,7 @@ function MemberList() {
 
   const planMap = useMemo(() => {
     if (!plans) return new Map();
-    return new Map(plans.map(p => [p.id, p.name]));
+    return new Map(plans.map(p => [p.id, p]));
   }, [plans]);
 
   const filteredMembers = useMemo(() => {
@@ -122,7 +122,7 @@ function MemberList() {
       {filteredMembers && filteredMembers.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
           {filteredMembers.map((member) => (
-            <MemberCard key={member.id} member={member} planName={planMap.get(member.planId) || "N/A"} gymName={gymName} gymAddress={gymAddress} gymIconUrl={gymIconUrl} isExpiryShare={expiryParam === 'today'} />
+            <MemberCard key={member.id} member={member} plan={planMap.get(member.planId)} gymName={gymName} gymAddress={gymAddress} gymIconUrl={gymIconUrl} isExpiryShare={expiryParam === 'today'} />
           ))}
         </div>
       ) : (

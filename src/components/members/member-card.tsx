@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import type { Member } from "@/lib/types";
+import type { Member, Plan } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
@@ -16,14 +16,14 @@ import { uploadImage } from '@/app/actions';
 
 type MemberCardProps = {
   member: Member;
-  planName: string;
+  plan?: Plan;
   gymName?: string | null;
   gymAddress?: string;
   gymIconUrl?: string | null;
   isExpiryShare?: boolean;
 };
 
-export default function MemberCard({ member, planName, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
@@ -39,6 +39,8 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
   }
 
   const status = getStatus();
+  const planName = plan?.name || 'N/A';
+  const planPrice = plan?.price || 0;
 
   const getStatusBadgeVariant = (status: Member['status']) => {
     switch (status) {
@@ -69,7 +71,21 @@ export default function MemberCard({ member, planName, gymName, gymAddress, gymI
             }
 
             const gymNameText = gymName || 'your gym';
-            const message = `Hi ${member.name}, this is a friendly reminder from ${gymNameText} that your membership expires today, ${format(parseISO(member.expiryDate), 'PPP')}. Please contact us to renew. Thank you!`;
+            const message = `💪🏼 *Due Details* 💪🏼
+
+*From: ${gymNameText}*
+
+👤 *Customer:* ${member.name}
+📱 *Mobile:* ${member.mobileNumber}
+📅 *Date of Joining:* ${format(parseISO(member.joinDate), 'PPP')}
+📅 *Date of Expiry:* ${format(parseISO(member.expiryDate), 'PPP')}
+💰 *Plan Type:* ${planName}
+💵 *Amount Due:* ₹${planPrice}
+
+
+🙏 Please clear the due amount at early as possible to continue your membership with the Gym.
+Thank you!`;
+
             const encodedMessage = encodeURIComponent(message);
             const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
 

@@ -71,19 +71,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             }
 
             const gymNameText = gymName || 'your gym';
-            const message = `💪🏼 *Due Details* 💪🏼
+            const message = `\u{1F4AA}\u{1F3FC} *Due Details* \u{1F4AA}\u{1F3FC}
 
 *From: ${gymNameText}*
 
-👤 *Customer:* ${member.name}
-📱 *Mobile:* ${member.mobileNumber}
-📅 *Date of Joining:* ${format(parseISO(member.joinDate), 'PPP')}
-📅 *Date of Expiry:* ${format(parseISO(member.expiryDate), 'PPP')}
-💰 *Plan Type:* ${planName}
-💵 *Amount Due:* ₹${planPrice}
+\u{1F464} *Customer:* ${member.name}
+\u{1F4F1} *Mobile:* ${member.mobileNumber}
+\u{1F4C5} *Date of Joining:* ${format(parseISO(member.joinDate), 'PPP')}
+\u{1F4C5} *Date of Expiry:* ${format(parseISO(member.expiryDate), 'PPP')}
+\u{1F4B0} *Plan Type:* ${planName}
+\u{1F4B5} *Amount Due:* \u20B9${planPrice}
 
 
-🙏 Please clear the due amount at early as possible to continue your membership with the Gym.
+\u{1F64F} Please clear the due amount at early as possible to continue your membership with the Gym.
 Thank you!`;
 
             const encodedMessage = encodeURIComponent(message);

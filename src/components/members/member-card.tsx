@@ -83,7 +83,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const planType = plan.name;
       const amountDue = plan.price;
 
-      const message = `💪🏼 *Due Details* 💪🏼\n\n*From: ${from}*\n\n👤 *Customer:* ${customer}\n📱 *Mobile:* ${mobile}\n📅 *Date of Joining:* ${joinDate}\n📅 *Date of Expiry:* ${expiryDate}\n💰 *Plan Type:* ${planType}\n💵 *Amount Due:* ₹${amountDue}\n\n🙏 Please clear the due amount as early as possible to continue your membership with the Gym.\nThank you!`;
+      const message = `*Due Details*\n\nFrom: ${from}\n\nCustomer: ${customer}\nMobile: ${mobile}\nDate of Joining: ${joinDate}\nDate of Expiry: ${expiryDate}\nPlan Type: ${planType}\nAmount Due: ₹${amountDue}\n\nPlease clear the due amount as early as possible to continue your membership with the Gym.\nThank you!`;
       const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       setIsSharing(false);
@@ -143,6 +143,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
                       button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
                       button:hover { background-color: #e5e7eb; }
+                      .close-button { margin-top: 1rem; padding: 0.5rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; }
+                      .close-button:hover { background-color: #dc2626; }
                   </style>
               </head>
               <body>
@@ -151,6 +153,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
                       <button id="copy-btn">Copy Link</button>
                   </div>
+                  <button id="close-btn" class="close-button">Close</button>
                   <script>
                       document.getElementById('copy-btn').addEventListener('click', () => {
                           const input = document.getElementById('copy-input');
@@ -161,6 +164,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                           }).catch(err => {
                               console.error('Failed to copy: ', err);
                           });
+                      });
+                      document.getElementById('close-btn').addEventListener('click', () => {
+                          window.close();
                       });
                   </script>
               </body>

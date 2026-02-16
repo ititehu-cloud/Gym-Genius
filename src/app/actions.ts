@@ -1,28 +1,10 @@
 "use server";
 
 import { getInactiveMemberInsights, type InactiveMemberInsightsInput, type InactiveMemberInsightsOutput } from '@/ai/flows/inactive-member-insights';
-import { members, payments, plans } from '@/lib/data';
 
-export async function fetchInactiveMemberInsights(): Promise<InactiveMemberInsightsOutput | { error: string }> {
+export async function fetchInactiveMemberInsights(input: InactiveMemberInsightsInput): Promise<InactiveMemberInsightsOutput | { error: string }> {
   try {
-    const memberDataForAI: InactiveMemberInsightsInput['memberData'] = members.map(member => {
-      const memberPayments = payments.filter(p => p.memberId === member.id);
-      const memberPlan = plans.find(p => p.id === member.planId);
-
-      return {
-        memberId: member.id,
-        joinDate: new Date(member.joinDate),
-        membershipPlan: memberPlan?.name || 'Unknown',
-        attendanceHistory: [],
-        paymentHistory: memberPayments.map(p => ({
-          date: new Date(p.date),
-          amount: p.amount,
-          status: p.status,
-        })),
-      };
-    });
-
-    const insights = await getInactiveMemberInsights({ memberData: memberDataForAI });
+    const insights = await getInactiveMemberInsights(input);
     return insights;
   } catch (e) {
     console.error(e);

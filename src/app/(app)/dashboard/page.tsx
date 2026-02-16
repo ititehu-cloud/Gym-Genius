@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
-import type { Member, Payment, Attendance } from "@/lib/types";
+import type { Member, Payment, Attendance, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
 
 export default function DashboardPage() {
@@ -16,6 +16,9 @@ export default function DashboardPage() {
   );
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(
       useMemoFirebase(() => collection(firestore, "payments"), [firestore])
+  );
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(
+    useMemoFirebase(() => collection(firestore, "plans"), [firestore])
   );
 
   const todayStart = useMemo(() => startOfDay(new Date()).toISOString(), []);
@@ -34,11 +37,15 @@ export default function DashboardPage() {
     const today = new Date();
     const startOfToday = startOfDay(today);
     
+    const planMap = new Map(plans?.map(p => [p.id, p]));
+
     const activeMembers = members?.filter(m => {
       const expiryDate = parseISO(m.expiryDate);
       return expiryDate >= startOfToday;
     }).length ?? 0;
     
+    const expiredMembers = members?.filter(m => parseISO(m.expiryDate) < startOfToday) ?? [];
+
     const expiryToday = members?.filter(m => isSameDay(parseISO(m.expiryDate), today)).length ?? 0;
     
     const presentToday = todaysAttendance?.length ?? 0;
@@ -46,7 +53,6 @@ export default function DashboardPage() {
     const absentToday = Math.max(0, activeMembers - presentToday);
 
     const paidPayments = payments?.filter(p => p.status === 'paid') ?? [];
-    const pendingPayments = payments?.filter(p => p.status === 'pending') ?? [];
 
     const todaysCollection = paidPayments
         .filter(p => isSameDay(parseISO(p.paymentDate), today))
@@ -55,13 +61,19 @@ export default function DashboardPage() {
     const monthlyCollection = paidPayments
         .filter(p => isThisMonth(parseISO(p.paymentDate)))
         .reduce((sum, p) => sum + p.amount, 0);
-
-    const monthlyDues = pendingPayments.filter(p => 
-        isThisMonth(parseISO(p.paymentDate))
-    ).reduce((sum, p) => sum + p.amount, 0);
-
+    
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
-    const totalDues = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    const totalDues = expiredMembers.reduce((sum, member) => {
+        const plan = planMap.get(member.planId);
+        return sum + (plan?.price || 0);
+    }, 0);
+    
+    const monthlyDues = expiredMembers.filter(member => isThisMonth(parseISO(member.expiryDate)))
+      .reduce((sum, member) => {
+        const plan = planMap.get(member.planId);
+        return sum + (plan?.price || 0);
+    }, 0);
 
     return {
         activeMembers,
@@ -74,9 +86,9 @@ export default function DashboardPage() {
         totalCollection,
         totalDues
     };
-  }, [members, payments, todaysAttendance]);
+  }, [members, payments, plans, todaysAttendance]);
 
-  const isLoading = isLoadingMembers || isLoadingPayments || isLoadingAttendance;
+  const isLoading = isLoadingMembers || isLoadingPayments || isLoadingAttendance || isLoadingPlans;
 
   if (isLoading) {
     return (
@@ -144,14 +156,14 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-primary/10" valueClassName="text-primary" />
-                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/payments?status=pending" className="bg-chart-5/10" valueClassName="text-chart-5" />
+                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/members?status=expired" className="bg-chart-5/10" valueClassName="text-chart-5" />
                 </div>
             </div>
 
             <div>
                 <h2 className="text-xl font-semibold mb-4">Financial Summary</h2>
                 <div className="grid gap-4 grid-cols-2">
-                    <StatsCard title="Total Due" value={`₹${stats.totalDues.toLocaleString()}`} href="/payments?status=pending" className="bg-destructive/10" valueClassName="text-destructive" />
+                    <StatsCard title="Total Due" value={`₹${stats.totalDues.toLocaleString()}`} href="/members?status=expired" className="bg-destructive/10" valueClassName="text-destructive" />
                     <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-chart-2/10" valueClassName="text-chart-2" />
                 </div>
             </div>

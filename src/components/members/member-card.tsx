@@ -154,12 +154,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           return;
       }
 
-      const message = `Here is the ID card for ${member.name}:`;
+      const message = `Here is the ID card for ${member.name}: ${imageUrl}`;
       const encodedMessage = encodeURIComponent(message);
       
       const newWindow = window.open('', '_blank');
       if (newWindow) {
-        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage} ${encodeURIComponent(imageUrl)}`;
+        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
         newWindow.document.write(`
           <html>
             <head>

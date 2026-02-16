@@ -10,7 +10,7 @@ import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isSameDay, parseISO, startOfDay } from "date-fns";
+import { isSameDay, parseISO, startOfDay, isThisMonth } from "date-fns";
 
 function MemberList() {
   const firestore = useFirestore();
@@ -48,31 +48,32 @@ function MemberList() {
 
   const filteredMembers = useMemo(() => {
     if (!members) return [];
-    let filtered = [...members];
+    let tempMembers = [...members];
     const today = startOfDay(new Date());
-    
-    if (statusFilter === 'active') {
-        filtered = filtered.filter(m => parseISO(m.expiryDate) >= today);
-    } else if (statusFilter !== 'all') {
-        filtered = filtered.filter(m => m.status === statusFilter);
-    }
 
     if (expiryParam === 'today') {
-        // Reset status filter if expiry is the main filter
-        if (statusFilter !== 'all') setStatusFilter('all');
-        filtered = members.filter(m => isSameDay(parseISO(m.expiryDate), new Date()));
+        tempMembers = members.filter(m => isSameDay(parseISO(m.expiryDate), new Date()));
+    } else if (expiryParam === 'this_month') {
+        tempMembers = members.filter(m => {
+            const expiryDate = parseISO(m.expiryDate);
+            return expiryDate < today && isThisMonth(expiryDate);
+        });
+    } else if (statusFilter === 'active') {
+        tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) >= today);
+    } else if (statusFilter !== 'all') {
+        tempMembers = tempMembers.filter(m => m.status === statusFilter);
     }
 
     if (searchQuery) {
         const lowercasedQuery = searchQuery.toLowerCase();
-        filtered = filtered.filter(m => 
+        tempMembers = tempMembers.filter(m => 
             m.name.toLowerCase().includes(lowercasedQuery) ||
             m.mobileNumber.includes(searchQuery) ||
             m.memberId.toLowerCase().includes(lowercasedQuery)
         );
     }
 
-    return filtered;
+    return tempMembers;
   }, [members, searchQuery, statusFilter, expiryParam]);
 
   const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);

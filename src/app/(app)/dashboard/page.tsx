@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-primary/10" valueClassName="text-primary" />
-                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/members?status=expired" className="bg-chart-5/10" valueClassName="text-chart-5" />
+                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/members?expiry=this_month" className="bg-chart-5/10" valueClassName="text-chart-5" />
                 </div>
             </div>
 

@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import { uploadImage } from '@/app/actions';
+import { flushSync } from 'react-dom';
+import { DueDateNotice } from './due-date-notice';
 
 type MemberCardProps = {
   member: Member;
@@ -25,7 +27,9 @@ type MemberCardProps = {
 
 export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [memberToProcess, setMemberToProcess] = useState<Member | null>(null);
   const { toast } = useToast();
   
   const getStatus = (): Member['status'] => {
@@ -69,36 +73,65 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 });
                 return;
             }
+            if (!plan) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Share Failed',
+                    description: "Plan details not found for this member.",
+                });
+                return;
+            }
+            
+            flushSync(() => {
+                setMemberToProcess(member);
+            });
 
-            const gymNameText = gymName || 'your gym';
-            const message = `\u{1F4AA}\u{1F3FC} *Due Details* \u{1F4AA}\u{1F3FC}
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-*From: ${gymNameText}*
+            const noticeElement = noticeRef.current;
+            if (!noticeElement) {
+                throw new Error("Could not find the notice component to process.");
+            }
 
-\u{1F464} *Customer:* ${member.name}
-\u{1F4F1} *Mobile:* ${member.mobileNumber}
-\u{1F4C5} *Date of Joining:* ${format(parseISO(member.joinDate), 'PPP')}
-\u{1F4C5} *Date of Expiry:* ${format(parseISO(member.expiryDate), 'PPP')}
-\u{1F4B0} *Plan Type:* ${planName}
-\u{1F4B5} *Amount Due:* \u20B9${planPrice}
+            const canvas = await html2canvas(noticeElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+            });
+            
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+            if (!blob) {
+                throw new Error("Failed to create image from notice.");
+            }
 
+            const formData = new FormData();
+            formData.append('image', blob, `Due_Notice_${member.name.replace(/ /g, '_')}.png`);
+            
+            const uploadResult = await uploadImage(formData);
 
-\u{1F64F} Please clear the due amount at early as possible to continue your membership with the Gym.
-Thank you!`;
+            if (uploadResult.error || !uploadResult.url) {
+                throw new Error(uploadResult.error || "Could not get notice image URL after upload.");
+            }
 
+            const imageUrl = uploadResult.url;
+
+            const message = `Reminder from ${gymName || 'your gym'}. Please see attached notice for your membership renewal: ${imageUrl}`;
             const encodedMessage = encodeURIComponent(message);
             const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
 
             window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
         } catch (error) {
             console.error("WhatsApp share failed:", error);
             toast({
                 variant: "destructive",
                 title: "Share Failed",
-                description: "Could not open WhatsApp. Please try again.",
+                description: error instanceof Error ? error.message : "Could not generate or share the due date notice.",
             });
         } finally {
             setIsSharing(false);
+            setMemberToProcess(null);
         }
         return;
     }
@@ -156,10 +189,10 @@ Thank you!`;
 
       const message = `Here is the ID card for ${member.name}:`;
       const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
       
       const newWindow = window.open('', '_blank');
       if (newWindow) {
+        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage} ${encodeURIComponent(imageUrl)}`;
         newWindow.document.write(`
           <html>
             <head>
@@ -271,6 +304,16 @@ Thank you!`;
           </Button>
         </CardFooter>
       </Card>
+      {isExpiryShare && memberToProcess && plan && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+            <DueDateNotice
+                ref={noticeRef}
+                member={memberToProcess}
+                plan={plan}
+                gymName={gymName}
+            />
+        </div>
+      )}
     </>
   );
 }

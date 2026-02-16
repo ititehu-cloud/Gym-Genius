@@ -13,8 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import { uploadImage } from '@/app/actions';
-import { flushSync } from 'react-dom';
-import { DueDateNotice } from './due-date-notice';
 
 type MemberCardProps = {
   member: Member;
@@ -27,9 +25,7 @@ type MemberCardProps = {
 
 export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const [memberToProcess, setMemberToProcess] = useState<Member | null>(null);
   const { toast } = useToast();
   
   const getStatus = (): Member['status'] => {
@@ -44,7 +40,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   const status = getStatus();
   const planName = plan?.name || 'N/A';
-  const planPrice = plan?.price || 0;
 
   const getStatusBadgeVariant = (status: Member['status']) => {
     switch (status) {
@@ -62,7 +57,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const handleShare = async () => {
     if (isSharing) return;
 
-    if (isExpiryShare) {
+    if (isExpiryShare && plan) {
         setIsSharing(true);
         try {
             if (!member.mobileNumber) {
@@ -73,68 +68,40 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 });
                 return;
             }
-            if (!plan) {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Share Failed',
-                    description: "Plan details not found for this member.",
-                });
-                return;
-            }
-            
-            flushSync(() => {
-                setMemberToProcess(member);
-            });
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            const gymNameText = gymName || 'your gym';
+            const planPriceText = plan?.price ? `₹${plan.price}` : 'N/A';
+            const joinDateText = format(parseISO(member.joinDate), 'PPP');
+            const expiryDateText = format(parseISO(member.expiryDate), 'PPP');
+            const planNameText = plan?.name || 'N/A';
 
-            const noticeElement = noticeRef.current;
-            if (!noticeElement) {
-                throw new Error("Could not find the notice component to process.");
-            }
+            const message = `*Due Details*\n\n` +
+                          `From: ${gymNameText}\n\n` +
+                          `Customer: ${member.name}\n` +
+                          `Mobile: ${member.mobileNumber}\n` +
+                          `Date of Joining: ${joinDateText}\n` +
+                          `Date of Expiry: ${expiryDateText}\n` +
+                          `Plan Type: ${planNameText}\n` +
+                          `Amount Due: ${planPriceText}\n\n` +
+                          `Please clear the due amount as soon as possible to continue your membership with the Gym.\n` +
+                          `Thank you!`;
 
-            const canvas = await html2canvas(noticeElement, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-            });
-            
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-                
-            if (!blob) {
-                throw new Error("Failed to create image from notice.");
-            }
-
-            const formData = new FormData();
-            formData.append('image', blob, `Due_Notice_${member.name.replace(/ /g, '_')}.png`);
-            
-            const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error || !uploadResult.url) {
-                throw new Error(uploadResult.error || "Could not get notice image URL after upload.");
-            }
-
-            const imageUrl = uploadResult.url;
-
-            const message = `Reminder from ${gymName || 'your gym'}. Please see attached notice for your membership renewal: ${imageUrl}`;
             const encodedMessage = encodeURIComponent(message);
             const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-
             window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-
         } catch (error) {
             console.error("WhatsApp share failed:", error);
             toast({
                 variant: "destructive",
                 title: "Share Failed",
-                description: error instanceof Error ? error.message : "Could not generate or share the due date notice.",
+                description: "Could not create the WhatsApp message.",
             });
         } finally {
             setIsSharing(false);
-            setMemberToProcess(null);
         }
         return;
     }
+
 
     setIsSharing(true);
 
@@ -304,16 +271,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </Button>
         </CardFooter>
       </Card>
-      {isExpiryShare && memberToProcess && plan && (
-        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-            <DueDateNotice
-                ref={noticeRef}
-                member={memberToProcess}
-                plan={plan}
-                gymName={gymName}
-            />
-        </div>
-      )}
     </>
   );
 }

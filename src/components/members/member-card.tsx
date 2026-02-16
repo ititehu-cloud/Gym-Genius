@@ -93,29 +93,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
         if (!blob) throw new Error("Failed to create image from notice.");
 
-        const file = new File([blob], `Due_Notice_${member.name}.png`, { type: blob.type });
+        const formData = new FormData();
+        formData.append('image', blob, `Due_Notice_${member.name}.png`);
+        const uploadResult = await uploadImage(formData);
 
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Due Notice for ${member.name}`,
-          });
-        } else {
-          // Fallback: Upload and open in new tab
-          const formData = new FormData();
-          formData.append('image', blob, file.name);
-          const uploadResult = await uploadImage(formData);
-          if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not get image URL.");
-
-          toast({ title: "Using Fallback Share", description: "Please long-press the image in the new tab to share." });
-          const newWindow = window.open('', '_blank');
-          if (newWindow) {
-            newWindow.document.write(`<html><body style="margin:0; text-align:center; background-color:#f0f0f0;"><img src="${uploadResult.url}" style="max-width:100%;" alt="Due Notice" /><p>Long-press image to share.</p></body></html>`);
-            newWindow.document.close();
-          } else {
-            toast({ variant: "destructive", title: "Could Not Open Tab", description: "Please disable your pop-up blocker." });
-          }
+        if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not get image URL.");
         }
+        
+        window.open(uploadResult.url, '_blank');
+
       } catch (error) {
           console.error("WhatsApp share failed:", error);
           toast({
@@ -160,64 +147,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           throw new Error("Failed to create image from ID card.");
       }
 
-      const file = new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: blob.type });
+      const formData = new FormData();
+      formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
+      
+      const uploadResult = await uploadImage(formData);
 
-      // Use Web Share API if available to share the file directly
-      if (navigator.share && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `ID Card for ${member.name}`,
-          text: `Here is the ID card for ${member.name}.`,
-        });
-      } else {
-        // Fallback: Upload the image and open it in a new tab with instructions.
-        const formData = new FormData();
-        formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
-        
-        const uploadResult = await uploadImage(formData);
-
-        if (uploadResult.error || !uploadResult.url) {
-            throw new Error(uploadResult.error || "Could not get image URL after upload.");
-        }
-        const imageUrl = uploadResult.url;
-
-        toast({
-          title: "Using Fallback Share",
-          description: "Please long-press the image in the new tab to share.",
-        });
-
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.document.write(`
-            <html>
-              <head>
-                <title>Member ID Card - ${member.name}</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                  body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh;}
-                  img { max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-                  .instructions { margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; }
-                </style>
-              </head>
-              <body>
-                <h2 style="margin-bottom: 20px;">Member ID Card</h2>
-                <img src="${imageUrl}" alt="ID Card for ${member.name}">
-                <div class="instructions">
-                  <p><b>To share this ID card:</b></p>
-                  <p>Long-press the image and select 'Share Image'.</p>
-                </div>
-              </body>
-            </html>
-          `);
-          newWindow.document.close();
-        } else {
-            toast({
-              variant: "destructive",
-              title: "Could Not Open Tab",
-              description: "Please disable your pop-up blocker to view the ID card.",
-            });
-        }
+      if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not get image URL after upload.");
       }
+      
+      window.open(uploadResult.url, '_blank');
+
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({

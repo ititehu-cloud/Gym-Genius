@@ -180,63 +180,17 @@ function PaymentsList() {
             return;
         }
 
-        const file = new File([blob], `Receipt_${member.name.replace(/ /g, '_')}.png`, { type: blob.type });
+        const formData = new FormData();
+        formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
+        
+        const uploadResult = await uploadImage(formData);
 
-        // Use Web Share API if available to share the file directly
-        if (navigator.share && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: 'Payment Receipt',
-                text: `Here is the payment receipt for ${member.name}.`,
-            });
-        } else {
-            // Fallback: Upload the image and open it in a new tab with instructions.
-            const formData = new FormData();
-            formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
-            
-            const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error || !uploadResult.url) {
-                throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
-            }
-            
-            toast({
-              title: "Using Fallback Share",
-              description: "Please long-press the image in the new tab to share.",
-            });
-
-            const newWindow = window.open('', '_blank');
-            if (newWindow) {
-              newWindow.document.write(`
-                <html>
-                  <head>
-                    <title>Payment Receipt - ${member.name}</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <style>
-                      body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh;}
-                      img { max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-                      .instructions { margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; }
-                    </style>
-                  </head>
-                  <body>
-                    <h2 style="margin-bottom: 20px;">Payment Receipt</h2>
-                    <img src="${uploadResult.url}" alt="Receipt for ${member.name}">
-                    <div class="instructions">
-                      <p><b>To share or print this receipt:</b></p>
-                      <p>Long-press the image and select 'Share Image'.</p>
-                    </div>
-                  </body>
-                </html>
-              `);
-              newWindow.document.close();
-            } else {
-                toast({
-                  variant: "destructive",
-                  title: "Could Not Open Tab",
-                  description: "Please disable your pop-up blocker to view the receipt.",
-                });
-            }
+        if (uploadResult.error || !uploadResult.url) {
+            throw new Error(uploadResult.error || "Could not get receipt image URL after upload.");
         }
+        
+        window.open(uploadResult.url, '_blank');
+
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({

@@ -56,9 +56,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   
   const handleShare = async () => {
     if (isSharing) return;
+    setIsSharing(true);
 
     if (isExpiryShare && plan) {
-        setIsSharing(true);
         try {
             if (!member.mobileNumber) {
                 toast({
@@ -102,9 +102,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return;
     }
 
-
-    setIsSharing(true);
-
+    // Default ID Card Sharing Logic
     const cardElement = cardRef.current;
     if (!cardElement) {
         toast({
@@ -134,63 +132,64 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           throw new Error("Failed to create image from ID card.");
       }
 
-      const formData = new FormData();
-      formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
-      
-      const uploadResult = await uploadImage(formData);
+      const file = new File([blob], `${member.name.replace(/ /g, '_')}_ID_Card.png`, { type: blob.type });
 
-      if (uploadResult.error || !uploadResult.url) {
-          throw new Error(uploadResult.error || "Could not get image URL after upload.");
-      }
-
-      const imageUrl = uploadResult.url;
-      
-      if (!member.mobileNumber) {
-          toast({
-              variant: 'destructive',
-              title: 'Share Failed',
-              description: "This member doesn't have a mobile number saved.",
-          });
-          return;
-      }
-
-      const message = `Here is the ID card for ${member.name}: ${imageUrl}`;
-      const encodedMessage = encodeURIComponent(message);
-      
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodedMessage}`;
-        newWindow.document.write(`
-          <html>
-            <head>
-              <title>Member ID Card - ${member.name}</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; }
-                img { max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-                .share-btn { display: inline-block; padding: 12px 24px; margin-top: 20px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
-              </style>
-            </head>
-            <body>
-              <h2 style="margin-bottom: 20px;">Member ID Card</h2>
-              <img src="${imageUrl}" alt="ID Card for ${member.name}">
-              <div>
-                <a href="${whatsappUrl}" target="_blank" rel="noopener noreferrer" class="share-btn">
-                  Share on WhatsApp
-                </a>
-              </div>
-            </body>
-          </html>
-        `);
-        newWindow.document.close();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Could Not Open Tab",
-          description: "Please disable your pop-up blocker to share the ID card.",
+      // Use Web Share API if available to share the file directly
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `ID Card for ${member.name}`,
+          text: `Here is the ID card for ${member.name}.`,
         });
-      }
+      } else {
+        // Fallback: Upload the image and open it in a new tab with instructions.
+        const formData = new FormData();
+        formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
+        
+        const uploadResult = await uploadImage(formData);
 
+        if (uploadResult.error || !uploadResult.url) {
+            throw new Error(uploadResult.error || "Could not get image URL after upload.");
+        }
+        const imageUrl = uploadResult.url;
+
+        toast({
+          title: "Using Fallback Share",
+          description: "Please long-press the image in the new tab to share.",
+        });
+
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>Member ID Card - ${member.name}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                  body { margin: 0; padding: 20px; text-align: center; background-color: #f0f0f0; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh;}
+                  img { max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+                  .instructions { margin-top: 20px; padding: 10px; background: #fff; border-radius: 8px; }
+                </style>
+              </head>
+              <body>
+                <h2 style="margin-bottom: 20px;">Member ID Card</h2>
+                <img src="${imageUrl}" alt="ID Card for ${member.name}">
+                <div class="instructions">
+                  <p><b>To share this ID card:</b></p>
+                  <p>Long-press the image and select 'Share Image'.</p>
+                </div>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        } else {
+            toast({
+              variant: "destructive",
+              title: "Could Not Open Tab",
+              description: "Please disable your pop-up blocker to view the ID card.",
+            });
+        }
+      }
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({
@@ -274,3 +273,5 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     </>
   );
 }
+
+    

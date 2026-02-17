@@ -13,6 +13,7 @@ import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/app/actions';
+import html2canvas from 'html2canvas';
 
 type PaymentStatusCardProps = {
     member: Member;
@@ -131,7 +132,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                                     console.error('Failed to copy: ', err);
                                 });
                             });
-                            document.getElementById('close-btn').addEventListener('click', () => {
+                             document.getElementById('close-btn').addEventListener('click', () => {
                                 window.close();
                             });
                         </script>
@@ -194,7 +195,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                             </div>
                         </CardContent>
                         <div className="p-4 flex-shrink-0 flex items-start">
-                            <Avatar className="h-20 w-20 border-2 border-primary">
+                            <Avatar className="h-16 w-16 rounded-md border-2 border-primary">
                                 <AvatarImage src={member.imageUrl} alt={member.name} />
                                 <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>

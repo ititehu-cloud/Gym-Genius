@@ -20,21 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import type { Member } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   memberId: z.string({ required_error: "Please select a member." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
-  paymentDate: z.date({ required_error: "Please select a payment date." }),
+  paymentDate: z.string({ required_error: "Please select a payment date." }),
   paymentMethod: z.string().min(1, { message: "Payment method cannot be empty." }),
   paymentType: z.enum(['monthly', 'renewal', 'advance'], { required_error: "Please select a payment type." }),
   status: z.enum(['paid', 'pending']),
@@ -56,7 +53,7 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
     resolver: zodResolver(formSchema),
     defaultValues: {
       memberId: defaultMemberId,
-      paymentDate: new Date(),
+      paymentDate: format(new Date(), 'yyyy-MM-dd'),
       status: 'paid',
       paymentMethod: 'cash',
       paymentType: 'renewal',
@@ -72,7 +69,7 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
 
       const dataToSave = {
         ...rest,
-        paymentDate: values.paymentDate.toISOString(),
+        paymentDate: new Date(values.paymentDate).toISOString(),
         createdAt: serverTimestamp(),
         ...(invoiceNumber && { invoiceNumber }), // Conditionally add invoiceNumber if it has a value
       };
@@ -143,37 +140,14 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
           control={form.control}
           name="paymentDate"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Payment Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      type="button"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

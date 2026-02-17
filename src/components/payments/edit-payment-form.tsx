@@ -20,21 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import type { Member, Payment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   memberId: z.string({ required_error: "Please select a member." }),
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
-  paymentDate: z.date({ required_error: "Please select a payment date." }),
+  paymentDate: z.string({ required_error: "Please select a payment date." }),
   paymentMethod: z.string().min(1, { message: "Payment method cannot be empty." }),
   paymentType: z.enum(['monthly', 'renewal', 'advance'], { required_error: "Please select a payment type." }),
   status: z.enum(['paid', 'pending']),
@@ -57,7 +54,7 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
     defaultValues: {
       memberId: payment.memberId,
       amount: payment.amount,
-      paymentDate: parseISO(payment.paymentDate),
+      paymentDate: format(parseISO(payment.paymentDate), 'yyyy-MM-dd'),
       paymentMethod: payment.paymentMethod,
       paymentType: payment.paymentType,
       status: payment.status,
@@ -74,7 +71,7 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
 
       const dataToSave: Partial<Payment> & { updatedAt: any } = {
         ...rest,
-        paymentDate: values.paymentDate.toISOString(),
+        paymentDate: new Date(values.paymentDate).toISOString(),
         updatedAt: serverTimestamp(),
         ...(invoiceNumber && { invoiceNumber }), // Conditionally add invoiceNumber
       };
@@ -145,37 +142,14 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
           control={form.control}
           name="paymentDate"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+             <FormItem>
               <FormLabel>Payment Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      type="button"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

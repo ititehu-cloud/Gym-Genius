@@ -76,21 +76,25 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const validity = `${format(parseISO(member.joinDate), 'dd-MM-yyyy')} to ${format(parseISO(member.expiryDate), 'dd-MM-yyyy')}`;
 
     const paymentsToShow = useMemo(() => {
+        // Start with all payments for the member for filtering the history view
+        const allMemberPayments = payments;
+
         if (filterHistoryByDate === 'today') {
             const today = new Date();
-            return paymentsForCurrentCycle.filter(p => isSameDay(parseISO(p.paymentDate), today));
+            return allMemberPayments.filter(p => isSameDay(parseISO(p.paymentDate), today));
         }
         if (filterHistoryByMonth) {
              try {
                 const monthDate = new Date(filterHistoryByMonth + "-01");
-                if (isNaN(monthDate.getTime())) return paymentsForCurrentCycle;
-                return paymentsForCurrentCycle.filter(p => isSameMonth(parseISO(p.paymentDate), monthDate));
+                if (isNaN(monthDate.getTime())) return []; // Return empty for invalid month
+                return allMemberPayments.filter(p => isSameMonth(parseISO(p.paymentDate), monthDate));
             } catch(e) {
-                return paymentsForCurrentCycle;
+                return []; // Return empty on error
             }
         }
-        return paymentsForCurrentCycle;
-    }, [paymentsForCurrentCycle, filterHistoryByDate, filterHistoryByMonth]);
+        // If no filter is provided (which shouldn't happen based on page logic), show no history.
+        return [];
+    }, [payments, filterHistoryByDate, filterHistoryByMonth]);
 
     const handlePrintReceipt = async () => {
         if (isSharing) return;

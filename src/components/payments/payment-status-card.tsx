@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, Printer, Trash2, LoaderCircle, History } from 'lucide-react';
-import { format, parseISO, isSameDay } from 'date-fns';
+import { format, parseISO, isSameDay, isSameMonth } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
@@ -27,9 +27,10 @@ type PaymentStatusCardProps = {
     gymIconUrl?: string | null;
     showHistoryInitially?: boolean;
     filterHistoryByDate?: string | null;
+    filterHistoryByMonth?: string | null;
 };
 
-export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl, showHistoryInitially = false, filterHistoryByDate = null }: PaymentStatusCardProps) {
+export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl, showHistoryInitially = false, filterHistoryByDate = null, filterHistoryByMonth = null }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [showHistory, setShowHistory] = useState(showHistoryInitially);
@@ -79,8 +80,17 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const today = new Date();
             return paymentsForCurrentCycle.filter(p => isSameDay(parseISO(p.paymentDate), today));
         }
+        if (filterHistoryByMonth) {
+             try {
+                const monthDate = new Date(filterHistoryByMonth + "-01");
+                if (isNaN(monthDate.getTime())) return paymentsForCurrentCycle;
+                return paymentsForCurrentCycle.filter(p => isSameMonth(parseISO(p.paymentDate), monthDate));
+            } catch(e) {
+                return paymentsForCurrentCycle;
+            }
+        }
         return paymentsForCurrentCycle;
-    }, [paymentsForCurrentCycle, filterHistoryByDate]);
+    }, [paymentsForCurrentCycle, filterHistoryByDate, filterHistoryByMonth]);
 
     const handlePrintReceipt = async () => {
         if (isSharing) return;
@@ -258,7 +268,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-sm text-muted-foreground text-center">No transactions found for this cycle{filterHistoryByDate ? ' with the current filter' : ''}.</p>
+                            <p className="text-sm text-muted-foreground text-center">No transactions found for the selected period.</p>
                         )}
                     </div>
                 )}

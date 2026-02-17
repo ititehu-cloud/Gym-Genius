@@ -64,41 +64,9 @@ function PaymentsList() {
   }, [payments]);
 
   const filteredMembers = useMemo(() => {
-    if (!members || !payments) return [];
+    if (!members) return [];
 
     let tempMembers = [...members];
-    const today = new Date();
-    
-    const isFiltering = dateFilter || statusFilter || selectedMonth;
-
-    if (isFiltering) {
-        const memberIdsWithMatchingPayments = new Set<string>();
-
-        payments.forEach(payment => {
-            let dateMatch = false;
-
-            if (dateFilter === 'today') {
-                dateMatch = isSameDay(parseISO(payment.paymentDate), today);
-            } else if (selectedMonth) {
-                try {
-                    const monthDate = new Date(selectedMonth + "-01");
-                    dateMatch = isSameMonth(parseISO(payment.paymentDate), monthDate);
-                } catch(e) {
-                    dateMatch = false;
-                }
-            } else if (!dateFilter && !selectedMonth) {
-                // if no date filter at all, match all
-                dateMatch = true;
-            }
-            
-            const statusMatch = statusFilter ? payment.status === (statusFilter as Payment['status']) : true;
-
-            if (dateMatch && statusMatch) {
-                memberIdsWithMatchingPayments.add(payment.memberId);
-            }
-        });
-        tempMembers = tempMembers.filter(member => memberIdsWithMatchingPayments.has(member.id));
-    }
     
     if (searchQuery) {
         const lowercasedQuery = searchQuery.toLowerCase();
@@ -109,7 +77,7 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, payments, searchQuery, dateFilter, statusFilter, selectedMonth]);
+  }, [members, searchQuery]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
@@ -177,6 +145,16 @@ function PaymentsList() {
                     const memberPlan = planMap.get(member.planId);
                     const memberPayments = paymentsByMember.get(member.id) || [];
                     if (!memberPlan) return null;
+
+                    const hasPaymentInSelectedMonth = !!selectedMonth && memberPayments.some(p => {
+                        try {
+                            const monthDate = new Date(selectedMonth + '-01');
+                            return isSameMonth(parseISO(p.paymentDate), monthDate);
+                        } catch {
+                            return false;
+                        }
+                    });
+
                     return (
                         <PaymentStatusCard 
                             key={member.id}
@@ -187,8 +165,9 @@ function PaymentsList() {
                             gymName={gymName}
                             gymAddress={gymAddress}
                             gymIconUrl={gymIconUrl}
-                            showHistoryInitially={showHistoryInitially}
+                            showHistoryInitially={showHistoryInitially || hasPaymentInSelectedMonth}
                             filterHistoryByDate={dateFilter}
+                            filterHistoryByMonth={selectedMonth}
                         />
                     )
                 })}
@@ -197,10 +176,10 @@ function PaymentsList() {
              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm py-12 mt-4">
                 <div className="text-center">
                     <h3 className="text-2xl font-bold tracking-tight">
-                        No payments found
+                        No members found
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {searchQuery || dateFilter || statusFilter || selectedMonth ? "Your filter returned no results for the selected period." : "Add members in the 'Members' section to see them here."}
+                        {searchQuery ? "Your search returned no results." : "Add members in the 'Members' section to see them here."}
                     </p>
                 </div>
             </div>

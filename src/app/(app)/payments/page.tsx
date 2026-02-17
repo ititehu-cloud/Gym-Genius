@@ -41,9 +41,11 @@ function PaymentsList() {
   const filteredMembers = useMemo(() => {
     if (!members) return [];
     if (searchQuery) {
+        const lowercasedQuery = searchQuery.toLowerCase();
         return members.filter(m => 
-            m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.memberId.toLowerCase().includes(searchQuery.toLowerCase())
+            m.name.toLowerCase().includes(lowercasedQuery) ||
+            m.memberId.toLowerCase().includes(lowercasedQuery) ||
+            m.mobileNumber.includes(searchQuery)
         );
     }
     return members;
@@ -65,7 +67,7 @@ function PaymentsList() {
           <h1 className="text-2xl font-headline font-semibold">Member Payments</h1>
           <div className="flex items-center gap-2 w-full md:w-auto">
               <Input
-                  placeholder="Search member by name or ID..."
+                  placeholder="Search by name, ID, or phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full sm:w-64"

@@ -12,7 +12,6 @@ import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import html2canvas from 'html2canvas';
 import { uploadImage } from '@/app/actions';
 
 type PaymentStatusCardProps = {
@@ -67,32 +66,80 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
         }
 
         try {
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                onclone: (document) => {
-                    // Hide buttons during capture
-                    const buttons = document.querySelector('[data-buttons="actions"]');
-                    if (buttons) (buttons as HTMLElement).style.display = 'none';
-                }
+            const canvas = await new Promise<HTMLCanvasElement>((resolve) => {
+                html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    onclone: (document) => {
+                        const buttons = document.querySelector('[data-buttons="actions"]');
+                        if (buttons) (buttons as HTMLElement).style.display = 'none';
+                    }
+                }).then(resolve);
             });
             
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-                
-            if (!blob) throw new Error("Failed to create image blob.");
-    
-            const formData = new FormData();
-            formData.append('image', blob, `Payment_Status_${member.name.replace(/ /g, '_')}.png`);
-            
-            const uploadResult = await uploadImage(formData);
+            const uploadResult = await new Promise<{ url?: string; error?: string }>((resolve) => {
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        resolve({ error: "Failed to create image blob." });
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('image', blob, `Payment_Status_${member.name.replace(/ /g, '_')}.png`);
+                    const result = await uploadImage(formData);
+                    resolve(result);
+                }, 'image/png');
+            });
     
             if (uploadResult.error || !uploadResult.url) {
                 throw new Error(uploadResult.error || "Could not get image URL after upload.");
             }
           
-            const newTab = window.open(uploadResult.url, '_blank');
-            if (!newTab) {
+            const newTab = window.open('', '_blank');
+            if (newTab) {
+                newTab.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Share Payment Status</title>
+                        <style>
+                            body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
+                            img { max-width: 95%; max-height: 75vh; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+                            .controls { display: flex; margin-top: 1.5rem; width: 100%; max-width: 600px; }
+                            input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
+                            button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
+                            button:hover { background-color: #e5e7eb; }
+                            .close-button { margin-top: 1rem; padding: 0.5rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; }
+                            .close-button:hover { background-color: #dc2626; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${uploadResult.url}" alt="Payment status for ${member.name}">
+                        <div class="controls">
+                            <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
+                            <button id="copy-btn">Copy Link</button>
+                        </div>
+                        <button id="close-btn" class="close-button">Close</button>
+                        <script>
+                            document.getElementById('copy-btn').addEventListener('click', () => {
+                                const input = document.getElementById('copy-input');
+                                navigator.clipboard.writeText(input.value).then(() => {
+                                    const btn = document.getElementById('copy-btn');
+                                    btn.textContent = 'Copied!';
+                                    setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+                                }).catch(err => {
+                                    console.error('Failed to copy: ', err);
+                                });
+                            });
+                            document.getElementById('close-btn').addEventListener('click', () => {
+                                window.close();
+                            });
+                        </script>
+                    </body>
+                    </html>
+                `);
+                newTab.document.close();
+            } else {
                 toast({
                     variant: "destructive",
                     title: "Could not open new tab",
@@ -147,7 +194,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                             </div>
                         </CardContent>
                         <div className="p-4 flex-shrink-0 flex items-start">
-                            <Avatar className="h-24 w-24 border-2 border-primary">
+                            <Avatar className="h-20 w-20 border-2 border-primary">
                                 <AvatarImage src={member.imageUrl} alt={member.name} />
                                 <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                             </Avatar>

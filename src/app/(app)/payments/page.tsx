@@ -4,21 +4,34 @@ import { LoaderCircle } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc } from "firebase/firestore";
 import type { Member, Payment, Plan } from "@/lib/types";
-import { useMemo, useState, Suspense } from "react";
+import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
 import { isSameDay, parseISO, format, isSameMonth } from "date-fns";
 
 function PaymentsList() {
-  const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  const { user, isUserLoading: isAuthLoading } = useUser();
-
+  
   const searchParams = useSearchParams();
+  const firestore = useFirestore();
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  
   const dateFilter = searchParams.get('date');
   const statusFilter = searchParams.get('status');
+
+  useEffect(() => {
+    // Sync state with URL params. If URL has a date filter, it takes precedence.
+    if (dateFilter) {
+      setSelectedMonth('');
+    } else {
+      // If no dateFilter and selectedMonth is empty, set it to current month.
+      if (!selectedMonth) {
+        setSelectedMonth(format(new Date(), 'yyyy-MM'));
+      }
+    }
+  }, [dateFilter, selectedMonth]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -55,29 +68,30 @@ function PaymentsList() {
 
     let tempMembers = [...members];
     const today = new Date();
+    
+    const isFiltering = dateFilter || statusFilter || selectedMonth;
 
-    if (dateFilter || statusFilter || selectedMonth) {
+    if (isFiltering) {
         const memberIdsWithMatchingPayments = new Set<string>();
 
         payments.forEach(payment => {
-            let dateMatch: boolean;
-            if (selectedMonth) {
-                try {
-                  const monthDate = new Date(selectedMonth);
-                  dateMatch = isSameMonth(parseISO(payment.paymentDate), monthDate);
-                } catch(e) {
-                  dateMatch = false;
-                }
-            } else if (dateFilter === 'today') {
+            let dateMatch = false;
+
+            if (dateFilter === 'today') {
                 dateMatch = isSameDay(parseISO(payment.paymentDate), today);
-            } else {
+            } else if (selectedMonth) {
+                try {
+                    const monthDate = new Date(selectedMonth + "-01");
+                    dateMatch = isSameMonth(parseISO(payment.paymentDate), monthDate);
+                } catch(e) {
+                    dateMatch = false;
+                }
+            } else if (!dateFilter && !selectedMonth) {
+                // if no date filter at all, match all
                 dateMatch = true;
             }
-
-            let statusMatch = true;
-            if (statusFilter) {
-                statusMatch = payment.status === (statusFilter as Payment['status']);
-            }
+            
+            const statusMatch = statusFilter ? payment.status === (statusFilter as Payment['status']) : true;
 
             if (dateMatch && statusMatch) {
                 memberIdsWithMatchingPayments.add(payment.memberId);
@@ -99,6 +113,28 @@ function PaymentsList() {
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
+  const pageTitle = useMemo(() => {
+    if (dateFilter === 'today' && statusFilter === 'paid') return "Today's Collections";
+    if (selectedMonth && !dateFilter) {
+      try {
+        return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;
+      } catch (e) {
+        return "Member Payments";
+      }
+    }
+    return "Member Payments";
+  }, [dateFilter, statusFilter, selectedMonth]);
+  
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMonth = e.target.value;
+    setSelectedMonth(newMonth);
+    // When user interacts with month picker, we want to remove the URL param filter
+    if(dateFilter) {
+      // This is a client-side navigation that just changes the URL without a full reload
+      window.history.replaceState(null, '', '/payments');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -112,18 +148,6 @@ function PaymentsList() {
   const gymIconUrl = userProfile?.icon;
   
   const showHistoryInitially = dateFilter === 'today';
-
-  const pageTitle = useMemo(() => {
-    if (dateFilter === 'today' && statusFilter === 'paid') return "Today's Collections";
-    if (selectedMonth) {
-      try {
-        return `Payments for ${format(new Date(selectedMonth), 'MMMM yyyy')}`;
-      } catch (e) {
-        return "Member Payments";
-      }
-    }
-    return "Member Payments";
-  }, [dateFilter, statusFilter, selectedMonth]);
 
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -141,7 +165,7 @@ function PaymentsList() {
               <Input
                   type="month"
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  onChange={handleMonthChange}
                   className="w-full sm:w-auto"
               />
           </div>
@@ -152,7 +176,7 @@ function PaymentsList() {
                 {filteredMembers.map(member => {
                     const memberPlan = planMap.get(member.planId);
                     const memberPayments = paymentsByMember.get(member.id) || [];
-                    if (!memberPlan) return null; // Don't render card if member has no valid plan
+                    if (!memberPlan) return null;
                     return (
                         <PaymentStatusCard 
                             key={member.id}

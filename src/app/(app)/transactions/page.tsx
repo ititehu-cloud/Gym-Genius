@@ -40,13 +40,11 @@ export default function TransactionsPage() {
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex items-center gap-4">
-                <Link href="/dashboard" legacyBehavior>
-                    <a className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                        <Button variant="outline" size="icon" className="h-7 w-7">
-                            <ArrowLeft className="h-4 w-4" />
-                            <span className="sr-only">Back</span>
-                        </Button>
-                    </a>
+                <Link href="/dashboard">
+                    <Button variant="outline" size="icon" className="h-7 w-7">
+                        <ArrowLeft className="h-4 w-4" />
+                        <span className="sr-only">Back</span>
+                    </Button>
                 </Link>
                 <h1 className="text-2xl font-headline font-semibold">All Transactions</h1>
             </div>

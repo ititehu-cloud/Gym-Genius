@@ -44,9 +44,10 @@ const formSchema = z.object({
 type RecordPaymentFormProps = {
   members: Member[];
   setDialogOpen: (open: boolean) => void;
+  defaultMemberId?: string;
 };
 
-export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaymentFormProps) {
+export default function RecordPaymentForm({ members, setDialogOpen, defaultMemberId }: RecordPaymentFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,10 +55,11 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      memberId: defaultMemberId,
       paymentDate: new Date(),
       status: 'paid',
       paymentMethod: 'cash',
-      paymentType: 'monthly',
+      paymentType: 'renewal',
     },
   });
 
@@ -104,7 +106,7 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
           render={({ field }) => (
             <FormItem>
               <FormLabel>Member</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!defaultMemberId}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a member" />
@@ -177,52 +179,54 @@ export default function RecordPaymentForm({ members, setDialogOpen }: RecordPaym
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="paymentMethod"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Method</FormLabel>
-               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a payment method" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="credit card">Credit Card</SelectItem>
-                    <SelectItem value="bank transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="upi">UPI</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="paymentMethod"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Method</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="credit card">Credit Card</SelectItem>
+                        <SelectItem value="bank transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
 
-        <FormField
-          control={form.control}
-          name="paymentType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Type</FormLabel>
-               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a payment type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="renewal">Renewal</SelectItem>
-                    <SelectItem value="advance">Advance</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+            control={form.control}
+            name="paymentType"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="renewal">Renewal</SelectItem>
+                        <SelectItem value="advance">Advance</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         
         <FormField
             control={form.control}

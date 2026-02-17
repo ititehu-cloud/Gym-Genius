@@ -1,8 +1,8 @@
 'use client';
 
 import { LoaderCircle } from "lucide-react";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import type { Member, Payment, Plan } from "@/lib/types";
 import { useMemo, useState, Suspense } from "react";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,13 @@ import PaymentStatusCard from "@/components/payments/payment-status-card";
 function PaymentsList() {
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, isUserLoading: isAuthLoading } = useUser();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("paymentDate", "desc")), [firestore]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
@@ -51,7 +58,7 @@ function PaymentsList() {
     return members;
   }, [members, searchQuery]);
 
-  const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans;
+  const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
   if (isLoading) {
     return (
@@ -60,6 +67,10 @@ function PaymentsList() {
       </div>
     );
   }
+  
+  const gymName = userProfile?.displayName || user?.email;
+  const gymAddress = userProfile?.displayAddress;
+  const gymIconUrl = userProfile?.icon;
 
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -88,6 +99,9 @@ function PaymentsList() {
                             plan={memberPlan}
                             payments={memberPayments}
                             allMembers={members || []}
+                            gymName={gymName}
+                            gymAddress={gymAddress}
+                            gymIconUrl={gymIconUrl}
                         />
                     )
                 })}

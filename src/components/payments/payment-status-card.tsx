@@ -14,19 +14,25 @@ import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/app/actions';
 import html2canvas from 'html2canvas';
+import { PaymentReceipt } from './payment-receipt';
+import { flushSync } from 'react-dom';
 
 type PaymentStatusCardProps = {
     member: Member;
     plan: Plan | undefined;
     payments: Payment[];
     allMembers: Member[];
+    gymName?: string | null;
+    gymAddress?: string;
+    gymIconUrl?: string | null;
 };
 
-export default function PaymentStatusCard({ member, plan, payments, allMembers }: PaymentStatusCardProps) {
+export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const cardRef = useRef<HTMLDivElement>(null);
+    const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
+    const receiptRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
     if (!plan) {
@@ -56,57 +62,67 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
     const membershipStatus = getMembershipStatus();
     const validity = `${format(parseISO(member.joinDate), 'dd-MM-yyyy')} to ${format(parseISO(member.expiryDate), 'dd-MM-yyyy')}`;
 
-    const handleShare = async () => {
+    const handlePrintReceipt = async () => {
         if (isSharing) return;
+        if (payments.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'No Payments',
+                description: 'There are no payments to create a receipt for.',
+            });
+            return;
+        }
+
         setIsSharing(true);
-    
-        const element = cardRef.current;
-        if (!element) {
-          toast({ variant: "destructive", title: "Error", description: "Card element not found." });
-          setIsSharing(false);
-          return;
+        const latestPayment = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
+        
+        flushSync(() => {
+            setPaymentToProcess(latestPayment);
+        });
+
+        const receiptElement = receiptRef.current;
+        if (!receiptElement) {
+            toast({
+                variant: "destructive",
+                title: "Print Failed",
+                description: "Cannot find receipt element to print.",
+            });
+            setIsSharing(false);
+            return;
         }
 
         try {
-            const canvas = await new Promise<HTMLCanvasElement>((resolve) => {
-                html2canvas(element, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    onclone: (document) => {
-                        const buttons = document.querySelector('[data-buttons="actions"]');
-                        if (buttons) (buttons as HTMLElement).style.display = 'none';
-                    }
-                }).then(resolve);
+            const canvas = await html2canvas(receiptElement, {
+                useCORS: true,
+                scale: 2,
+                backgroundColor: '#ffffff',
             });
             
-            const uploadResult = await new Promise<{ url?: string; error?: string }>((resolve) => {
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        resolve({ error: "Failed to create image blob." });
-                        return;
-                    }
-                    const formData = new FormData();
-                    formData.append('image', blob, `Payment_Status_${member.name.replace(/ /g, '_')}.png`);
-                    const result = await uploadImage(formData);
-                    resolve(result);
-                }, 'image/png');
-            });
-    
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+            
+            if (!blob) {
+                throw new Error("Failed to create image from receipt.");
+            }
+
+            const formData = new FormData();
+            formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
+            
+            const uploadResult = await uploadImage(formData);
+
             if (uploadResult.error || !uploadResult.url) {
                 throw new Error(uploadResult.error || "Could not get image URL after upload.");
             }
-          
+            
             const newTab = window.open('', '_blank');
             if (newTab) {
                 newTab.document.write(`
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>Share Payment Status</title>
+                        <title>Share Payment Receipt</title>
                         <style>
                             body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
-                            img { max-width: 95%; max-height: 75vh; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+                            img { max-width: 95%; max-height: 75vh; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
                             .controls { display: flex; margin-top: 1.5rem; width: 100%; max-width: 600px; }
                             input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
                             button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
@@ -116,7 +132,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                         </style>
                     </head>
                     <body>
-                        <img src="${uploadResult.url}" alt="Payment status for ${member.name}">
+                        <img src="${uploadResult.url}" alt="Payment receipt for ${member.name}">
                         <div class="controls">
                             <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
                             <button id="copy-btn">Copy Link</button>
@@ -148,93 +164,93 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                     description: "Please disable your pop-up blocker.",
                 });
             }
+
         } catch (error) {
-            console.error("Sharing failed:", error);
+            console.error("Printing/Sharing receipt failed:", error);
             toast({
                 variant: "destructive",
-                title: "Share Failed",
-                description: error instanceof Error ? error.message : "Could not share the payment status.",
+                title: "Print Failed",
+                description: error instanceof Error ? error.message : "Could not generate the receipt. Please try again.",
             });
         } finally {
             setIsSharing(false);
+            setPaymentToProcess(null);
         }
-    };
+    }
     
     return (
         <>
-            <div ref={cardRef}>
-                <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-                    <div className="flex justify-between pr-12">
-                        <CardContent className="p-4 flex-grow space-y-2">
-                            <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
-                                <span className="font-medium text-muted-foreground">Reg. Number :</span>
-                                <span>{member.memberId}</span>
+            <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
+                <div className="flex justify-between pr-12">
+                    <CardContent className="p-4 flex-grow space-y-2">
+                        <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
+                            <span className="font-medium text-muted-foreground">Reg. Number :</span>
+                            <span>{member.memberId}</span>
 
-                                <span className="font-medium text-muted-foreground">Name :</span>
-                                <span className="font-semibold text-lg">{member.name}</span>
-                                
-                                <span className="font-medium text-muted-foreground">M.ship Type :</span>
-                                <span>{plan.name}</span>
+                            <span className="font-medium text-muted-foreground">Name :</span>
+                            <span className="font-semibold text-lg">{member.name}</span>
+                            
+                            <span className="font-medium text-muted-foreground">M.ship Type :</span>
+                            <span>{plan.name}</span>
 
-                                <span className="font-medium text-muted-foreground">Validity :</span>
-                                <span>{validity}</span>
+                            <span className="font-medium text-muted-foreground">Validity :</span>
+                            <span>{validity}</span>
 
-                                <span className="font-medium text-muted-foreground">Amount :</span>
-                                <span>₹{plan.price.toFixed(2)}</span>
+                            <span className="font-medium text-muted-foreground">Amount :</span>
+                            <span>₹{plan.price.toFixed(2)}</span>
 
-                                <span className="font-medium text-muted-foreground">Paid :</span>
-                                <span>₹{totalPaid.toFixed(2)}</span>
+                            <span className="font-medium text-muted-foreground">Paid :</span>
+                            <span>₹{totalPaid.toFixed(2)}</span>
 
-                                <span className="font-medium text-muted-foreground">Due :</span>
-                                <span className="font-bold">₹{due > 0 ? due.toFixed(2) : '0.00'}</span>
+                            <span className="font-medium text-muted-foreground">Due :</span>
+                            <span className="font-bold">₹{due > 0 ? due.toFixed(2) : '0.00'}</span>
 
-                                <span className="font-medium text-muted-foreground">Payment Status :</span>
-                                <div><Badge variant={paymentStatus.variant} className={paymentStatus.className}>{paymentStatus.text}</Badge></div>
-                                
-                                <span className="font-medium text-muted-foreground">Membership Status :</span>
-                                <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
-                            </div>
-                        </CardContent>
-                        <div className="p-4 flex-shrink-0 flex items-start">
-                            <Avatar className="h-16 w-16 rounded-md border-2 border-primary">
-                                <AvatarImage src={member.imageUrl} alt={member.name} />
-                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
+                            <span className="font-medium text-muted-foreground">Payment Status :</span>
+                            <div><Badge variant={paymentStatus.variant} className={paymentStatus.className}>{paymentStatus.text}</Badge></div>
+                            
+                            <span className="font-medium text-muted-foreground">Membership Status :</span>
+                            <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
                         </div>
+                    </CardContent>
+                    <div className="p-4 flex-shrink-0 flex items-start">
+                        <Avatar className="h-16 w-16 rounded-md border-2 border-primary">
+                            <AvatarImage src={member.imageUrl} alt={member.name} />
+                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
                     </div>
-                    {showHistory && (
-                        <div className="px-4 pb-4 border-t pt-4 pr-12">
-                            <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
-                            {payments.length > 0 ? (
-                                <ul className="space-y-2">
-                                    {payments.map(payment => (
-                                        <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                            <div>
-                                                <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
-                                                <p className="text-xs text-muted-foreground capitalize">{payment.paymentType} - {payment.paymentMethod}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-bold text-lg">₹{payment.amount.toFixed(2)}</p>
-                                                <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center">No transactions found.</p>
-                            )}
-                        </div>
-                    )}
-                    <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
-                        <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
-                        <Button onClick={handleShare} disabled={isSharing} title="Print Status" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
-                            {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
-                        </Button>
-                        <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
-                        <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+                </div>
+                {showHistory && (
+                    <div className="px-4 pb-4 border-t pt-4 pr-12">
+                        <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
+                        {payments.length > 0 ? (
+                            <ul className="space-y-2">
+                                {payments.map(payment => (
+                                    <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                        <div>
+                                            <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
+                                            <p className="text-xs text-muted-foreground capitalize">{payment.paymentType} - {payment.paymentMethod}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-lg">₹{payment.amount.toFixed(2)}</p>
+                                            <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center">No transactions found.</p>
+                        )}
                     </div>
-                </Card>
-            </div>
+                )}
+                <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
+                    <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
+                    <Button onClick={handlePrintReceipt} disabled={isSharing} title="Print Receipt" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
+                        {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
+                    </Button>
+                    <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
+                    <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+                </div>
+            </Card>
 
             <Dialog open={isRecordPaymentOpen} onOpenChange={setRecordPaymentOpen}>
                 <DialogContent className="sm:max-w-[480px]">
@@ -247,6 +263,20 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                     <RecordPaymentForm members={allMembers} setDialogOpen={setRecordPaymentOpen} defaultMemberId={member.id} />
                 </DialogContent>
             </Dialog>
+
+            {paymentToProcess && (
+                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                    <PaymentReceipt
+                        ref={receiptRef}
+                        payment={paymentToProcess}
+                        member={member}
+                        allPayments={payments}
+                        gymName={gymName}
+                        gymAddress={gymAddress}
+                        gymIconUrl={gymIconUrl}
+                    />
+                </div>
+            )}
         </>
     );
 }

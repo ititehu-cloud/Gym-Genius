@@ -6,11 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, Printer, Trash2, LoaderCircle, History } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { uploadImage } from '@/app/actions';
 import html2canvas from 'html2canvas';
@@ -25,12 +25,14 @@ type PaymentStatusCardProps = {
     gymName?: string | null;
     gymAddress?: string;
     gymIconUrl?: string | null;
+    showHistoryInitially?: boolean;
+    filterHistoryByDate?: string | null;
 };
 
-export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl }: PaymentStatusCardProps) {
+export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl, showHistoryInitially = false, filterHistoryByDate = null }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
+    const [showHistory, setShowHistory] = useState(showHistoryInitially);
     const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
@@ -61,6 +63,14 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const paymentStatus = getPaymentStatus();
     const membershipStatus = getMembershipStatus();
     const validity = `${format(parseISO(member.joinDate), 'dd-MM-yyyy')} to ${format(parseISO(member.expiryDate), 'dd-MM-yyyy')}`;
+
+    const paymentsToShow = useMemo(() => {
+        if (filterHistoryByDate === 'today') {
+            const today = new Date();
+            return payments.filter(p => isSameDay(parseISO(p.paymentDate), today));
+        }
+        return payments;
+    }, [payments, filterHistoryByDate]);
 
     const handlePrintReceipt = async () => {
         if (isSharing) return;
@@ -222,9 +232,9 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 {showHistory && (
                     <div className="px-4 pb-4 border-t pt-4 pr-12">
                         <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
-                        {payments.length > 0 ? (
+                        {paymentsToShow.length > 0 ? (
                             <ul className="space-y-2">
-                                {payments.map(payment => (
+                                {paymentsToShow.map(payment => (
                                     <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
                                         <div>
                                             <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
@@ -238,7 +248,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-sm text-muted-foreground text-center">No transactions found.</p>
+                            <p className="text-sm text-muted-foreground text-center">No transactions found for this filter.</p>
                         )}
                     </div>
                 )}

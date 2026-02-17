@@ -6,7 +6,7 @@ import { LoaderCircle, ArrowLeft } from "lucide-react";
 import type { Member, Payment } from "@/lib/types";
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -64,6 +64,11 @@ export default function TransactionsPage() {
 
         return tempPayments;
     }, [payments, members, searchQuery, fromDate, toDate]);
+    
+    const totalAmount = useMemo(() => {
+        if (!filteredPayments) return 0;
+        return filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    }, [filteredPayments]);
     
     const isLoading = isLoadingPayments || isLoadingMembers;
 
@@ -171,6 +176,16 @@ export default function TransactionsPage() {
                         </div>
                     )}
                 </CardContent>
+                {filteredPayments && filteredPayments.length > 0 && (
+                    <CardFooter>
+                        <div className="w-full text-right font-medium">
+                            <span className="text-muted-foreground">Filtered Total: </span>
+                            <span className="font-bold text-lg">
+                                ₹{totalAmount.toLocaleString()}
+                            </span>
+                        </div>
+                    </CardFooter>
+                )}
             </Card>
         </main>
     );

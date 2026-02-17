@@ -40,8 +40,18 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     if (!plan) {
         return null;
     }
+
+    const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
+    const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
+
+    const paymentsForCurrentCycle = useMemo(() => {
+        return payments.filter(p => {
+            const paymentDate = parseISO(p.paymentDate);
+            return paymentDate >= memberJoinDate && paymentDate <= memberExpiryDate;
+        });
+    }, [payments, memberJoinDate, memberExpiryDate]);
     
-    const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+    const totalPaid = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
     const due = plan.price - totalPaid;
 
     const getPaymentStatus = () => {
@@ -67,24 +77,24 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const paymentsToShow = useMemo(() => {
         if (filterHistoryByDate === 'today') {
             const today = new Date();
-            return payments.filter(p => isSameDay(parseISO(p.paymentDate), today));
+            return paymentsForCurrentCycle.filter(p => isSameDay(parseISO(p.paymentDate), today));
         }
-        return payments;
-    }, [payments, filterHistoryByDate]);
+        return paymentsForCurrentCycle;
+    }, [paymentsForCurrentCycle, filterHistoryByDate]);
 
     const handlePrintReceipt = async () => {
         if (isSharing) return;
-        if (payments.length === 0) {
+        if (paymentsForCurrentCycle.length === 0) {
             toast({
                 variant: 'destructive',
                 title: 'No Payments',
-                description: 'There are no payments to create a receipt for.',
+                description: 'There are no payments in the current cycle to create a receipt for.',
             });
             return;
         }
 
         setIsSharing(true);
-        const latestPayment = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
+        const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
         
         flushSync(() => {
             setPaymentToProcess(latestPayment);
@@ -248,7 +258,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                                 ))}
                             </ul>
                         ) : (
-                            <p className="text-sm text-muted-foreground text-center">No transactions found for this filter.</p>
+                            <p className="text-sm text-muted-foreground text-center">No transactions found for this cycle{filterHistoryByDate ? ' with the current filter' : ''}.</p>
                         )}
                     </div>
                 )}
@@ -258,7 +268,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
                     </Button>
                     <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
-                    <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+                    <DeleteMemberPaymentDialog payments={paymentsForCurrentCycle} memberName={member.name} />
                 </div>
             </Card>
 
@@ -280,7 +290,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         ref={receiptRef}
                         payment={paymentToProcess}
                         member={member}
-                        allPayments={payments}
+                        allPayments={paymentsForCurrentCycle}
                         gymName={gymName}
                         gymAddress={gymAddress}
                         gymIconUrl={gymIconUrl}

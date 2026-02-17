@@ -129,11 +129,57 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           throw new Error(uploadResult.error || "Could not get image URL after upload.");
       }
       
-      await navigator.clipboard.writeText(uploadResult.url);
-      toast({
-          title: "Link Copied!",
-          description: "A shareable link to the ID card has been copied to your clipboard.",
-      });
+      const newTab = window.open('', '_blank');
+            if (newTab) {
+                newTab.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Share Member ID Card</title>
+                        <style>
+                            body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
+                            img { max-width: 95%; max-height: 75vh; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+                            .controls { display: flex; margin-top: 1.5rem; width: 100%; max-width: 600px; }
+                            input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
+                            button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
+                            button:hover { background-color: #e5e7eb; }
+                            .close-button { margin-top: 1rem; padding: 0.5rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; }
+                            .close-button:hover { background-color: #dc2626; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${uploadResult.url}" alt="ID Card for ${member.name}">
+                        <div class="controls">
+                            <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
+                            <button id="copy-btn">Copy Link</button>
+                        </div>
+                        <button id="close-btn" class="close-button">Close</button>
+                        <script>
+                            document.getElementById('copy-btn').addEventListener('click', () => {
+                                const input = document.getElementById('copy-input');
+                                navigator.clipboard.writeText(input.value).then(() => {
+                                    const btn = document.getElementById('copy-btn');
+                                    btn.textContent = 'Copied!';
+                                    setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+                                }).catch(err => {
+                                    console.error('Failed to copy: ', err);
+                                });
+                            });
+                             document.getElementById('close-btn').addEventListener('click', () => {
+                                window.close();
+                            });
+                        </script>
+                    </body>
+                    </html>
+                `);
+                newTab.document.close();
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Could not open new tab",
+                    description: "Please disable your pop-up blocker.",
+                });
+            }
 
     } catch (error) {
         console.error("Sharing failed:", error);

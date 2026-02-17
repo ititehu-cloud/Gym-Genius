@@ -5,8 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Printer, Trash2, LoaderCircle, History } from 'lucide-react';
-import { format, parseISO, isSameDay, isSameMonth } from 'date-fns';
+import { Plus, Printer, LoaderCircle, History } from 'lucide-react';
+import { format, parseISO, isSameDay, isSameMonth, endOfMonth } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
@@ -51,15 +51,43 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             return paymentDate >= memberJoinDate && paymentDate <= memberExpiryDate;
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
-    
-    const totalPaid = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
-    const due = plan.price - totalPaid;
 
-    const getPaymentStatus = () => {
-        if (totalPaid <= 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
-        if (due > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
-        return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
-    };
+    const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod } = useMemo(() => {
+        let relevantPayments: Payment[];
+        const planPrice = plan.price;
+
+        // If filtering by month, calculate status based on payments up to that month within the current cycle.
+        if (filterHistoryByMonth) {
+            try {
+                const monthEndDate = endOfMonth(new Date(filterHistoryByMonth + "-01T00:00:00"));
+                relevantPayments = paymentsForCurrentCycle.filter(p => {
+                    const paymentDate = parseISO(p.paymentDate);
+                    return paymentDate <= monthEndDate;
+                });
+            } catch {
+                relevantPayments = [];
+            }
+        } else {
+            // Default behavior: consider all payments in the current cycle.
+            relevantPayments = paymentsForCurrentCycle;
+        }
+
+        const totalPaid = relevantPayments.reduce((acc, p) => acc + p.amount, 0);
+        const due = Math.max(0, planPrice - totalPaid);
+
+        const getStatus = () => {
+            if (totalPaid <= 0 && planPrice > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+            if (due > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
+            return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
+        };
+
+        return {
+            totalPaidForPeriod: totalPaid,
+            dueForPeriod: due,
+            paymentStatusForPeriod: getStatus()
+        };
+
+    }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price]);
 
     const getMembershipStatus = () => {
         const today = new Date();
@@ -71,12 +99,10 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return { text: 'Valid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
     }
 
-    const paymentStatus = getPaymentStatus();
     const membershipStatus = getMembershipStatus();
     const validity = `${format(parseISO(member.joinDate), 'dd-MM-yyyy')} to ${format(parseISO(member.expiryDate), 'dd-MM-yyyy')}`;
 
     const paymentsToShow = useMemo(() => {
-        // Start with all payments for the member for filtering the history view
         const allMemberPayments = payments;
 
         if (filterHistoryByDate === 'today') {
@@ -85,14 +111,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         }
         if (filterHistoryByMonth) {
              try {
-                const monthDate = new Date(filterHistoryByMonth + "-01");
-                if (isNaN(monthDate.getTime())) return []; // Return empty for invalid month
+                const monthDate = new Date(filterHistoryByMonth + "-01T00:00:00");
+                if (isNaN(monthDate.getTime())) return [];
                 return allMemberPayments.filter(p => isSameMonth(parseISO(p.paymentDate), monthDate));
             } catch(e) {
-                return []; // Return empty on error
+                return [];
             }
         }
-        // If no filter is provided (which shouldn't happen based on page logic), show no history.
         return [];
     }, [payments, filterHistoryByDate, filterHistoryByMonth]);
 
@@ -234,13 +259,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             <span>₹{plan.price.toFixed(2)}</span>
 
                             <span className="font-medium text-muted-foreground">Paid :</span>
-                            <span>₹{totalPaid.toFixed(2)}</span>
+                            <span>₹{totalPaidForPeriod.toFixed(2)}</span>
 
                             <span className="font-medium text-muted-foreground">Due :</span>
-                            <span className="font-bold">₹{due > 0 ? due.toFixed(2) : '0.00'}</span>
+                            <span className="font-bold">₹{dueForPeriod > 0 ? dueForPeriod.toFixed(2) : '0.00'}</span>
 
                             <span className="font-medium text-muted-foreground">Payment Status :</span>
-                            <div><Badge variant={paymentStatus.variant} className={paymentStatus.className}>{paymentStatus.text}</Badge></div>
+                            <div><Badge variant={paymentStatusForPeriod.variant} className={paymentStatusForPeriod.className}>{paymentStatusForPeriod.text}</Badge></div>
                             
                             <span className="font-medium text-muted-foreground">Membership Status :</span>
                             <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>

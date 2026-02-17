@@ -2,7 +2,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import { LoaderCircle, ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
+import { LoaderCircle, ArrowLeft } from "lucide-react";
 import type { Member, Payment } from "@/lib/types";
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
@@ -12,16 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 
 export default function TransactionsPage() {
     const firestore = useFirestore();
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
-    const [toDate, setToDate] = useState<Date | undefined>(undefined);
+    const [fromDate, setFromDate] = useState<string>("");
+    const [toDate, setToDate] = useState<string>("");
 
     const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("paymentDate", "desc")), [firestore]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
@@ -40,11 +37,11 @@ export default function TransactionsPage() {
         let tempPayments = [...payments];
 
         if (fromDate) {
-            const startDate = startOfDay(fromDate).getTime();
+            const startDate = startOfDay(parseISO(fromDate)).getTime();
             tempPayments = tempPayments.filter(p => parseISO(p.paymentDate).getTime() >= startDate);
         }
         if (toDate) {
-            const endDate = endOfDay(toDate).getTime();
+            const endDate = endOfDay(parseISO(toDate)).getTime();
             tempPayments = tempPayments.filter(p => parseISO(p.paymentDate).getTime() <= endDate);
         }
 
@@ -98,50 +95,26 @@ export default function TransactionsPage() {
                     className="w-full md:max-w-sm"
                 />
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !fromDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {fromDate ? format(fromDate, "PPP") : <span>From date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={fromDate}
-                                onSelect={setFromDate}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !toDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {toDate ? format(toDate, "PPP") : <span>To date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={toDate}
-                                onSelect={setToDate}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
+                    <div className="grid w-full items-center gap-1.5">
+                        <label htmlFor="from-date" className="text-sm font-medium text-muted-foreground">From</label>
+                        <Input
+                            id="from-date"
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                     <div className="grid w-full items-center gap-1.5">
+                        <label htmlFor="to-date" className="text-sm font-medium text-muted-foreground">To</label>
+                        <Input
+                            id="to-date"
+                            type="date"
+                            value={toDate}
+                            onChange={(e) => setToDate(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
                 </div>
             </div>
 

@@ -203,7 +203,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                         </div>
                     </div>
                     {showHistory && (
-                        <div className="px-4 pb-4 border-t pt-4">
+                        <div className="px-4 pb-4 border-t pt-4 pr-12">
                             <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
                             {payments.length > 0 ? (
                                 <ul className="space-y-2">

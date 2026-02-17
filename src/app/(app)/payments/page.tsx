@@ -29,13 +29,11 @@ function PaymentsList() {
   const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("paymentDate", "desc")), [firestore]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
-  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(
-      useMemoFirebase(() => collection(firestore, "members"), [firestore])
-  );
+  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(
-      useMemoFirebase(() => collection(firestore, "plans"), [firestore])
-  );
+  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
   const planMap = useMemo(() => {
     if (!plans) return new Map<string, Plan>();

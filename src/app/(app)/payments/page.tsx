@@ -8,11 +8,12 @@ import { useMemo, useState, Suspense } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { isSameDay, parseISO } from "date-fns";
+import { isSameDay, parseISO, format, isSameMonth } from "date-fns";
 
 function PaymentsList() {
   const firestore = useFirestore();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const { user, isUserLoading: isAuthLoading } = useUser();
 
   const searchParams = useSearchParams();
@@ -57,13 +58,22 @@ function PaymentsList() {
     let tempMembers = [...members];
     const today = new Date();
 
-    if (dateFilter || statusFilter) {
+    if (dateFilter || statusFilter || selectedMonth) {
         const memberIdsWithMatchingPayments = new Set<string>();
 
         payments.forEach(payment => {
-            let dateMatch = true;
-            if (dateFilter === 'today') {
+            let dateMatch: boolean;
+            if (selectedMonth) {
+                try {
+                  const monthDate = new Date(selectedMonth);
+                  dateMatch = isSameMonth(parseISO(payment.paymentDate), monthDate);
+                } catch(e) {
+                  dateMatch = false;
+                }
+            } else if (dateFilter === 'today') {
                 dateMatch = isSameDay(parseISO(payment.paymentDate), today);
+            } else {
+                dateMatch = true;
             }
 
             let statusMatch = true;
@@ -77,7 +87,7 @@ function PaymentsList() {
         });
         tempMembers = tempMembers.filter(member => memberIdsWithMatchingPayments.has(member.id));
     }
-
+    
     if (searchQuery) {
         const lowercasedQuery = searchQuery.toLowerCase();
         tempMembers = tempMembers.filter(m => 
@@ -87,7 +97,7 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, payments, searchQuery, dateFilter, statusFilter]);
+  }, [members, payments, searchQuery, dateFilter, statusFilter, selectedMonth]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
@@ -105,18 +115,36 @@ function PaymentsList() {
   
   const showHistoryInitially = dateFilter === 'today';
 
+  const pageTitle = useMemo(() => {
+    if (dateFilter === 'today' && statusFilter === 'paid') return "Today's Collections";
+    if (selectedMonth) {
+      try {
+        return `Payments for ${format(new Date(selectedMonth), 'MMMM yyyy')}`;
+      } catch (e) {
+        return "Member Payments";
+      }
+    }
+    return "Member Payments";
+  }, [dateFilter, statusFilter, selectedMonth]);
+
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <h1 className="text-2xl font-headline font-semibold">
-            {dateFilter === 'today' && statusFilter === 'paid' ? "Today's Collections" : "Member Payments"}
+            {pageTitle}
           </h1>
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
               <Input
                   placeholder="Search by name, ID, or phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full sm:w-64"
+              />
+              <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full sm:w-auto"
               />
           </div>
         </div>
@@ -147,10 +175,10 @@ function PaymentsList() {
              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm py-12 mt-4">
                 <div className="text-center">
                     <h3 className="text-2xl font-bold tracking-tight">
-                        {dateFilter || statusFilter ? 'No payments found' : 'No members found'}
+                        No payments found
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {searchQuery || dateFilter || statusFilter ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
+                        {searchQuery || dateFilter || statusFilter || selectedMonth ? "Your filter returned no results for the selected period." : "Add members in the 'Members' section to see them here."}
                     </p>
                 </div>
             </div>

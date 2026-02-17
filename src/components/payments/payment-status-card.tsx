@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Printer, Trash2, LoaderCircle } from 'lucide-react';
+import { Plus, Printer, Trash2, LoaderCircle, History } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
@@ -25,6 +25,7 @@ type PaymentStatusCardProps = {
 export default function PaymentStatusCard({ member, plan, payments, allMembers }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
 
@@ -201,11 +202,35 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers }
                             </Avatar>
                         </div>
                     </div>
+                    {showHistory && (
+                        <div className="px-4 pb-4 border-t pt-4">
+                            <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
+                            {payments.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {payments.map(payment => (
+                                        <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                            <div>
+                                                <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
+                                                <p className="text-xs text-muted-foreground capitalize">{payment.paymentType} - {payment.paymentMethod}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-lg">₹{payment.amount.toFixed(2)}</p>
+                                                <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center">No transactions found.</p>
+                            )}
+                        </div>
+                    )}
                     <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
                         <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
                         <Button onClick={handleShare} disabled={isSharing} title="Print Status" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
                             {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
                         </Button>
+                        <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
                         <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
                     </div>
                 </Card>

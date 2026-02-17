@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CreditCard, LayoutDashboard, Tags, Users, ClipboardCheck, LogOut, User } from 'lucide-react';
+import { CreditCard, LayoutDashboard, Tags, Users, ClipboardCheck, LogOut, User, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -37,10 +37,15 @@ export function BottomNavigation() {
   
   const displayName = userProfile?.displayName || user?.email;
 
+  const extendedNavItems = [
+      ...navItems,
+      { href: '/transactions', icon: BookOpen, label: 'Passbook' },
+  ]
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground md:hidden">
       <div className="flex h-20 items-stretch justify-around">
-        {navItems.map((item) => {
+        {extendedNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
             <Link

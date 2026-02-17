@@ -164,7 +164,7 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-semibold mb-4">Financial Summary</h2>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Total Due" value={`₹${stats.totalDues.toLocaleString()}`} href="/members?status=expired" className="bg-destructive/10" valueClassName="text-destructive" />
-                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} href="/payments?status=paid" className="bg-chart-2/10" valueClassName="text-chart-2" />
+                    <StatsCard title="Total Collection" value={`₹${stats.totalCollection.toLocaleString()}`} href="/transactions" className="bg-chart-2/10" valueClassName="text-chart-2" />
                 </div>
             </div>
         </div>

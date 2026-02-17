@@ -48,17 +48,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
           <Logo displayName={displayName} />
         </SidebarHeader>
         <SidebarContent>
-          {/* Main content of sidebar is empty, nav is in footer */}
+          <SidebarNav />
         </SidebarContent>
         <SidebarFooter>
           <SidebarSeparator />
-          <div className="p-2">
+          <div className="p-2 hidden md:block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-2 h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center">
@@ -89,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <Header displayName={displayName} iconUrl={userProfile?.icon} />
-        <div className="flex-1 pb-20 overflow-y-auto">
+        <div className="flex-1 pb-20 md:pb-0 overflow-y-auto">
             {children}
         </div>
         <BottomNavigation />

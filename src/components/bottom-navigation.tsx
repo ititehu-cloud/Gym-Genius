@@ -4,10 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CreditCard, LayoutDashboard, Tags, Users, ClipboardCheck, LogOut, User, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { signOut } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import type { User as FirebaseUser } from 'firebase/auth';
+import type { UserProfile as UserProfileType } from '@/lib/types';
 
 
 const navItems = [
@@ -18,22 +17,14 @@ const navItems = [
   { href: '/plans', icon: Tags, label: 'Plans' },
 ];
 
-export function BottomNavigation() {
+type BottomNavigationProps = {
+    user: FirebaseUser | null;
+    userProfile: UserProfileType | null;
+    onLogout: () => void;
+}
+
+export function BottomNavigation({ user, userProfile, onLogout }: BottomNavigationProps) {
   const pathname = usePathname();
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const { user } = useUser();
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userProfile } = useDoc(userDocRef);
-
-  const handleLogout = () => {
-    signOut(auth);
-  };
   
   const displayName = userProfile?.displayName || user?.email;
 
@@ -43,7 +34,7 @@ export function BottomNavigation() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-primary text-primary-foreground">
       <div className="flex h-20 items-stretch justify-around">
         {extendedNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -77,7 +68,7 @@ export function BottomNavigation() {
                     {user?.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={onLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                 </DropdownMenuItem>

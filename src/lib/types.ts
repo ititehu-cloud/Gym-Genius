@@ -36,3 +36,11 @@ export type Attendance = {
   checkInTime: string; // ISO string
   checkOutTime?: string; // ISO string
 };
+
+export type UserProfile = {
+  id: string;
+  displayName: string;
+  email: string;
+  displayAddress?: string;
+  icon?: string;
+};

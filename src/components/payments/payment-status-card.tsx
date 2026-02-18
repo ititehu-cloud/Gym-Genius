@@ -52,42 +52,61 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
 
-    const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod } = useMemo(() => {
-        let relevantPayments: Payment[];
+    const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan } = useMemo(() => {
         const planPrice = plan.price;
 
-        // If filtering by month, calculate status based on payments up to that month within the current cycle.
+        // If filtering by month, calculate stats based on that specific month.
         if (filterHistoryByMonth) {
+            let paymentsInSelectedMonth: Payment[];
             try {
-                const monthEndDate = endOfMonth(new Date(filterHistoryByMonth + "-01T00:00:00"));
-                relevantPayments = paymentsForCurrentCycle.filter(p => {
+                const monthDate = new Date(filterHistoryByMonth + "-01T00:00:00");
+                paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
                     const paymentDate = parseISO(p.paymentDate);
-                    return paymentDate <= monthEndDate;
+                    return isSameMonth(paymentDate, monthDate);
                 });
             } catch {
-                relevantPayments = [];
+                paymentsInSelectedMonth = [];
             }
+            
+            const totalPaidForMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
+            
+            // Assume monthly installment logic for "due for this month" calculation
+            const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
+            const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
+            
+            const getMonthlyStatus = () => {
+                 if (totalPaidForMonth >= monthlyInstallment) return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
+                 if (totalPaidForMonth > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
+                 return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+            };
+
+            return {
+                totalPaidForPeriod: totalPaidForMonth,
+                dueForPeriod: dueForMonth,
+                paymentStatusForPeriod: getMonthlyStatus(),
+                totalAmountForPlan: monthlyInstallment // The target amount for the month
+            };
+
         } else {
-            // Default behavior: consider all payments in the current cycle.
-            relevantPayments = paymentsForCurrentCycle;
+            // Default behavior: consider all payments in the current cycle for overall status.
+            const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
+            const overallDue = Math.max(0, planPrice - totalPaidForCycle);
+
+            const getOverallStatus = () => {
+                if (totalPaidForCycle <= 0 && planPrice > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+                if (overallDue > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
+                return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
+            };
+
+            return {
+                totalPaidForPeriod: totalPaidForCycle,
+                dueForPeriod: overallDue,
+                paymentStatusForPeriod: getOverallStatus(),
+                totalAmountForPlan: planPrice
+            };
         }
 
-        const totalPaid = relevantPayments.reduce((acc, p) => acc + p.amount, 0);
-        const due = Math.max(0, planPrice - totalPaid);
-
-        const getStatus = () => {
-            if (totalPaid <= 0 && planPrice > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
-            if (due > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
-            return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
-        };
-
-        return {
-            totalPaidForPeriod: totalPaid,
-            dueForPeriod: due,
-            paymentStatusForPeriod: getStatus()
-        };
-
-    }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price]);
+    }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price, plan.duration]);
 
     const getMembershipStatus = () => {
         const today = new Date();
@@ -256,7 +275,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             <span>{validity}</span>
 
                             <span className="font-medium text-muted-foreground">Amount :</span>
-                            <span>₹{plan.price.toFixed(2)}</span>
+                            <span>₹{totalAmountForPlan.toFixed(2)}</span>
 
                             <span className="font-medium text-muted-foreground">Paid :</span>
                             <span>₹{totalPaidForPeriod.toFixed(2)}</span>

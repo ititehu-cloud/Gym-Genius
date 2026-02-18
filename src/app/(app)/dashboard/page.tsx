@@ -69,11 +69,21 @@ export default function DashboardPage() {
         return sum + (plan?.price || 0);
     }, 0);
     
-    const monthlyDues = expiredMembers.filter(member => isThisMonth(parseISO(member.expiryDate)))
-      .reduce((sum, member) => {
+    const monthlyDues = members?.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
-        return sum + (plan?.price || 0);
-    }, 0);
+        if (!plan) return sum;
+
+        const monthlyInstallment = plan.duration > 0 ? plan.price / plan.duration : plan.price;
+
+        const paymentsThisMonth = paidPayments.filter(p => 
+            p.memberId === member.id && isThisMonth(parseISO(p.paymentDate))
+        );
+        
+        const totalPaidThisMonth = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
+        const dueForMonth = Math.max(0, monthlyInstallment - totalPaidThisMonth);
+        
+        return sum + dueForMonth;
+    }, 0) ?? 0;
 
     return {
         activeMembers,

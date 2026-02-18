@@ -60,8 +60,10 @@ function MemberList() {
         });
     } else if (statusFilter === 'active') {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) >= today);
-    } else if (statusFilter !== 'all') {
-        tempMembers = tempMembers.filter(m => m.status === statusFilter);
+    } else if (statusFilter === 'expired') {
+        tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
+    } else if (statusFilter === 'due') {
+        tempMembers = tempMembers.filter(m => m.status === 'due');
     }
 
     if (searchQuery) {

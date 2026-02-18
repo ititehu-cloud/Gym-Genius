@@ -20,18 +20,15 @@ function PaymentsList() {
   
   const dateFilter = searchParams.get('date');
   const statusFilter = searchParams.get('status');
+  const filterParam = searchParams.get('filter');
 
   useEffect(() => {
-    // Sync state with URL params. If URL has a date filter, it takes precedence.
-    if (dateFilter) {
-      setSelectedMonth('');
-    } else {
-      // If no dateFilter and selectedMonth is empty, set it to current month.
-      if (!selectedMonth) {
+    if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
-      }
+    } else if (dateFilter) {
+      setSelectedMonth('');
     }
-  }, [dateFilter, selectedMonth]);
+  }, [filterParam, dateFilter]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -64,10 +61,32 @@ function PaymentsList() {
   }, [payments]);
 
   const filteredMembers = useMemo(() => {
-    if (!members) return [];
+    if (!members || !planMap.size || !payments) return [];
 
     let tempMembers = [...members];
     
+    if (filterParam === 'due_this_month' && selectedMonth) {
+        const monthDate = new Date(selectedMonth + "-01T00:00:00");
+        if (!isNaN(monthDate.getTime())) {
+            tempMembers = tempMembers.filter(member => {
+                const memberPlan = planMap.get(member.planId);
+                if (!memberPlan) return false;
+
+                const memberPayments = paymentsByMember.get(member.id) || [];
+                
+                const paymentsInSelectedMonth = memberPayments.filter(p => {
+                    return isSameMonth(parseISO(p.paymentDate), monthDate);
+                });
+
+                const totalPaidForMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
+                const monthlyInstallment = memberPlan.duration > 0 ? memberPlan.price / memberPlan.duration : memberPlan.price;
+                const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
+                
+                return dueForMonth > 0;
+            });
+        }
+    }
+
     if (searchQuery) {
         const lowercasedQuery = searchQuery.toLowerCase();
         tempMembers = tempMembers.filter(m => 
@@ -77,12 +96,13 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, searchQuery]);
+  }, [members, searchQuery, payments, planMap, paymentsByMember, filterParam, selectedMonth]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
   const pageTitle = useMemo(() => {
     if (dateFilter === 'today' && statusFilter === 'paid') return "Today's Collections";
+    if (filterParam === 'due_this_month') return "This Month's Due Payments";
     if (selectedMonth && !dateFilter) {
       try {
         return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;
@@ -91,13 +111,13 @@ function PaymentsList() {
       }
     }
     return "Member Payments";
-  }, [dateFilter, statusFilter, selectedMonth]);
+  }, [dateFilter, statusFilter, selectedMonth, filterParam]);
   
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
     setSelectedMonth(newMonth);
     // When user interacts with month picker, we want to remove the URL param filter
-    if(dateFilter) {
+    if(dateFilter || filterParam) {
       // This is a client-side navigation that just changes the URL without a full reload
       window.history.replaceState(null, '', '/payments');
     }
@@ -179,7 +199,7 @@ function PaymentsList() {
                         No members found
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {searchQuery ? "Your search returned no results." : "Add members in the 'Members' section to see them here."}
+                        {searchQuery || filterParam ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
                     </p>
                 </div>
             </div>

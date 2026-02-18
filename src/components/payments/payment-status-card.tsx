@@ -55,40 +55,36 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan } = useMemo(() => {
         const planPrice = plan.price;
 
-        // If filtering by month, calculate stats based on that specific month.
+        // If filtering by any month, the stats on the card should reflect the current month's status.
         if (filterHistoryByMonth) {
-            let paymentsInSelectedMonth: Payment[];
-            try {
-                const monthDate = new Date(filterHistoryByMonth + "-01T00:00:00");
-                paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
-                    const paymentDate = parseISO(p.paymentDate);
-                    return isSameMonth(paymentDate, monthDate);
-                });
-            } catch {
-                paymentsInSelectedMonth = [];
-            }
-            
-            const totalPaidForMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
-            
-            // Assume monthly installment logic for "due for this month" calculation
             const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
-            const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
             
-            const getMonthlyStatus = () => {
-                 if (totalPaidForMonth >= monthlyInstallment) return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
-                 if (totalPaidForMonth > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
-                 return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+            // The user wants to see CURRENT month's stats, even when viewing a past month's history.
+            const statsMonthDate = new Date();
+            
+            const paymentsInStatsMonth = paymentsForCurrentCycle.filter(p => {
+                const paymentDate = parseISO(p.paymentDate);
+                return isSameMonth(paymentDate, statsMonthDate);
+            });
+
+            const totalPaidForStatsMonth = paymentsInStatsMonth.reduce((acc, p) => acc + p.amount, 0);
+            const dueForStatsMonth = Math.max(0, monthlyInstallment - totalPaidForStatsMonth);
+            
+            const getMonthlyStatus = (paid: number, due: number) => {
+                 if (paid <= 0 && monthlyInstallment > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+                 if (due > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
+                 return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
             };
 
             return {
-                totalPaidForPeriod: totalPaidForMonth,
-                dueForPeriod: dueForMonth,
-                paymentStatusForPeriod: getMonthlyStatus(),
-                totalAmountForPlan: monthlyInstallment // The target amount for the month
+                totalPaidForPeriod: totalPaidForStatsMonth,
+                dueForPeriod: dueForStatsMonth,
+                paymentStatusForPeriod: getMonthlyStatus(totalPaidForStatsMonth, dueForStatsMonth),
+                totalAmountForPlan: monthlyInstallment
             };
-
-        } else {
-            // Default behavior: consider all payments in the current cycle for overall status.
+        } 
+        // If not filtering by month, show overall status for the entire plan cycle.
+        else {
             const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
             const overallDue = Math.max(0, planPrice - totalPaidForCycle);
 

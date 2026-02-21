@@ -17,6 +17,11 @@ import { uploadImage } from '@/app/actions';
 import DueNotice from './due-notice';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 
 type MemberCardProps = {
@@ -217,15 +222,30 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             </div>
             <div className="flex flex-col sm:flex-row">
               <div className="p-3 flex justify-center items-center w-full sm:w-auto">
-                  <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 group">
-                      <Image
-                          src={member.imageUrl}
-                          alt={`Photo of ${member.name}`}
-                          fill
-                          className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
-                          crossOrigin="anonymous"
-                      />
-                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 cursor-pointer">
+                          <Image
+                              src={member.imageUrl}
+                              alt={`Photo of ${member.name}`}
+                              fill
+                              className="object-cover"
+                              crossOrigin="anonymous"
+                          />
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
+                        <div className="relative w-full aspect-square">
+                            <Image
+                                src={member.imageUrl}
+                                alt={`Photo of ${member.name}`}
+                                fill
+                                className="object-contain rounded-md"
+                                crossOrigin="anonymous"
+                            />
+                        </div>
+                    </DialogContent>
+                  </Dialog>
               </div>
               <CardContent className="p-3 pt-0 flex flex-col justify-center items-start w-full sm:w-auto">
                   <div className='text-left'>

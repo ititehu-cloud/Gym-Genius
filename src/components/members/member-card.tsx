@@ -6,7 +6,7 @@ import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, UserCheck, LogOut } from 'lucide-react';
+import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -134,19 +134,15 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       }
       
       if (!member.mobileNumber) {
-        toast({
-          variant: 'destructive',
-          title: 'Share Failed',
-          description: "This member doesn't have a mobile number saved.",
-        });
-        return; // The finally block will run
+        const message = `Here is your digital ID card from ${gymName || 'our gym'}: ${uploadResult.url}`;
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+      } else {
+         const message = `Here is your digital ID card from ${gymName || 'our gym'}: ${uploadResult.url}`;
+        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
       }
       
-      const message = `Here is your digital ID card from ${gymName || 'our gym'}: ${uploadResult.url}`;
-      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
-
-      // Open WhatsApp
-      window.open(whatsappUrl, '_blank');
 
       toast({
         title: "Redirecting to WhatsApp",
@@ -289,7 +285,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   disabled={isAttendanceLoading}
                   title="Check In"
               >
-                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
               </Button>
           ) : !isCheckedOut ? (
               <Button
@@ -300,11 +296,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   disabled={isAttendanceLoading}
                   title="Check Out"
               >
-                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
               </Button>
           ) : (
               <Button variant="outline" size="icon" disabled title="Attendance completed">
-                  <UserCheck className="h-4 w-4 text-green-500" />
+                  <Fingerprint className="h-4 w-4 text-green-500" />
               </Button>
           )}
 

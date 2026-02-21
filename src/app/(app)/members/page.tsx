@@ -2,15 +2,15 @@
 
 import MemberCard from "@/components/members/member-card";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, where } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
-import type { Member, Plan } from "@/lib/types";
+import type { Member, Plan, Attendance } from "@/lib/types";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isSameDay, parseISO, startOfDay, isThisMonth } from "date-fns";
+import { isSameDay, parseISO, startOfDay, isThisMonth, endOfDay } from "date-fns";
 
 function MemberList() {
   const firestore = useFirestore();
@@ -27,6 +27,24 @@ function MemberList() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(
+    useMemoFirebase(() => {
+        if (!firestore) return null;
+        const start = startOfDay(new Date());
+        const end = endOfDay(new Date());
+        return query(
+            collection(firestore, "attendance"),
+            where("checkInTime", ">=", start.toISOString()),
+            where("checkInTime", "<=", end.toISOString())
+        );
+    }, [firestore])
+  );
+
+  const attendanceMap = useMemo(() => {
+      if (!todaysAttendance) return new Map<string, Attendance>();
+      return new Map(todaysAttendance.map(att => [att.memberId, att]));
+  }, [todaysAttendance]);
   
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status') as Member['status'] | null;
@@ -78,7 +96,7 @@ function MemberList() {
     return tempMembers;
   }, [members, searchQuery, statusFilter, expiryParam]);
 
-  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
+  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading) || isLoadingAttendance;
 
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
@@ -124,7 +142,16 @@ function MemberList() {
       {filteredMembers && filteredMembers.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
           {filteredMembers.map((member) => (
-            <MemberCard key={member.id} member={member} plan={planMap.get(member.planId)} gymName={gymName} gymAddress={gymAddress} gymIconUrl={gymIconUrl} isExpiryShare={expiryParam === 'today'} />
+            <MemberCard 
+              key={member.id} 
+              member={member} 
+              plan={planMap.get(member.planId)} 
+              gymName={gymName} 
+              gymAddress={gymAddress} 
+              gymIconUrl={gymIconUrl} 
+              isExpiryShare={expiryParam === 'today'}
+              attendanceRecord={attendanceMap.get(member.id)}
+            />
           ))}
         </div>
       ) : (

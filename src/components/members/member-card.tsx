@@ -2,11 +2,11 @@
 
 import Image from 'next/image';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import type { Member, Plan } from "@/lib/types";
+import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle } from 'lucide-react';
+import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, UserCheck, LogOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,8 @@ import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import { uploadImage } from '@/app/actions';
 import DueNotice from './due-notice';
-import { flushSync } from 'react-dom';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 
 type MemberCardProps = {
@@ -24,14 +25,17 @@ type MemberCardProps = {
   gymAddress?: string;
   gymIconUrl?: string | null;
   isExpiryShare?: boolean;
+  attendanceRecord?: Attendance;
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false, attendanceRecord }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [memberToProcess, setMemberToProcess] = useState<Member | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -164,6 +168,57 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
   };
 
+  const handleCheckIn = async () => {
+    setIsAttendanceLoading(true);
+    const attendanceCollection = collection(firestore, "attendance");
+    try {
+      await addDoc(attendanceCollection, {
+        memberId: member.id,
+        checkInTime: new Date().toISOString(),
+        createdAt: serverTimestamp()
+      });
+      toast({
+        title: "Checked In!",
+        description: `${member.name} has been checked in for today.`
+      });
+    } catch (error) {
+      console.error("Error checking in member:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem checking the member in.",
+      });
+    } finally {
+      setIsAttendanceLoading(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (!attendanceRecord) return;
+    setIsAttendanceLoading(true);
+    const attendanceDocRef = doc(firestore, "attendance", attendanceRecord.id);
+    try {
+      await updateDoc(attendanceDocRef, {
+        checkOutTime: new Date().toISOString()
+      });
+      toast({
+        title: "Checked Out!",
+        description: `${member.name} has been checked out for today.`
+      });
+    } catch (error) {
+      console.error("Error checking out member:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem checking the member out.",
+      });
+    } finally {
+      setIsAttendanceLoading(false);
+    }
+  };
+
+  const isCheckedOut = !!attendanceRecord?.checkOutTime;
+
 
   return (
     <>
@@ -218,7 +273,41 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
         <CardFooter className="p-2 bg-muted/50 flex items-center justify-around">
           <EditMemberDialog member={member} />
-          <DeleteMemberDialog memberId={member.id} memberName={member.name} />
+          
+          <Button asChild variant="outline" size="icon">
+            <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
+                <PhoneCall className="h-4 w-4" />
+                <span className="sr-only">Call</span>
+            </a>
+          </Button>
+
+          {!attendanceRecord ? (
+              <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCheckIn}
+                  disabled={isAttendanceLoading}
+                  title="Check In"
+              >
+                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+              </Button>
+          ) : !isCheckedOut ? (
+              <Button
+                  variant="default"
+                  className="bg-chart-2 hover:bg-chart-2/90"
+                  size="icon"
+                  onClick={handleCheckOut}
+                  disabled={isAttendanceLoading}
+                  title="Check Out"
+              >
+                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              </Button>
+          ) : (
+              <Button variant="outline" size="icon" disabled title="Attendance completed">
+                  <UserCheck className="h-4 w-4 text-green-500" />
+              </Button>
+          )}
+
           <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing}>
             {isSharing ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -227,6 +316,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             )}
             <span className='sr-only'>Share</span>
           </Button>
+          
+          <DeleteMemberDialog memberId={member.id} memberName={member.name} />
+
         </CardFooter>
       </Card>
       {memberToProcess && plan && (

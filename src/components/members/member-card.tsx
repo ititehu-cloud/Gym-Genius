@@ -216,10 +216,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         />
                     </div>
                   )}
-                  <h2 className="text-base font-bold whitespace-pre-wrap">{gymName}</h2>
+                  <h2 className="text-lg font-bold whitespace-pre-wrap">{gymName}</h2>
                 </div>
                 <div className="p-2 px-3 text-left w-1/2 border-l-2 border-primary-foreground/30">
-                   <p className="text-xs leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
+                   <p className="text-sm leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
                 </div>
             </div>
             <div className="flex flex-col sm:flex-row">
@@ -237,8 +237,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       </div>
                     </DialogTrigger>
                     <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
-                        <DialogHeader className="sr-only">
-                          <DialogTitle>Photo of {member.name}</DialogTitle>
+                        <DialogHeader>
+                          <DialogTitle className="sr-only">Photo of {member.name}</DialogTitle>
                         </DialogHeader>
                         <div className="relative w-full aspect-square">
                             <Image
@@ -254,17 +254,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               </div>
               <CardContent className="p-3 pt-0 flex flex-col justify-center items-start w-full sm:w-auto">
                   <div className='text-left'>
-                      <h3 className="text-xl font-bold font-headline leading-tight">{member.name}</h3>
-                      {member.memberId && <p className="text-sm text-muted-foreground">ID: {member.memberId}</p>}
-                      <p className="text-sm text-muted-foreground">{planName} Plan</p>
+                      <h3 className="text-2xl font-bold font-headline leading-tight">{member.name}</h3>
+                      {member.memberId && <p className="text-base text-muted-foreground">ID: {member.memberId}</p>}
+                      <p className="text-base text-muted-foreground">{planName} Plan</p>
                   </div>
-                  <div className="text-left text-xs w-full space-y-0.5 text-muted-foreground mt-2">
+                  <div className="text-left text-sm w-full space-y-0.5 text-muted-foreground mt-2">
                       <div className='flex items-center gap-2'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
                       <div className='flex items-start gap-2'><MapPin className='w-4 h-4 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
                       <div className='flex items-center gap-2'><Calendar className='w-4 h-4' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                       <div className='flex items-center gap-2'><Cake className='w-4 h-4' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-sm px-2 py-0.5 mt-2" data-badge="status">{status}</Badge>
+                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-base px-3 py-1 mt-2" data-badge="status">{status}</Badge>
               </CardContent>
             </div>
         </div>

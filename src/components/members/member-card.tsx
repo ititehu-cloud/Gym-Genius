@@ -67,27 +67,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const handleShare = async () => {
     if (isSharing) return;
 
-    if (isExpiryShare && plan) {
-        if (!member.mobileNumber) {
-            toast({
-                variant: 'destructive',
-                title: 'Share Failed',
-                description: "This member doesn't have a mobile number saved.",
-            });
-            return;
-        }
-        
-        const from = gymName || "Your Gym";
-        const customer = member.name;
-        const mobile = member.mobileNumber;
-        const joinDate = format(parseISO(member.joinDate), 'PPP');
-        const expiryDate = format(parseISO(member.expiryDate), 'PPP');
-        const planType = plan.name;
-        const amountDue = plan.price;
-
-        const message = `*Due Details*\n\nFrom: ${from}\n\nCustomer: ${customer}\nMobile: ${mobile}\nDate of Joining: ${joinDate}\nDate of Expiry: ${expiryDate}\nPlan Type: ${planType}\nAmount Due: ₹${amountDue}\n\nPlease clear the due amount as early as possible to continue your membership with the Gym.\nThank you!`;
-        const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
+    if (!member.mobileNumber) {
+        toast({
+            variant: 'destructive',
+            title: 'Share Failed',
+            description: "This member doesn't have a mobile number saved.",
+        });
         return;
     }
 
@@ -131,57 +116,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           throw new Error(uploadResult.error || "Could not get image URL after upload.");
       }
       
-      const newTab = window.open('', '_blank');
-      if (newTab) {
-        newTab.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Share Member ID Card</title>
-                <style>
-                    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
-                    img { max-width: 95%; max-height: 75vh; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-                    .controls { display: flex; margin-top: 1.5rem; width: 100%; max-width: 600px; }
-                    input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
-                    button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
-                    button:hover { background-color: #e5e7eb; }
-                    .close-button { margin-top: 1rem; padding: 0.5rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; }
-                    .close-button:hover { background-color: #dc2626; }
-                </style>
-            </head>
-            <body>
-                <img src="${uploadResult.url}" alt="ID Card for ${member.name}">
-                <div class="controls">
-                    <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
-                    <button id="copy-btn">Copy Link</button>
-                </div>
-                <button id="close-btn" class="close-button">Close</button>
-                <script>
-                    document.getElementById('copy-btn').addEventListener('click', () => {
-                        const input = document.getElementById('copy-input');
-                        navigator.clipboard.writeText(input.value).then(() => {
-                            const btn = document.getElementById('copy-btn');
-                            btn.textContent = 'Copied!';
-                            setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
-                        }).catch(err => {
-                            console.error('Failed to copy: ', err);
-                        });
-                    });
-                     document.getElementById('close-btn').addEventListener('click', () => {
-                        window.close();
-                    });
-                </script>
-            </body>
-            </html>
-        `);
-        newTab.document.close();
-      } else {
-        throw new Error("Could not open new tab. Please disable your pop-up blocker.");
-      }
-
+      const message = `Here is your gym ID card: ${uploadResult.url}`;
+      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
       toast({
-        title: "ID Card Ready",
-        description: "Your ID card image is ready in the new tab.",
+        title: "Redirecting to WhatsApp",
+        description: "Your ID card is ready to be shared.",
       });
 
     } catch (error) {
@@ -276,13 +217,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             </div>
             <div className="flex flex-col sm:flex-row">
               <div className="p-3 flex justify-center items-center w-full sm:w-auto">
-                  <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0">
+                  <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 group">
                       <Image
                           src={member.imageUrl}
                           alt={`Photo of ${member.name}`}
                           fill
-                          className="object-cover"
-                          crossOrigin="anonymous" // Required for html2canvas with external images
+                          className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
+                          crossOrigin="anonymous"
                       />
                   </div>
               </div>

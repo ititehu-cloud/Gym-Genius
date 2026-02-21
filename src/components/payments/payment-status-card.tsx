@@ -258,31 +258,31 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 <div className="flex justify-between pr-12">
                     <CardContent className="p-4 flex-grow space-y-2">
                         <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
-                            <span className="font-medium text-muted-foreground">Reg. Number :</span>
+                            <span className="font-bold">Reg. Number :</span>
                             <span>{member.memberId}</span>
 
-                            <span className="font-medium text-muted-foreground">Name :</span>
+                            <span className="font-bold">Name :</span>
                             <span className="font-semibold text-lg">{member.name}</span>
                             
-                            <span className="font-medium text-muted-foreground">M.ship Type :</span>
+                            <span className="font-bold">M.ship Type :</span>
                             <span>{plan.name}</span>
 
-                            <span className="font-medium text-muted-foreground">Validity :</span>
+                            <span className="font-bold">Validity :</span>
                             <span>{validity}</span>
 
-                            <span className="font-medium text-muted-foreground">Amount :</span>
+                            <span className="font-bold">Amount :</span>
                             <span>₹{totalAmountForPlan.toFixed(2)}</span>
 
-                            <span className="font-medium text-muted-foreground">Paid :</span>
+                            <span className="font-bold">Paid :</span>
                             <span>₹{totalPaidForPeriod.toFixed(2)}</span>
 
-                            <span className="font-medium text-muted-foreground">Due :</span>
+                            <span className="font-bold">Due :</span>
                             <span className="font-bold">₹{dueForPeriod > 0 ? dueForPeriod.toFixed(2) : '0.00'}</span>
 
-                            <span className="font-medium text-muted-foreground">Payment Status :</span>
+                            <span className="font-bold">Payment Status :</span>
                             <div><Badge variant={paymentStatusForPeriod.variant} className={paymentStatusForPeriod.className}>{paymentStatusForPeriod.text}</Badge></div>
                             
-                            <span className="font-medium text-muted-foreground">Membership Status :</span>
+                            <span className="font-bold">Membership Status :</span>
                             <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
                         </div>
                     </CardContent>

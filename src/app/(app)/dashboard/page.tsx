@@ -103,10 +103,6 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-muted/30">
-        <div className="text-center">
-            <Skeleton className="h-9 w-48 mx-auto mb-2" />
-            <Skeleton className="h-5 w-56 mx-auto" />
-        </div>
         <div className="space-y-8 mt-4">
             <div>
                 <Skeleton className="h-7 w-32 mb-4" />
@@ -139,11 +135,6 @@ export default function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 bg-muted/30">
-        <div className="text-center">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Today - {format(new Date(), "d MMM yyyy")}</p>
-        </div>
-
         <div className="space-y-8">
             <div>
                 <div className="flex items-baseline gap-2 mb-4">

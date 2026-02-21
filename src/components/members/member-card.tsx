@@ -21,6 +21,8 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 
 
@@ -235,6 +237,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       </div>
                     </DialogTrigger>
                     <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
+                        <DialogHeader className="sr-only">
+                          <DialogTitle>Photo of {member.name}</DialogTitle>
+                        </DialogHeader>
                         <div className="relative w-full aspect-square">
                             <Image
                                 src={member.imageUrl}

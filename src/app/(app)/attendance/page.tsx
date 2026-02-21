@@ -2,7 +2,7 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { LoaderCircle, UserCheck, LogOut, CalendarIcon } from "lucide-react";
+import { LoaderCircle, UserCheck, LogOut } from "lucide-react";
 import type { Member, Attendance } from "@/lib/types";
 import { useMemo, useState, Suspense } from "react";
 import { startOfDay, endOfDay, format, parseISO, isSameDay } from "date-fns";
@@ -12,9 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
 
@@ -143,28 +140,12 @@ function AttendanceList() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full sm:w-64"
                     />
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full sm:w-[240px] justify-start text-left font-normal",
-                                    !selectedDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => date && setSelectedDate(date)}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
+                    <Input
+                        type="date"
+                        value={format(selectedDate, 'yyyy-MM-dd')}
+                        onChange={(e) => e.target.value && setSelectedDate(new Date(e.target.value + 'T00:00:00'))}
+                        className="w-full sm:w-[240px]"
+                    />
                 </div>
             </div>
             <Card>

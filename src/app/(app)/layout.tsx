@@ -43,14 +43,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header displayName={displayName} iconUrl={userProfile?.icon} />
+      <Header 
+        displayName={displayName} 
+        iconUrl={userProfile?.icon} 
+        onLogout={handleLogout} 
+      />
       <main className="flex-1 overflow-y-auto pb-20">
           {children}
       </main>
       <BottomNavigation 
           user={user}
           userProfile={userProfile}
-          onLogout={handleLogout}
       />
     </div>
   );

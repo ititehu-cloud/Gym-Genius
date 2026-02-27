@@ -3,6 +3,17 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type HeaderProps = {
     displayName?: string | null;
@@ -24,15 +35,33 @@ export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
             )}
             <h1 className="text-2xl font-bold tracking-tight">{displayName || 'Dashboard'}</h1>
         </div>
-        <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onLogout}
-            className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2"
-        >
-            <LogOut className="h-5 w-5" />
-            <span className="hidden sm:inline">Sign Out</span>
-        </Button>
+        
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2"
+                >
+                    <LogOut className="h-5 w-5" />
+                    <span className="hidden md:inline">Sign Out</span>
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to sign out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You will need to enter your email and password again to access your gym dashboard.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Sign Out
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </header>
   );
 }

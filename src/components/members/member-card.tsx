@@ -41,7 +41,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
-  const [memberToProcess, setMemberToProcess] = useState<Member | null>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
   
@@ -85,24 +84,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
     setIsSharing(true);
 
-    const cardElement = cardRef.current;
-    if (!cardElement) {
+    const elementToCapture = isExpiryShare ? noticeRef.current : cardRef.current;
+    
+    if (!elementToCapture) {
         toast({
             variant: "destructive",
             title: "Share Failed",
-            description: "Cannot find ID card element.",
+            description: `Cannot find ${isExpiryShare ? 'notice' : 'ID card'} element.`,
         });
         setIsSharing(false);
         return;
     }
-    const badgeElement = cardElement.querySelector('[data-badge="status"]');
-    
+
+    // Temporarily hide elements that shouldn't be in the capture
+    const badgeElement = isExpiryShare ? null : elementToCapture.querySelector('[data-badge="status"]');
     if (badgeElement) {
         (badgeElement as HTMLElement).style.visibility = 'hidden';
     }
 
     try {
-      const canvas = await html2canvas(cardElement, {
+      const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
         scale: 2,
         backgroundColor: '#ffffff',
@@ -111,11 +112,15 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
         
       if (!blob) {
-          throw new Error("Failed to create image from ID card.");
+          throw new Error("Failed to create image.");
       }
 
+      const fileName = isExpiryShare 
+        ? `${member.name.replace(/ /g, '_')}_Expiry_Notice.png`
+        : `${member.name.replace(/ /g, '_')}_ID_Card.png`;
+
       const formData = new FormData();
-      formData.append('image', blob, `${member.name.replace(/ /g, '_')}_ID_Card.png`);
+      formData.append('image', blob, fileName);
       
       const uploadResult = await uploadImage(formData);
 
@@ -123,13 +128,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           throw new Error(uploadResult.error || "Could not get image URL after upload.");
       }
       
-      const message = `Here is your gym ID card: ${uploadResult.url}`;
+      let message = "";
+      if (isExpiryShare) {
+        const expiryStr = format(parseISO(member.expiryDate), 'PPP');
+        const renewalAmount = plan?.price || 'N/A';
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan. Renewal Amount: ₹${renewalAmount}. You can view your notice here: ${uploadResult.url}`;
+      } else {
+        message = `Here is your gym ID card: ${uploadResult.url}`;
+      }
+
       const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
       
       toast({
         title: "Redirecting to WhatsApp",
-        description: "Your ID card is ready to be shared.",
+        description: isExpiryShare ? "Renewal details are ready to be shared." : "Your ID card is ready to be shared.",
       });
 
     } catch (error) {
@@ -137,7 +150,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         toast({
             variant: "destructive",
             title: "Share Failed",
-            description: error instanceof Error ? error.message : "Could not share the ID card. Please try again.",
+            description: error instanceof Error ? error.message : "Could not share. Please try again.",
         });
     } finally {
         if (badgeElement) {
@@ -216,7 +229,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         />
                     </div>
                   )}
-                  <h2 className="text-lg font-bold whitespace-pre-wrap">{gymName}</h2>
+                  <h2 className="text-xl font-bold whitespace-pre-wrap">{gymName}</h2>
                 </div>
                 <div className="p-2 px-3 text-left w-1/2 border-l-2 border-primary-foreground/30">
                    <p className="text-sm leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
@@ -226,7 +239,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               <div className="p-3 flex justify-center items-center w-full sm:w-auto">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 cursor-pointer">
+                      <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 cursor-pointer">
                           <Image
                               src={member.imageUrl}
                               alt={`Photo of ${member.name}`}
@@ -255,16 +268,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               <CardContent className="p-3 pt-0 flex flex-col justify-center items-start w-full sm:w-auto">
                   <div className='text-left'>
                       <h3 className="text-2xl font-bold font-headline leading-tight">{member.name}</h3>
-                      {member.memberId && <p className="text-base text-muted-foreground">ID: {member.memberId}</p>}
-                      <p className="text-base text-muted-foreground">{planName} Plan</p>
+                      {member.memberId && <p className="text-lg text-muted-foreground">ID: {member.memberId}</p>}
+                      <p className="text-lg text-muted-foreground">{planName} Plan</p>
                   </div>
-                  <div className="text-left text-sm w-full space-y-0.5 text-muted-foreground mt-2">
-                      <div className='flex items-center gap-2'><Phone className='w-4 h-4' /><span>{member.mobileNumber}</span></div>
-                      <div className='flex items-start gap-2'><MapPin className='w-4 h-4 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
-                      <div className='flex items-center gap-2'><Calendar className='w-4 h-4' /><span className='text-chart-2 font-medium'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-                      <div className='flex items-center gap-2'><Cake className='w-4 h-4' /><span className='text-destructive font-medium'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
+                  <div className="text-left text-base w-full space-y-1 text-muted-foreground mt-2">
+                      <div className='flex items-center gap-2'><Phone className='w-5 h-5' /><span>{member.mobileNumber}</span></div>
+                      <div className='flex items-start gap-2'><MapPin className='w-5 h-5 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
+                      <div className='flex items-center gap-2'><Calendar className='w-5 h-5' /><span className='text-chart-2 font-semibold'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
+                      <div className='flex items-center gap-2'><CalendarClock className='w-5 h-5' /><span className='text-destructive font-semibold'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-base px-3 py-1 mt-2" data-badge="status">{status}</Badge>
+                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-lg px-4 py-1 mt-3" data-badge="status">{status}</Badge>
               </CardContent>
             </div>
         </div>
@@ -273,7 +286,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           
           <Button asChild variant="outline" size="icon">
             <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
-                <PhoneCall className="h-4 w-4" />
+                <PhoneCall className="h-5 w-5" />
                 <span className="sr-only">Call</span>
             </a>
           </Button>
@@ -288,7 +301,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   disabled={isAttendanceLoading}
                   title="Check In"
               >
-                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+                  {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
               </Button>
           ) : !isCheckedOut ? (
               <Button
@@ -299,19 +312,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   disabled={isAttendanceLoading}
                   title="Check Out"
               >
-                  {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+                  {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
               </Button>
           ) : (
               <Button variant="outline" size="icon" disabled title="Attendance completed">
-                  <Fingerprint className="h-4 w-4 text-green-500" />
+                  <Fingerprint className="h-5 w-5 text-green-500" />
               </Button>
           )}
 
           <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing}>
             {isSharing ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <LoaderCircle className="h-5 w-5 animate-spin" />
             ) : (
-              <Share2 className="h-4 w-4" />
+              <Share2 className="h-5 w-5" />
             )}
             <span className='sr-only'>Share</span>
           </Button>
@@ -320,11 +333,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
         </CardFooter>
       </Card>
-      {memberToProcess && plan && (
+      
+      {/* Hidden container for rendering the Due Notice for capture */}
+      {isExpiryShare && plan && (
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
             <DueNotice 
                 ref={noticeRef}
-                member={memberToProcess}
+                member={member}
                 plan={plan}
                 gymName={gymName}
             />

@@ -46,12 +46,15 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
-    // Only consider 'paid' payments within the current membership cycle
+    // Consider 'paid' payments within the membership cycle, including a 30-day advance window
     const paymentsForCurrentCycle = useMemo(() => {
+        const leadTimeMs = 30 * 24 * 60 * 60 * 1000; // 30 days lead for advance payments
+        const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
+
         return payments.filter(p => {
             const paymentDate = parseISO(p.paymentDate);
-            // Check if payment is within cycle (inclusive of start and end days)
-            const isWithinCycle = paymentDate >= startOfDay(memberJoinDate) && paymentDate <= endOfDay(memberExpiryDate);
+            // Include payments made up to 30 days before start, or during the cycle
+            const isWithinCycle = paymentDate >= startOfDay(leadDate) && paymentDate <= endOfDay(memberExpiryDate);
             return isWithinCycle && p.status === 'paid';
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
@@ -59,7 +62,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan, statsDate } = useMemo(() => {
         const planPrice = plan.price;
         const referenceDate = filterHistoryByMonth ? new Date(filterHistoryByMonth + "-01T00:00:00") : new Date();
-        const EPSILON = 0.01; // Small value to handle floating point precision
+        const EPSILON = 0.01;
 
         const getStatusStyles = (paid: number, total: number) => {
             if (paid <= EPSILON && total > 0) {
@@ -71,10 +74,10 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
         };
 
-        // If filtering by any month, stats reflect THAT month's status.
         if (filterHistoryByMonth && !isNaN(referenceDate.getTime())) {
             const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
             
+            // Look at payments made for this cycle that fall in the filtered month
             const paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
                 const paymentDate = parseISO(p.paymentDate);
                 return isSameMonth(paymentDate, referenceDate);
@@ -91,7 +94,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 statsDate: referenceDate
             };
         } 
-        // If not filtering by month, show overall status for the entire plan cycle.
         else {
             const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
             const overallDue = Math.max(0, planPrice - totalPaidForCycle);
@@ -116,6 +118,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         }
         
         const join = parseISO(member.joinDate);
+        // If the membership hasn't started yet but is valid in the future
         if (join > endOfMonth(statsDate)) {
             return { text: 'Inactive', variant: 'outline' as const, className: '' };
         }

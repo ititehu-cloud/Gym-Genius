@@ -322,7 +322,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
                     </Button>
                     <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
-                    <DeleteMemberPaymentDialog payments={paymentsForCurrentCycle} memberName={member.name} />
+                    <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
                 </div>
             </Card>
 

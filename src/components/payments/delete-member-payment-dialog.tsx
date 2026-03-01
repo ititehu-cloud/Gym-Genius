@@ -16,7 +16,7 @@ import { useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { deleteDoc, doc } from "firebase/firestore";
 import { LoaderCircle, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { Payment } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { format, parseISO } from "date-fns";
@@ -32,6 +32,10 @@ export default function DeleteMemberPaymentDialog({ payments, memberName }: Dele
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string>('');
+
+  const sortedPayments = useMemo(() => {
+    return [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());
+  }, [payments]);
 
   const handleDelete = async () => {
     if (!selectedPaymentId) {
@@ -76,15 +80,15 @@ export default function DeleteMemberPaymentDialog({ payments, memberName }: Dele
             This will permanently delete the selected payment record. This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {payments.length > 0 ? (
+        {sortedPayments.length > 0 ? (
             <Select onValueChange={setSelectedPaymentId} value={selectedPaymentId}>
                 <SelectTrigger>
                     <SelectValue placeholder="Select a payment to delete" />
                 </SelectTrigger>
                 <SelectContent>
-                    {payments.map(p => (
+                    {sortedPayments.map(p => (
                         <SelectItem key={p.id} value={p.id}>
-                            {`₹${p.amount} on ${format(parseISO(p.paymentDate), 'PPP')}`}
+                            {`₹${p.amount} (${p.paymentType}) on ${format(parseISO(p.paymentDate), 'PPP')}`}
                         </SelectItem>
                     ))}
                 </SelectContent>

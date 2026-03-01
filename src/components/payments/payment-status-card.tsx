@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, Printer, LoaderCircle, History } from 'lucide-react';
-import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
@@ -45,18 +46,32 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
+    // Only consider 'paid' payments within the current membership cycle
     const paymentsForCurrentCycle = useMemo(() => {
         return payments.filter(p => {
             const paymentDate = parseISO(p.paymentDate);
-            return paymentDate >= memberJoinDate && paymentDate <= memberExpiryDate;
+            // Check if payment is within cycle (inclusive of start and end days)
+            const isWithinCycle = paymentDate >= startOfDay(memberJoinDate) && paymentDate <= endOfDay(memberExpiryDate);
+            return isWithinCycle && p.status === 'paid';
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
 
     const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan, statsDate } = useMemo(() => {
         const planPrice = plan.price;
         const referenceDate = filterHistoryByMonth ? new Date(filterHistoryByMonth + "-01T00:00:00") : new Date();
+        const EPSILON = 0.01; // Small value to handle floating point precision
 
-        // If filtering by any month, the stats on the card should reflect THAT month's status.
+        const getStatusStyles = (paid: number, total: number) => {
+            if (paid <= EPSILON && total > 0) {
+                return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
+            }
+            if (paid < total - EPSILON) {
+                return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
+            }
+            return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
+        };
+
+        // If filtering by any month, stats reflect THAT month's status.
         if (filterHistoryByMonth && !isNaN(referenceDate.getTime())) {
             const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
             
@@ -68,16 +83,10 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const totalPaidForSelectedMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
             const dueForSelectedMonth = Math.max(0, monthlyInstallment - totalPaidForSelectedMonth);
             
-            const getMonthlyStatus = (paid: number, due: number) => {
-                 if (paid <= 0 && monthlyInstallment > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
-                 if (due > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
-                 return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
-            };
-
             return {
                 totalPaidForPeriod: totalPaidForSelectedMonth,
                 dueForPeriod: dueForSelectedMonth,
-                paymentStatusForPeriod: getMonthlyStatus(totalPaidForSelectedMonth, dueForSelectedMonth),
+                paymentStatusForPeriod: getStatusStyles(totalPaidForSelectedMonth, monthlyInstallment),
                 totalAmountForPlan: monthlyInstallment,
                 statsDate: referenceDate
             };
@@ -87,16 +96,10 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
             const overallDue = Math.max(0, planPrice - totalPaidForCycle);
 
-            const getOverallStatus = () => {
-                if (totalPaidForCycle <= 0 && planPrice > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
-                if (overallDue > 0) return { text: 'Part Payment', variant: 'secondary' as const, className: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-500/90' };
-                return { text: 'Paid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
-            };
-
             return {
                 totalPaidForPeriod: totalPaidForCycle,
                 dueForPeriod: overallDue,
-                paymentStatusForPeriod: getOverallStatus(),
+                paymentStatusForPeriod: getStatusStyles(totalPaidForCycle, planPrice),
                 totalAmountForPlan: planPrice,
                 statsDate: new Date()
             };
@@ -105,7 +108,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price, plan.duration]);
 
     const getMembershipStatus = () => {
-        // We check validity against the statsDate (either today or the start of the filtered month)
         const checkDate = startOfMonth(statsDate);
         const expiry = parseISO(member.expiryDate);
         
@@ -113,7 +115,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             return { text: 'Expired', variant: 'destructive' as const, className:'' };
         }
         
-        // If checking a future month relative to join date
         const join = parseISO(member.joinDate);
         if (join > endOfMonth(statsDate)) {
             return { text: 'Inactive', variant: 'outline' as const, className: '' };
@@ -150,7 +151,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             toast({
                 variant: 'destructive',
                 title: 'No Payments',
-                description: 'There are no payments in the current cycle to create a receipt for.',
+                description: 'There are no paid transactions in the current cycle to create a receipt for.',
             });
             return;
         }

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, Printer, LoaderCircle, History } from 'lucide-react';
-import { format, parseISO, isSameDay, isSameMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
@@ -52,23 +52,21 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
 
-    const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan } = useMemo(() => {
+    const { totalPaidForPeriod, dueForPeriod, paymentStatusForPeriod, totalAmountForPlan, statsDate } = useMemo(() => {
         const planPrice = plan.price;
+        const referenceDate = filterHistoryByMonth ? new Date(filterHistoryByMonth + "-01T00:00:00") : new Date();
 
-        // If filtering by any month, the stats on the card should reflect the current month's status.
-        if (filterHistoryByMonth) {
+        // If filtering by any month, the stats on the card should reflect THAT month's status.
+        if (filterHistoryByMonth && !isNaN(referenceDate.getTime())) {
             const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
             
-            // The user wants to see CURRENT month's stats, even when viewing a past month's history.
-            const statsMonthDate = new Date();
-            
-            const paymentsInStatsMonth = paymentsForCurrentCycle.filter(p => {
+            const paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
                 const paymentDate = parseISO(p.paymentDate);
-                return isSameMonth(paymentDate, statsMonthDate);
+                return isSameMonth(paymentDate, referenceDate);
             });
 
-            const totalPaidForStatsMonth = paymentsInStatsMonth.reduce((acc, p) => acc + p.amount, 0);
-            const dueForStatsMonth = Math.max(0, monthlyInstallment - totalPaidForStatsMonth);
+            const totalPaidForSelectedMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
+            const dueForSelectedMonth = Math.max(0, monthlyInstallment - totalPaidForSelectedMonth);
             
             const getMonthlyStatus = (paid: number, due: number) => {
                  if (paid <= 0 && monthlyInstallment > 0) return { text: 'Unpaid', variant: 'destructive' as const, className: '' };
@@ -77,10 +75,11 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             };
 
             return {
-                totalPaidForPeriod: totalPaidForStatsMonth,
-                dueForPeriod: dueForStatsMonth,
-                paymentStatusForPeriod: getMonthlyStatus(totalPaidForStatsMonth, dueForStatsMonth),
-                totalAmountForPlan: monthlyInstallment
+                totalPaidForPeriod: totalPaidForSelectedMonth,
+                dueForPeriod: dueForSelectedMonth,
+                paymentStatusForPeriod: getMonthlyStatus(totalPaidForSelectedMonth, dueForSelectedMonth),
+                totalAmountForPlan: monthlyInstallment,
+                statsDate: referenceDate
             };
         } 
         // If not filtering by month, show overall status for the entire plan cycle.
@@ -98,19 +97,28 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 totalPaidForPeriod: totalPaidForCycle,
                 dueForPeriod: overallDue,
                 paymentStatusForPeriod: getOverallStatus(),
-                totalAmountForPlan: planPrice
+                totalAmountForPlan: planPrice,
+                statsDate: new Date()
             };
         }
 
     }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price, plan.duration]);
 
     const getMembershipStatus = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // We check validity against the statsDate (either today or the start of the filtered month)
+        const checkDate = startOfMonth(statsDate);
         const expiry = parseISO(member.expiryDate);
-        if (expiry < today) {
+        
+        if (expiry < checkDate) {
             return { text: 'Expired', variant: 'destructive' as const, className:'' };
         }
+        
+        // If checking a future month relative to join date
+        const join = parseISO(member.joinDate);
+        if (join > endOfMonth(statsDate)) {
+            return { text: 'Inactive', variant: 'outline' as const, className: '' };
+        }
+
         return { text: 'Valid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
     }
 

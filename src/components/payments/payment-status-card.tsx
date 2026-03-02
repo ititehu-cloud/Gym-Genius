@@ -163,47 +163,35 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
             const dataUrl = canvas.toDataURL('image/png');
             
-            // Check for Android Native Interface
+            // Check for Android Native Interface for Printing
             const android = (window as any).Android;
             if (android && typeof android.printReceipt === 'function') {
                 android.printReceipt(dataUrl);
-                setIsPrinting(false);
-                setPaymentToProcess(null);
-                return;
-            }
-            
-            // Create a hidden iframe for high-compatibility printing fallback
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = '0';
-            document.body.appendChild(iframe);
-
-            const doc = iframe.contentWindow?.document;
-            if (doc) {
-                doc.open();
-                doc.write(`
-                    <html>
-                        <head><title>Print Receipt</title></head>
-                        <body style="margin:0; padding:0; display:flex; justify-content:center;">
-                            <img src="${dataUrl}" style="width:100%; height:auto;" />
-                            <script>
-                                window.onload = function() {
-                                    window.print();
-                                    setTimeout(function() { window.parent.document.body.removeChild(window.frameElement); }, 100);
-                                };
-                            </script>
-                        </body>
-                    </html>
-                `);
-                doc.close();
+            } else {
+                // Standard browser fallback
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                    printWindow.document.write(`
+                        <html>
+                            <body style="margin:0; display:flex; justify-content:center; align-items:center;">
+                                <img src="${dataUrl}" style="max-width:100%; height:auto;" />
+                                <script>
+                                    window.onload = function() {
+                                        window.print();
+                                        setTimeout(() => window.close(), 500);
+                                    }
+                                </script>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                } else {
+                    toast({ title: "Print error", description: "Browser print failed or pop-up blocked." });
+                }
             }
         } catch (error) {
             console.error("Printing failed:", error);
-            toast({ variant: "destructive", title: "Print Failed", description: "Could not open print dialog." });
+            toast({ variant: "destructive", title: "Print Failed", description: "Could not generate receipt image." });
         } finally {
             setIsPrinting(false);
             setPaymentToProcess(null);
@@ -235,39 +223,32 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             if (!blob) throw new Error("Failed to create image.");
 
             const fileName = `Receipt_${member.name.replace(/ /g, '_')}.png`;
-            const file = new File([blob], fileName, { type: 'image/png' });
+            const formData = new FormData();
+            formData.append('image', blob, fileName);
+            const uploadResult = await uploadImage(formData);
 
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Upload failed.");
+
+            const android = (window as any).Android;
+            if (android && typeof android.shareReceipt === 'function') {
+                // Call the existing shareReceipt bridge in your Java code
+                android.shareReceipt(
+                    `Receipt - ${member.name}`, 
+                    `Here is the payment receipt for ${member.name}:`, 
+                    uploadResult.url
+                );
+            } else if (navigator.share) {
                 await navigator.share({
-                    files: [file],
-                    title: `Payment Receipt - ${member.name}`,
-                    text: `Receipt for ${member.name} at ${gymName || 'the gym'}.`,
+                    title: `Receipt - ${member.name}`,
+                    text: `Payment receipt for ${member.name}`,
+                    url: uploadResult.url
                 });
             } else {
-                const formData = new FormData();
-                formData.append('image', blob, fileName);
-                const uploadResult = await uploadImage(formData);
-
-                if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Upload failed.");
-
-                const android = (window as any).Android;
-                if (android && typeof android.shareReceipt === 'function') {
-                    android.shareReceipt(`Payment Receipt - ${member.name}`, `Here is the receipt for ${member.name}:`, uploadResult.url);
-                } else if (navigator.share) {
-                    await navigator.share({
-                        title: `Payment Receipt - ${member.name}`,
-                        text: `Here is the receipt link:`,
-                        url: uploadResult.url
-                    });
-                } else {
-                    window.open(uploadResult.url, '_blank');
-                }
+                window.open(uploadResult.url, '_blank');
             }
         } catch (error) {
             console.error("Sharing failed:", error);
-            if (error instanceof Error && error.name !== 'AbortError') {
-                toast({ variant: "destructive", title: "Share Failed", description: error.message });
-            }
+            toast({ variant: "destructive", title: "Share Failed", description: "Could not share receipt link." });
         } finally {
             setIsSharing(false);
             setPaymentToProcess(null);

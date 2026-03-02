@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Printer, LoaderCircle, History } from 'lucide-react';
+import { Plus, Share2, LoaderCircle, History } from 'lucide-react';
 import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
@@ -46,6 +46,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
     const paymentsForCurrentCycle = useMemo(() => {
+        // Include payments made up to 30 days before joining (advance/renewal lead time)
         const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
         const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
 
@@ -138,7 +139,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return [];
     }, [payments, filterHistoryByDate, filterHistoryByMonth]);
 
-    const handlePrintReceipt = async () => {
+    const handleShareReceipt = async () => {
         if (isSharing) return;
         if (paymentsForCurrentCycle.length === 0) {
             toast({
@@ -152,6 +153,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         setIsSharing(true);
         const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
         
+        // Ensure the component is rendered for capture
         flushSync(() => {
             setPaymentToProcess(latestPayment);
         });
@@ -160,8 +162,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         if (!receiptElement) {
             toast({
                 variant: "destructive",
-                title: "Print Failed",
-                description: "Cannot find receipt element to print.",
+                title: "Share Failed",
+                description: "Cannot find receipt element to share.",
             });
             setIsSharing(false);
             return;
@@ -177,105 +179,34 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
             if (!blob) throw new Error("Failed to create image from receipt.");
 
-            const formData = new FormData();
-            formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
-            
-            const uploadResult = await uploadImage(formData);
-            if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not get image URL after upload.");
-            
-            const newTab = window.open('', '_blank');
-            if (newTab) {
-                newTab.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Payment Receipt - ${member.name}</title>
-                        <style>
-                            body { 
-                                display: flex; 
-                                flex-direction: column; 
-                                align-items: center; 
-                                justify-content: flex-start; 
-                                min-height: 100vh; 
-                                margin: 0; 
-                                background-color: #f4f4f5; 
-                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                                padding: 20px; 
-                                box-sizing: border-box; 
-                            }
-                            .receipt-container {
-                                background: white;
-                                padding: 10px;
-                                border: 1px solid #e5e7eb;
-                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                                border-radius: 8px;
-                                max-width: 100%;
-                            }
-                            img { 
-                                max-width: 100%; 
-                                height: auto;
-                                display: block;
-                            }
-                            .controls { 
-                                display: flex; 
-                                gap: 12px;
-                                margin-top: 24px; 
-                                width: 100%; 
-                                max-width: 400px;
-                                justify-content: center;
-                            }
-                            .btn {
-                                padding: 12px 24px;
-                                border-radius: 6px;
-                                font-weight: 600;
-                                font-size: 16px;
-                                cursor: pointer;
-                                border: none;
-                                transition: opacity 0.2s;
-                                flex: 1;
-                                text-align: center;
-                                text-decoration: none;
-                            }
-                            .btn-print { background-color: #10b981; color: white; }
-                            .btn-close { background-color: #ef4444; color: white; }
-                            .btn:hover { opacity: 0.9; }
-                            @media print {
-                                .no-print { display: none !important; }
-                                body { background-color: white; padding: 0; }
-                                .receipt-container { border: none; box-shadow: none; padding: 0; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="receipt-container">
-                            <img src="${uploadResult.url}" alt="Payment receipt for ${member.name}">
-                        </div>
-                        <div class="controls no-print">
-                            <button id="print-btn" class="btn btn-print">Print Receipt</button>
-                            <button id="close-btn" class="btn btn-close">Close</button>
-                        </div>
-                        <script>
-                            document.getElementById('print-btn').addEventListener('click', () => { window.print(); });
-                            document.getElementById('close-btn').addEventListener('click', () => { window.close(); });
-                        </script>
-                    </body>
-                    </html>
-                `);
-                newTab.document.close();
-            } else {
-                toast({
-                    variant: "destructive",
-                    title: "Could not open new tab",
-                    description: "Please disable your pop-up blocker.",
+            const fileName = `Receipt_${member.name.replace(/ /g, '_')}.png`;
+            const file = new File([blob], fileName, { type: 'image/png' });
+
+            // Trigger Native Android/iOS Share Sheet
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `Payment Receipt - ${member.name}`,
+                    text: `Receipt for payment at ${gymName || 'the gym'}.`,
                 });
+            } else {
+                // Fallback: Upload and open in new tab for manual save/print
+                const formData = new FormData();
+                formData.append('image', blob, fileName);
+                const uploadResult = await uploadImage(formData);
+                if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not share or upload receipt.");
+                window.open(uploadResult.url, '_blank');
             }
         } catch (error) {
-            console.error("Printing receipt failed:", error);
-            toast({
-                variant: "destructive",
-                title: "Print Failed",
-                description: error instanceof Error ? error.message : "Could not generate the receipt. Please try again.",
-            });
+            console.error("Sharing receipt failed:", error);
+            // Don't show toast for AbortError (user cancelled)
+            if (error instanceof Error && error.name !== 'AbortError') {
+                toast({
+                    variant: "destructive",
+                    title: "Share Failed",
+                    description: error.message || "Could not generate or share the receipt.",
+                });
+            }
         } finally {
             setIsSharing(false);
             setPaymentToProcess(null);
@@ -340,8 +271,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 )}
                 <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
                     <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
-                    <Button onClick={handlePrintReceipt} disabled={isSharing} title="Print Receipt" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
-                        {isSharing ? <LoaderCircle className="animate-spin" /> : <Printer />}
+                    <Button onClick={handleShareReceipt} disabled={isSharing} title="Share Receipt" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
+                        {isSharing ? <LoaderCircle className="animate-spin" /> : <Share2 />}
                     </Button>
                     <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
                     <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />

@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -11,12 +10,9 @@ import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, sta
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { uploadImage } from '@/app/actions';
-import html2canvas from 'html2canvas';
-import { PaymentReceipt } from './payment-receipt';
-import { flushSync } from 'react-dom';
+import { useRouter } from 'next/navigation';
 
 type PaymentStatusCardProps = {
     member: Member;
@@ -33,11 +29,8 @@ type PaymentStatusCardProps = {
 
 export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl, showHistoryInitially = false, filterHistoryByDate = null, filterHistoryByMonth = null }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
-    const [isSharing, setIsSharing] = useState(false);
-    const [isPrinting, setIsPrinting] = useState(false);
     const [showHistory, setShowHistory] = useState(showHistoryInitially);
-    const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
-    const receiptRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
     const { toast } = useToast();
 
     if (!plan) {
@@ -140,189 +133,84 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return [];
     }, [payments, filterHistoryByDate, filterHistoryByMonth]);
 
-    const handlePrintReceipt = async () => {
-        if (isPrinting) return;
-        if (paymentsForCurrentCycle.length === 0) {
-            toast({ variant: 'destructive', title: 'No Payments', description: 'No transactions found to print.' });
-            return;
-        }
-
-        setIsPrinting(true);
+    const handleViewReceipt = () => {
         const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
-        
-        flushSync(() => { setPaymentToProcess(latestPayment); });
-
-        const receiptElement = receiptRef.current;
-        if (!receiptElement) {
-            setIsPrinting(false);
-            setPaymentToProcess(null);
+        if (!latestPayment) {
+            toast({
+                variant: 'destructive',
+                title: 'No Payments',
+                description: 'No transactions found to generate a receipt.'
+            });
             return;
         }
-
-        try {
-            const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
-            const dataUrl = canvas.toDataURL('image/png');
-            
-            // Check for Android Native Interface for Printing
-            const android = (window as any).Android;
-            if (android && typeof android.printReceipt === 'function') {
-                android.printReceipt(dataUrl);
-            } else {
-                // Standard browser fallback
-                const printWindow = window.open('', '_blank');
-                if (printWindow) {
-                    printWindow.document.write(`
-                        <html>
-                            <body style="margin:0; display:flex; justify-content:center; align-items:center;">
-                                <img src="${dataUrl}" style="max-width:100%; height:auto;" />
-                                <script>
-                                    window.onload = function() {
-                                        window.print();
-                                        setTimeout(() => window.close(), 500);
-                                    }
-                                </script>
-                            </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                } else {
-                    toast({ title: "Print error", description: "Browser print failed or pop-up blocked." });
-                }
-            }
-        } catch (error) {
-            console.error("Printing failed:", error);
-            toast({ variant: "destructive", title: "Print Failed", description: "Could not generate receipt image." });
-        } finally {
-            setIsPrinting(false);
-            setPaymentToProcess(null);
-        }
+        // Navigation to the standalone receipt route
+        // This URL will be detected by the Android WebView shouldOverrideUrlLoading
+        window.location.href = `/receipt/${latestPayment.id}`;
     };
-
-    const handleShareReceipt = async () => {
-        if (isSharing) return;
-        if (paymentsForCurrentCycle.length === 0) {
-            toast({ variant: 'destructive', title: 'No Payments', description: 'No transactions found to share.' });
-            return;
-        }
-
-        setIsSharing(true);
-        const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
-        
-        flushSync(() => { setPaymentToProcess(latestPayment); });
-
-        const receiptElement = receiptRef.current;
-        if (!receiptElement) {
-            setIsSharing(false);
-            setPaymentToProcess(null);
-            return;
-        }
-
-        try {
-            const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-            if (!blob) throw new Error("Failed to create image.");
-
-            const fileName = `Receipt_${member.name.replace(/ /g, '_')}.png`;
-            const formData = new FormData();
-            formData.append('image', blob, fileName);
-            const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Upload failed.");
-
-            const android = (window as any).Android;
-            if (android && typeof android.shareReceipt === 'function') {
-                // Call the existing shareReceipt bridge in your Java code
-                android.shareReceipt(
-                    `Receipt - ${member.name}`, 
-                    `Here is the payment receipt for ${member.name}:`, 
-                    uploadResult.url
-                );
-            } else if (navigator.share) {
-                await navigator.share({
-                    title: `Receipt - ${member.name}`,
-                    text: `Payment receipt for ${member.name}`,
-                    url: uploadResult.url
-                });
-            } else {
-                window.open(uploadResult.url, '_blank');
-            }
-        } catch (error) {
-            console.error("Sharing failed:", error);
-            toast({ variant: "destructive", title: "Share Failed", description: "Could not share receipt link." });
-        } finally {
-            setIsSharing(false);
-            setPaymentToProcess(null);
-        }
-    }
     
     return (
-        <>
-            <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-                <div className="flex justify-between pr-12">
-                    <CardContent className="p-4 flex-grow space-y-2">
-                        <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
-                            <span className="font-bold">Reg. Number :</span>
-                            <span>{member.memberId}</span>
-                            <span className="font-bold">Name :</span>
-                            <span className="font-semibold text-lg">{member.name}</span>
-                            <span className="font-bold">M.ship Type :</span>
-                            <span>{plan.name}</span>
-                            <span className="font-bold">Validity :</span>
-                            <span>{validity}</span>
-                            <span className="font-bold">Amount :</span>
-                            <span>₹{totalAmountForPlan.toFixed(2)}</span>
-                            <span className="font-bold">Paid :</span>
-                            <span>₹{totalPaidForPeriod.toFixed(2)}</span>
-                            <span className="font-bold">Due :</span>
-                            <span className="font-bold">₹{dueForPeriod > 0 ? dueForPeriod.toFixed(2) : '0.00'}</span>
-                            <span className="font-bold">Payment Status :</span>
-                            <div><Badge variant={paymentStatusForPeriod.variant} className={paymentStatusForPeriod.className}>{paymentStatusForPeriod.text}</Badge></div>
-                            <span className="font-bold">Membership Status :</span>
-                            <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
-                        </div>
-                    </CardContent>
-                    <div className="p-4 flex-shrink-0 flex items-start">
-                        <Avatar className="h-16 w-16 rounded-md border-2 border-primary">
-                            <AvatarImage src={member.imageUrl} alt={member.name} />
-                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
+        <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
+            <div className="flex justify-between pr-12">
+                <CardContent className="p-4 flex-grow space-y-2">
+                    <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
+                        <span className="font-bold">Reg. Number :</span>
+                        <span>{member.memberId}</span>
+                        <span className="font-bold">Name :</span>
+                        <span className="font-semibold text-lg">{member.name}</span>
+                        <span className="font-bold">M.ship Type :</span>
+                        <span>{plan.name}</span>
+                        <span className="font-bold">Validity :</span>
+                        <span>{validity}</span>
+                        <span className="font-bold">Amount :</span>
+                        <span>₹{totalAmountForPlan.toFixed(2)}</span>
+                        <span className="font-bold">Paid :</span>
+                        <span>₹{totalPaidForPeriod.toFixed(2)}</span>
+                        <span className="font-bold">Due :</span>
+                        <span className="font-bold">₹{dueForPeriod > 0 ? dueForPeriod.toFixed(2) : '0.00'}</span>
+                        <span className="font-bold">Payment Status :</span>
+                        <div><Badge variant={paymentStatusForPeriod.variant} className={paymentStatusForPeriod.className}>{paymentStatusForPeriod.text}</Badge></div>
+                        <span className="font-bold">Membership Status :</span>
+                        <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
                     </div>
+                </CardContent>
+                <div className="p-4 flex-shrink-0 flex items-start">
+                    <Avatar className="h-16 w-16 rounded-md border-2 border-primary">
+                        <AvatarImage src={member.imageUrl} alt={member.name} />
+                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
                 </div>
-                {showHistory && (
-                    <div className="px-4 pb-4 border-t pt-4 pr-12">
-                        <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
-                        {paymentsToShow.length > 0 ? (
-                            <ul className="space-y-2">
-                                {paymentsToShow.map(payment => (
-                                    <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
-                                        <div>
-                                            <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
-                                            <p className="text-xs text-muted-foreground capitalize">{payment.paymentType} - {payment.paymentMethod}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-lg">₹{payment.amount.toFixed(2)}</p>
-                                            <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center">No transactions found for the selected period.</p>
-                        )}
-                    </div>
-                )}
-                <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
-                    <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
-                    <Button onClick={handlePrintReceipt} disabled={isPrinting} title="Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
-                        {isPrinting ? <LoaderCircle className="animate-spin" /> : <Printer />}
-                    </Button>
-                    <Button onClick={handleShareReceipt} disabled={isSharing} title="Share Receipt" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
-                        {isSharing ? <LoaderCircle className="animate-spin" /> : <Share2 />}
-                    </Button>
-                    <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white"><History /></Button>
-                    <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+            </div>
+            {showHistory && (
+                <div className="px-4 pb-4 border-t pt-4 pr-12">
+                    <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
+                    {paymentsToShow.length > 0 ? (
+                        <ul className="space-y-2">
+                            {paymentsToShow.map(payment => (
+                                <li key={payment.id} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
+                                    <div>
+                                        <p className='font-medium'>{format(parseISO(payment.paymentDate), 'PPP')}</p>
+                                        <p className="text-xs text-muted-foreground capitalize">{payment.paymentType} - {payment.paymentMethod}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-lg">₹{payment.amount.toFixed(2)}</p>
+                                        <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center">No transactions found for the selected period.</p>
+                    )}
                 </div>
-            </Card>
+            )}
+            <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
+                <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
+                <Button onClick={handleViewReceipt} title="Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
+                    <Printer />
+                </Button>
+                <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white"><History /></Button>
+                <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+            </div>
 
             <Dialog open={isRecordPaymentOpen} onOpenChange={setRecordPaymentOpen}>
                 <DialogContent className="sm:max-w-[480px]">
@@ -333,20 +221,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     <RecordPaymentForm members={allMembers} setDialogOpen={setRecordPaymentOpen} defaultMemberId={member.id} />
                 </DialogContent>
             </Dialog>
-
-            {paymentToProcess && (
-                <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
-                    <PaymentReceipt
-                        ref={receiptRef}
-                        payment={paymentToProcess}
-                        member={member}
-                        allPayments={paymentsForCurrentCycle}
-                        gymName={gymName}
-                        gymAddress={gymAddress}
-                        gymIconUrl={gymIconUrl}
-                    />
-                </div>
-            )}
-        </>
+        </Card>
     );
 }

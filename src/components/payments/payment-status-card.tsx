@@ -163,7 +163,16 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
             const dataUrl = canvas.toDataURL('image/png');
             
-            // Create a hidden iframe for high-compatibility printing
+            // Check for Android Native Interface
+            const android = (window as any).Android;
+            if (android && typeof android.printReceipt === 'function') {
+                android.printReceipt(dataUrl);
+                setIsPrinting(false);
+                setPaymentToProcess(null);
+                return;
+            }
+            
+            // Create a hidden iframe for high-compatibility printing fallback
             const iframe = document.createElement('iframe');
             iframe.style.position = 'fixed';
             iframe.style.right = '0';
@@ -241,7 +250,10 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
                 if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Upload failed.");
 
-                if (navigator.share) {
+                const android = (window as any).Android;
+                if (android && typeof android.shareReceipt === 'function') {
+                    android.shareReceipt(`Payment Receipt - ${member.name}`, `Here is the receipt for ${member.name}:`, uploadResult.url);
+                } else if (navigator.share) {
                     await navigator.share({
                         title: `Payment Receipt - ${member.name}`,
                         text: `Here is the receipt link:`,

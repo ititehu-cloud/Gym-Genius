@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -205,39 +204,88 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>Share Payment Receipt</title>
+                        <title>Payment Receipt - ${member.name}</title>
                         <style>
-                            body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #f4f4f5; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
-                            img { max-width: 95%; max-height: 75vh; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-                            .controls { display: flex; margin-top: 1.5rem; width: 100%; max-width: 600px; }
-                            input { flex-grow: 1; border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; font-size: 0.875rem; background-color: #ffffff; border-radius: 0.375rem 0 0 0.375rem; color: #374151; outline: none; }
-                            button { padding: 0.5rem 1rem; border: 1px solid #d1d5db; border-left: none; background-color: #f4f4f5; color: #374151; cursor: pointer; border-radius: 0 0.375rem 0.375rem 0; font-weight: 500; font-size: 0.875rem; transition: background-color 0.2s; }
-                            button:hover { background-color: #e5e7eb; }
-                            .close-button { margin-top: 1rem; padding: 0.5rem 1.5rem; background-color: #ef4444; color: white; border: none; border-radius: 0.375rem; font-weight: 500; cursor: pointer; }
-                            .close-button:hover { background-color: #dc2626; }
+                            body { 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                justify-content: flex-start; 
+                                min-height: 100vh; 
+                                margin: 0; 
+                                background-color: #f4f4f5; 
+                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                                padding: 20px; 
+                                box-sizing: border-box; 
+                            }
+                            .receipt-container {
+                                background: white;
+                                padding: 10px;
+                                border: 1px solid #e5e7eb;
+                                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                                border-radius: 8px;
+                                max-width: 100%;
+                            }
+                            img { 
+                                max-width: 100%; 
+                                height: auto;
+                                display: block;
+                            }
+                            .controls { 
+                                display: flex; 
+                                gap: 12px;
+                                margin-top: 24px; 
+                                width: 100%; 
+                                max-width: 400px;
+                                justify-content: center;
+                            }
+                            .btn {
+                                padding: 12px 24px;
+                                border-radius: 6px;
+                                font-weight: 600;
+                                font-size: 16px;
+                                cursor: pointer;
+                                border: none;
+                                transition: opacity 0.2s;
+                                flex: 1;
+                                text-align: center;
+                                text-decoration: none;
+                            }
+                            .btn-print {
+                                background-color: #10b981;
+                                color: white;
+                            }
+                            .btn-close {
+                                background-color: #ef4444;
+                                color: white;
+                            }
+                            .btn:hover {
+                                opacity: 0.9;
+                            }
+                            @media print {
+                                .no-print { display: none !important; }
+                                body { background-color: white; padding: 0; }
+                                .receipt-container { border: none; box-shadow: none; padding: 0; }
+                            }
                         </style>
                     </head>
                     <body>
-                        <img src="${uploadResult.url}" alt="Payment receipt for ${member.name}">
-                        <div class="controls">
-                            <input type="text" value="${uploadResult.url}" id="copy-input" readonly>
-                            <button id="copy-btn">Copy Link</button>
+                        <div class="receipt-container">
+                            <img src="${uploadResult.url}" alt="Payment receipt for ${member.name}">
                         </div>
-                        <button id="close-btn" class="close-button">Close</button>
+                        <div class="controls no-print">
+                            <button id="print-btn" class="btn btn-print">Print Receipt</button>
+                            <button id="close-btn" class="btn btn-close">Close</button>
+                        </div>
                         <script>
-                            document.getElementById('copy-btn').addEventListener('click', () => {
-                                const input = document.getElementById('copy-input');
-                                navigator.clipboard.writeText(input.value).then(() => {
-                                    const btn = document.getElementById('copy-btn');
-                                    btn.textContent = 'Copied!';
-                                    setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
-                                }).catch(err => {
-                                    console.error('Failed to copy: ', err);
-                                });
+                            document.getElementById('print-btn').addEventListener('click', () => {
+                                window.print();
                             });
-                             document.getElementById('close-btn').addEventListener('click', () => {
+                            document.getElementById('close-btn').addEventListener('click', () => {
                                 window.close();
                             });
+                            // Automatically trigger print on some mobile browsers if possible
+                            // window.onload = () => { setTimeout(() => { window.print(); }, 500); };
                         </script>
                     </body>
                     </html>

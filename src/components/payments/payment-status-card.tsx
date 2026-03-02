@@ -45,14 +45,12 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
-    // Consider 'paid' payments within the membership cycle, including a 30-day advance window
     const paymentsForCurrentCycle = useMemo(() => {
-        const leadTimeMs = 30 * 24 * 60 * 60 * 1000; // 30 days lead for advance payments
+        const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
         const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
 
         return payments.filter(p => {
             const paymentDate = parseISO(p.paymentDate);
-            // Include payments made up to 30 days before start, or during the cycle
             const isWithinCycle = paymentDate >= startOfDay(leadDate) && paymentDate <= endOfDay(memberExpiryDate);
             return isWithinCycle && p.status === 'paid';
         });
@@ -75,8 +73,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
         if (filterHistoryByMonth && !isNaN(referenceDate.getTime())) {
             const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
-            
-            // Look at payments made for this cycle that fall in the filtered month
             const paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
                 const paymentDate = parseISO(p.paymentDate);
                 return isSameMonth(paymentDate, referenceDate);
@@ -111,17 +107,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const getMembershipStatus = () => {
         const checkDate = startOfMonth(statsDate);
         const expiry = parseISO(member.expiryDate);
-        
         if (expiry < checkDate) {
             return { text: 'Expired', variant: 'destructive' as const, className:'' };
         }
-        
         const join = parseISO(member.joinDate);
-        // If the membership hasn't started yet but is valid in the future
         if (join > endOfMonth(statsDate)) {
             return { text: 'Inactive', variant: 'outline' as const, className: '' };
         }
-
         return { text: 'Valid', variant: 'default' as const, className: 'bg-green-600 border-green-600 text-white hover:bg-green-600/90' };
     }
 
@@ -130,7 +122,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     const paymentsToShow = useMemo(() => {
         const allMemberPayments = payments;
-
         if (filterHistoryByDate === 'today') {
             const today = new Date();
             return allMemberPayments.filter(p => isSameDay(parseISO(p.paymentDate), today));
@@ -184,19 +175,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             });
             
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-            
-            if (!blob) {
-                throw new Error("Failed to create image from receipt.");
-            }
+            if (!blob) throw new Error("Failed to create image from receipt.");
 
             const formData = new FormData();
             formData.append('image', blob, `Receipt_${member.name.replace(/ /g, '_')}.png`);
             
             const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error || !uploadResult.url) {
-                throw new Error(uploadResult.error || "Could not get image URL after upload.");
-            }
+            if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not get image URL after upload.");
             
             const newTab = window.open('', '_blank');
             if (newTab) {
@@ -251,17 +236,9 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                                 text-align: center;
                                 text-decoration: none;
                             }
-                            .btn-print {
-                                background-color: #10b981;
-                                color: white;
-                            }
-                            .btn-close {
-                                background-color: #ef4444;
-                                color: white;
-                            }
-                            .btn:hover {
-                                opacity: 0.9;
-                            }
+                            .btn-print { background-color: #10b981; color: white; }
+                            .btn-close { background-color: #ef4444; color: white; }
+                            .btn:hover { opacity: 0.9; }
                             @media print {
                                 .no-print { display: none !important; }
                                 body { background-color: white; padding: 0; }
@@ -278,14 +255,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             <button id="close-btn" class="btn btn-close">Close</button>
                         </div>
                         <script>
-                            document.getElementById('print-btn').addEventListener('click', () => {
-                                window.print();
-                            });
-                            document.getElementById('close-btn').addEventListener('click', () => {
-                                window.close();
-                            });
-                            // Automatically trigger print on some mobile browsers if possible
-                            // window.onload = () => { setTimeout(() => { window.print(); }, 500); };
+                            document.getElementById('print-btn').addEventListener('click', () => { window.print(); });
+                            document.getElementById('close-btn').addEventListener('click', () => { window.close(); });
                         </script>
                     </body>
                     </html>
@@ -298,9 +269,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     description: "Please disable your pop-up blocker.",
                 });
             }
-
         } catch (error) {
-            console.error("Printing/Sharing receipt failed:", error);
+            console.error("Printing receipt failed:", error);
             toast({
                 variant: "destructive",
                 title: "Print Failed",
@@ -320,28 +290,20 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                             <span className="font-bold">Reg. Number :</span>
                             <span>{member.memberId}</span>
-
                             <span className="font-bold">Name :</span>
                             <span className="font-semibold text-lg">{member.name}</span>
-                            
                             <span className="font-bold">M.ship Type :</span>
                             <span>{plan.name}</span>
-
                             <span className="font-bold">Validity :</span>
                             <span>{validity}</span>
-
                             <span className="font-bold">Amount :</span>
                             <span>₹{totalAmountForPlan.toFixed(2)}</span>
-
                             <span className="font-bold">Paid :</span>
                             <span>₹{totalPaidForPeriod.toFixed(2)}</span>
-
                             <span className="font-bold">Due :</span>
                             <span className="font-bold">₹{dueForPeriod > 0 ? dueForPeriod.toFixed(2) : '0.00'}</span>
-
                             <span className="font-bold">Payment Status :</span>
                             <div><Badge variant={paymentStatusForPeriod.variant} className={paymentStatusForPeriod.className}>{paymentStatusForPeriod.text}</Badge></div>
-                            
                             <span className="font-bold">Membership Status :</span>
                             <div><Badge variant={membershipStatus.variant} className={membershipStatus.className}>{membershipStatus.text}</Badge></div>
                         </div>
@@ -390,9 +352,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
                     <DialogTitle>Record New Payment</DialogTitle>
-                    <DialogDescription>
-                        Recording a payment for {member.name}.
-                    </DialogDescription>
+                    <DialogDescription>Recording a payment for {member.name}.</DialogDescription>
                     </DialogHeader>
                     <RecordPaymentForm members={allMembers} setDialogOpen={setRecordPaymentOpen} defaultMemberId={member.id} />
                 </DialogContent>

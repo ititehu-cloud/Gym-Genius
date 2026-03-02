@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, use } from "react";
@@ -103,7 +104,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           gymName={userProfile?.displayName || "Gym Genius"}
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}
-          gymPhone={member.mobileNumber} // Fallback phone, ideally from profile
+          gymPhone={userProfile?.phoneNumber} 
         />
       </div>
 

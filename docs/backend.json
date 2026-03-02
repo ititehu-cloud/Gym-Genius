@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -18,6 +19,10 @@
           "type": "string",
           "description": "The user's email address.",
           "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The gym's contact phone number."
         },
         "displayAddress": {
           "type": "string",

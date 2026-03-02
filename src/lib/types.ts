@@ -1,3 +1,4 @@
+
 export type Member = {
   id: string;
   memberId: string;
@@ -41,6 +42,7 @@ export type UserProfile = {
   id: string;
   displayName: string;
   email: string;
+  phoneNumber?: string;
   displayAddress?: string;
   icon?: string;
 };

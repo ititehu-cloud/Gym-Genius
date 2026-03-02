@@ -143,8 +143,9 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             });
             return;
         }
-        // Navigation to the standalone receipt route
-        // This URL will be detected by the Android WebView shouldOverrideUrlLoading
+        
+        // Navigation triggers Android's shouldOverrideUrlLoading interception
+        // This is the cleanest way to open in a Chrome Custom Tab
         window.location.href = `/receipt/${latestPayment.id}`;
     };
     
@@ -205,7 +206,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             )}
             <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
                 <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
-                <Button onClick={handleViewReceipt} title="Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
+                <Button onClick={handleViewReceipt} title="View/Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
                     <Printer />
                 </Button>
                 <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white"><History /></Button>

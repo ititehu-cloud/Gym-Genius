@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -39,10 +40,10 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
             )}
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-gray-900">{gymName || 'Gym Genius'}</h1>
-              <p className="text-gray-500 text-xs mt-1">
-                {gymPhone && `Mob no. ${gymPhone} `}
-                {gymAddress && gymAddress.split('\n')[0]}
-              </p>
+              <div className="text-gray-500 text-xs mt-1 space-y-0.5">
+                {gymPhone && <p>Mob no. {gymPhone}</p>}
+                {gymAddress && <p>{gymAddress.split('\n')[0]}</p>}
+              </div>
             </div>
           </div>
           <div className="text-right">
@@ -63,7 +64,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
               <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">BILLED TO</h2>
               <div className="text-gray-900 font-bold text-lg leading-tight">{member.name}</div>
               <div className="text-gray-500 text-sm mt-1">{member.address}</div>
-              <div className="text-gray-500 text-sm">{member.mobileNumber}</div>
+              <div className="text-gray-500 text-sm font-semibold mt-1">Contact: {member.mobileNumber}</div>
             </div>
           </div>
           <div className="text-right space-y-6">
@@ -88,17 +89,23 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {allPayments.map(p => (
-                <tr key={p.id}>
-                  <td className="py-6 px-4">
-                    <div className="text-gray-900 font-bold text-base capitalize">{p.paymentType} Payment</div>
-                    <div className="text-gray-400 text-xs mt-0.5">{format(parseISO(p.paymentDate), 'MMM dd, yyyy')}</div>
-                  </td>
-                  <td className="py-6 px-4 text-right">
-                    <div className="text-gray-900 font-bold text-base font-mono">₹{p.amount.toFixed(2)}</div>
-                  </td>
+              {allPayments.length > 0 ? (
+                allPayments.map(p => (
+                  <tr key={p.id}>
+                    <td className="py-6 px-4">
+                      <div className="text-gray-900 font-bold text-base capitalize">{p.paymentType} Membership Payment</div>
+                      <div className="text-gray-400 text-xs mt-0.5">Date: {format(parseISO(p.paymentDate), 'MMM dd, yyyy')}</div>
+                    </td>
+                    <td className="py-6 px-4 text-right">
+                      <div className="text-gray-900 font-bold text-base font-mono">₹{p.amount.toFixed(2)}</div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={2} className="py-12 text-center text-gray-400 italic">No transaction details available</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </section>
@@ -126,7 +133,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <div className="h-px bg-gray-100 w-full mb-12" />
           <p className="text-gray-600 font-bold italic text-lg mb-2">Thank you for your business!</p>
           <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em]">
-            {gymName} | {gymPhone && `MOB NO. ${gymPhone} `} {gymAddress?.split('\n')[0]}
+            {gymName} {gymPhone && `| MOB: ${gymPhone}`}
           </p>
         </footer>
       </div>

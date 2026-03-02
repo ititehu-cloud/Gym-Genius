@@ -2,8 +2,8 @@
 'use client';
 
 import { useMemo, use } from "react";
-import { useFirestore, useDoc, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { doc, collection, query, where } from "firebase/firestore";
+import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
+import { doc } from "firebase/firestore";
 import { LoaderCircle, ArrowLeft, Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
@@ -33,18 +33,12 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   }, [firestore, payment]);
   const { data: member, isLoading: isLoadingMember } = useDoc<Member>(memberRef);
 
-  // 4. Fetch the specific payment's details for historical context in the table
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!payment) return null;
-    // We show only the current transaction in the table to match screenshot
-    return query(
-      collection(firestore, "payments"),
-      where("id", "==", payment.id)
-    );
-  }, [firestore, payment]);
-  const { data: currentPaymentList, isLoading: isLoadingHistory } = useCollection<Payment>(paymentsQuery);
+  // Use the single payment as the data source for the receipt table
+  const currentPaymentList = useMemo(() => {
+    return payment ? [payment] : [];
+  }, [payment]);
 
-  const isLoading = isLoadingPayment || isLoadingMember || isLoadingHistory;
+  const isLoading = isLoadingPayment || isLoadingMember;
 
   if (isLoading) {
     return (
@@ -100,7 +94,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         <PaymentReceipt
           payment={payment}
           member={member}
-          allPayments={currentPaymentList || [payment]}
+          allPayments={currentPaymentList}
           gymName={userProfile?.displayName || "Gym Genius"}
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}

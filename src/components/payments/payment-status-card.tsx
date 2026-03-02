@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -5,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Share2, LoaderCircle, History } from 'lucide-react';
+import { Plus, Share2, LoaderCircle, History, Printer } from 'lucide-react';
 import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
@@ -33,6 +34,7 @@ type PaymentStatusCardProps = {
 export default function PaymentStatusCard({ member, plan, payments, allMembers, gymName, gymAddress, gymIconUrl, showHistoryInitially = false, filterHistoryByDate = null, filterHistoryByMonth = null }: PaymentStatusCardProps) {
     const [isRecordPaymentOpen, setRecordPaymentOpen] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
     const [showHistory, setShowHistory] = useState(showHistoryInitially);
     const [paymentToProcess, setPaymentToProcess] = useState<Payment | null>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
@@ -46,7 +48,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
     const paymentsForCurrentCycle = useMemo(() => {
-        // Include payments made up to 30 days before joining (advance/renewal lead time)
         const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
         const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
 
@@ -139,89 +140,121 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return [];
     }, [payments, filterHistoryByDate, filterHistoryByMonth]);
 
+    const handlePrintReceipt = async () => {
+        if (isPrinting) return;
+        if (paymentsForCurrentCycle.length === 0) {
+            toast({ variant: 'destructive', title: 'No Payments', description: 'No transactions found to print.' });
+            return;
+        }
+
+        setIsPrinting(true);
+        const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
+        
+        flushSync(() => { setPaymentToProcess(latestPayment); });
+
+        const receiptElement = receiptRef.current;
+        if (!receiptElement) {
+            setIsPrinting(false);
+            setPaymentToProcess(null);
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            // Create a hidden iframe for high-compatibility printing
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow?.document;
+            if (doc) {
+                doc.open();
+                doc.write(`
+                    <html>
+                        <head><title>Print Receipt</title></head>
+                        <body style="margin:0; padding:0; display:flex; justify-content:center;">
+                            <img src="${dataUrl}" style="width:100%; height:auto;" />
+                            <script>
+                                window.onload = function() {
+                                    window.print();
+                                    setTimeout(function() { window.parent.document.body.removeChild(window.frameElement); }, 100);
+                                };
+                            </script>
+                        </body>
+                    </html>
+                `);
+                doc.close();
+            }
+        } catch (error) {
+            console.error("Printing failed:", error);
+            toast({ variant: "destructive", title: "Print Failed", description: "Could not open print dialog." });
+        } finally {
+            setIsPrinting(false);
+            setPaymentToProcess(null);
+        }
+    };
+
     const handleShareReceipt = async () => {
         if (isSharing) return;
         if (paymentsForCurrentCycle.length === 0) {
-            toast({
-                variant: 'destructive',
-                title: 'No Payments',
-                description: 'There are no paid transactions in the current cycle to create a receipt for.',
-            });
+            toast({ variant: 'destructive', title: 'No Payments', description: 'No transactions found to share.' });
             return;
         }
 
         setIsSharing(true);
         const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
         
-        // Ensure the component is rendered for capture
-        flushSync(() => {
-            setPaymentToProcess(latestPayment);
-        });
+        flushSync(() => { setPaymentToProcess(latestPayment); });
 
         const receiptElement = receiptRef.current;
         if (!receiptElement) {
-            toast({
-                variant: "destructive",
-                title: "Share Failed",
-                description: "Cannot find receipt element to share.",
-            });
             setIsSharing(false);
             setPaymentToProcess(null);
             return;
         }
 
         try {
-            const canvas = await html2canvas(receiptElement, {
-                useCORS: true,
-                scale: 2,
-                backgroundColor: '#ffffff',
-                logging: false,
-            });
-            
+            const canvas = await html2canvas(receiptElement, { useCORS: true, scale: 2, backgroundColor: '#ffffff' });
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-            if (!blob) throw new Error("Failed to create image from receipt.");
+            if (!blob) throw new Error("Failed to create image.");
 
             const fileName = `Receipt_${member.name.replace(/ /g, '_')}.png`;
             const file = new File([blob], fileName, { type: 'image/png' });
 
-            // Prioritize Native File Sharing (Modern Android/iOS/WebViews)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
                     title: `Payment Receipt - ${member.name}`,
-                    text: `Receipt for payment at ${gymName || 'the gym'}.`,
+                    text: `Receipt for ${member.name} at ${gymName || 'the gym'}.`,
                 });
             } else {
-                // Fallback for environments where file sharing is blocked or unsupported
-                // Upload and share the link via native share sheet (widely supported)
                 const formData = new FormData();
                 formData.append('image', blob, fileName);
                 const uploadResult = await uploadImage(formData);
 
-                if (uploadResult.error || !uploadResult.url) {
-                    throw new Error(uploadResult.error || "Could not generate shareable link.");
-                }
+                if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Upload failed.");
 
                 if (navigator.share) {
-                    // Try sharing just the URL (Native share dialog will open)
                     await navigator.share({
                         title: `Payment Receipt - ${member.name}`,
-                        text: `Here is the payment receipt for ${member.name}:`,
+                        text: `Here is the receipt link:`,
                         url: uploadResult.url
                     });
                 } else {
-                    // Ultimate fallback: open in new tab
                     window.open(uploadResult.url, '_blank');
                 }
             }
         } catch (error) {
-            console.error("Sharing receipt failed:", error);
+            console.error("Sharing failed:", error);
             if (error instanceof Error && error.name !== 'AbortError') {
-                toast({
-                    variant: "destructive",
-                    title: "Share Failed",
-                    description: error.message || "Could not generate or share the receipt.",
-                });
+                toast({ variant: "destructive", title: "Share Failed", description: error.message });
             }
         } finally {
             setIsSharing(false);
@@ -287,10 +320,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 )}
                 <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
                     <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
+                    <Button onClick={handlePrintReceipt} disabled={isPrinting} title="Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
+                        {isPrinting ? <LoaderCircle className="animate-spin" /> : <Printer />}
+                    </Button>
                     <Button onClick={handleShareReceipt} disabled={isSharing} title="Share Receipt" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
                         {isSharing ? <LoaderCircle className="animate-spin" /> : <Share2 />}
                     </Button>
-                    <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white"><History /></Button>
+                    <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white"><History /></Button>
                     <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
                 </div>
             </Card>

@@ -166,6 +166,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 description: "Cannot find receipt element to share.",
             });
             setIsSharing(false);
+            setPaymentToProcess(null);
             return;
         }
 
@@ -191,7 +192,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     text: `Receipt for payment at ${gymName || 'the gym'}.`,
                 });
             } else {
-                // Fallback for environments where file sharing is blocked or unsupported (Desktop/Some WebViews)
+                // Fallback for environments where file sharing is blocked or unsupported
                 // Upload and share the link via native share sheet (widely supported)
                 const formData = new FormData();
                 formData.append('image', blob, fileName);
@@ -209,13 +210,12 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         url: uploadResult.url
                     });
                 } else {
-                    // Ultimate fallback: open in new tab for manual save/share
+                    // Ultimate fallback: open in new tab
                     window.open(uploadResult.url, '_blank');
                 }
             }
         } catch (error) {
             console.error("Sharing receipt failed:", error);
-            // Don't show toast for AbortError (user cancelled)
             if (error instanceof Error && error.name !== 'AbortError') {
                 toast({
                     variant: "destructive",
@@ -306,7 +306,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             </Dialog>
 
             {paymentToProcess && (
-                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
                     <PaymentReceipt
                         ref={receiptRef}
                         payment={paymentToProcess}

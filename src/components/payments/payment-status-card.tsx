@@ -174,6 +174,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 useCORS: true,
                 scale: 2,
                 backgroundColor: '#ffffff',
+                logging: false,
             });
             
             const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -182,7 +183,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             const fileName = `Receipt_${member.name.replace(/ /g, '_')}.png`;
             const file = new File([blob], fileName, { type: 'image/png' });
 
-            // Trigger Native Android/iOS Share Sheet
+            // Prioritize Native File Sharing (Modern Android/iOS/WebViews)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
@@ -190,12 +191,27 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     text: `Receipt for payment at ${gymName || 'the gym'}.`,
                 });
             } else {
-                // Fallback: Upload and open in new tab for manual save/print
+                // Fallback for environments where file sharing is blocked or unsupported (Desktop/Some WebViews)
+                // Upload and share the link via native share sheet (widely supported)
                 const formData = new FormData();
                 formData.append('image', blob, fileName);
                 const uploadResult = await uploadImage(formData);
-                if (uploadResult.error || !uploadResult.url) throw new Error(uploadResult.error || "Could not share or upload receipt.");
-                window.open(uploadResult.url, '_blank');
+
+                if (uploadResult.error || !uploadResult.url) {
+                    throw new Error(uploadResult.error || "Could not generate shareable link.");
+                }
+
+                if (navigator.share) {
+                    // Try sharing just the URL (Native share dialog will open)
+                    await navigator.share({
+                        title: `Payment Receipt - ${member.name}`,
+                        text: `Here is the payment receipt for ${member.name}:`,
+                        url: uploadResult.url
+                    });
+                } else {
+                    // Ultimate fallback: open in new tab for manual save/share
+                    window.open(uploadResult.url, '_blank');
+                }
             }
         } catch (error) {
             console.error("Sharing receipt failed:", error);

@@ -9,22 +9,25 @@ import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
 import { isSameDay, parseISO, format, isSameMonth } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function PaymentsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   
   const searchParams = useSearchParams();
   const firestore = useFirestore();
   const { user, isUserLoading: isAuthLoading } = useUser();
   
   const dateFilter = searchParams.get('date');
-  const statusFilter = searchParams.get('status');
+  const statusParam = searchParams.get('status');
   const filterParam = searchParams.get('filter');
 
   useEffect(() => {
     if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
+        setStatusFilter('unpaid');
     } else if (dateFilter) {
       setSelectedMonth('');
     }
@@ -65,7 +68,8 @@ function PaymentsList() {
 
     let tempMembers = [...members];
     
-    if (filterParam === 'due_this_month' && selectedMonth) {
+    // Status and Month Filtering
+    if (selectedMonth) {
         const monthDate = new Date(selectedMonth + "-01T00:00:00");
         if (!isNaN(monthDate.getTime())) {
             tempMembers = tempMembers.filter(member => {
@@ -73,16 +77,21 @@ function PaymentsList() {
                 if (!memberPlan) return false;
 
                 const memberPayments = paymentsByMember.get(member.id) || [];
-                
                 const paymentsInSelectedMonth = memberPayments.filter(p => {
-                    return isSameMonth(parseISO(p.paymentDate), monthDate);
+                    return p.status === 'paid' && isSameMonth(parseISO(p.paymentDate), monthDate);
                 });
 
                 const totalPaidForMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
                 const monthlyInstallment = memberPlan.duration > 0 ? memberPlan.price / memberPlan.duration : memberPlan.price;
                 const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
                 
-                return dueForMonth > 0;
+                if (statusFilter === 'unpaid') {
+                    return dueForMonth > 0.01;
+                } else if (statusFilter === 'paid') {
+                    return dueForMonth <= 0.01;
+                }
+                
+                return true;
             });
         }
     }
@@ -96,13 +105,14 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, searchQuery, payments, planMap, paymentsByMember, filterParam, selectedMonth]);
+  }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, selectedMonth]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
   const pageTitle = useMemo(() => {
-    if (dateFilter === 'today' && statusFilter === 'paid') return "Today's Collections";
-    if (filterParam === 'due_this_month') return "This Month's Due Payments";
+    if (dateFilter === 'today' && statusParam === 'paid') return "Today's Collections";
+    if (statusFilter === 'unpaid') return "Unpaid / Due Members";
+    if (statusFilter === 'paid') return "Paid Members";
     if (selectedMonth && !dateFilter) {
       try {
         return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;
@@ -111,14 +121,12 @@ function PaymentsList() {
       }
     }
     return "Member Payments";
-  }, [dateFilter, statusFilter, selectedMonth, filterParam]);
+  }, [dateFilter, statusParam, selectedMonth, statusFilter]);
   
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
     setSelectedMonth(newMonth);
-    // When user interacts with month picker, we want to remove the URL param filter
     if(dateFilter || filterParam) {
-      // This is a client-side navigation that just changes the URL without a full reload
       window.history.replaceState(null, '', '/payments');
     }
   };
@@ -150,6 +158,16 @@ function PaymentsList() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full sm:w-64"
               />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="unpaid">Unpaid</SelectItem>
+                  </SelectContent>
+              </Select>
               <Input
                   type="month"
                   value={selectedMonth}
@@ -199,7 +217,7 @@ function PaymentsList() {
                         No members found
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {searchQuery || filterParam ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
+                        {searchQuery || statusFilter !== 'all' ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
                     </p>
                 </div>
             </div>

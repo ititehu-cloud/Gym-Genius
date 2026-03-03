@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, use } from "react";
@@ -33,7 +32,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   }, [firestore, payment]);
   const { data: member, isLoading: isLoadingMember } = useDoc<Member>(memberRef);
 
-  // Use the single payment as the data source for the receipt table
+  // Pass the single payment as an array to the receipt template
   const currentPaymentList = useMemo(() => {
     return payment ? [payment] : [];
   }, [payment]);

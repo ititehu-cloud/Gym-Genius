@@ -8,7 +8,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { isSameDay, parseISO, format, isSameMonth } from "date-fns";
+import { parseISO, format, isSameMonth } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function PaymentsList() {
@@ -21,7 +21,6 @@ function PaymentsList() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   
   const dateFilter = searchParams.get('date');
-  const statusParam = searchParams.get('status');
   const filterParam = searchParams.get('filter');
 
   useEffect(() => {
@@ -86,9 +85,14 @@ function PaymentsList() {
                 const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
                 
                 if (statusFilter === 'unpaid') {
-                    return dueForMonth > 0.01;
+                    // No payment at all for this month
+                    return totalPaidForMonth <= 0.01;
                 } else if (statusFilter === 'paid') {
+                    // Fully paid
                     return dueForMonth <= 0.01;
+                } else if (statusFilter === 'part_paid') {
+                    // Paid something, but not all
+                    return totalPaidForMonth > 0.01 && dueForMonth > 0.01;
                 }
                 
                 return true;
@@ -110,9 +114,9 @@ function PaymentsList() {
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
   const pageTitle = useMemo(() => {
-    if (dateFilter === 'today' && statusParam === 'paid') return "Today's Collections";
-    if (statusFilter === 'unpaid') return "Unpaid / Due Members";
+    if (statusFilter === 'unpaid') return "Unpaid Members";
     if (statusFilter === 'paid') return "Paid Members";
+    if (statusFilter === 'part_paid') return "Partially Paid Members";
     if (selectedMonth && !dateFilter) {
       try {
         return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;
@@ -121,7 +125,7 @@ function PaymentsList() {
       }
     }
     return "Member Payments";
-  }, [dateFilter, statusParam, selectedMonth, statusFilter]);
+  }, [statusFilter, selectedMonth, dateFilter]);
   
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
@@ -166,6 +170,7 @@ function PaymentsList() {
                       <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="paid">Paid</SelectItem>
                       <SelectItem value="unpaid">Unpaid</SelectItem>
+                      <SelectItem value="part_paid">Part Paid</SelectItem>
                   </SelectContent>
               </Select>
               <Input

@@ -22,15 +22,19 @@ function PaymentsList() {
   
   const dateFilter = searchParams.get('date');
   const filterParam = searchParams.get('filter');
+  const statusParam = searchParams.get('status');
 
   useEffect(() => {
     if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
         setStatusFilter('unpaid');
+    } else if (statusParam) {
+        setStatusFilter(statusParam);
+        setSelectedMonth(format(new Date(), 'yyyy-MM'));
     } else if (dateFilter) {
       setSelectedMonth('');
     }
-  }, [filterParam, dateFilter]);
+  }, [filterParam, dateFilter, statusParam]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -130,7 +134,7 @@ function PaymentsList() {
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
     setSelectedMonth(newMonth);
-    if(dateFilter || filterParam) {
+    if(dateFilter || filterParam || statusParam) {
       window.history.replaceState(null, '', '/payments');
     }
   };
@@ -147,7 +151,7 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
   
-  const showHistoryInitially = dateFilter === 'today';
+  const showHistoryInitially = dateFilter === 'today' || statusParam === 'paid';
 
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -162,7 +166,10 @@ function PaymentsList() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full sm:w-64"
               />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(val) => {
+                  setStatusFilter(val);
+                  if (statusParam) window.history.replaceState(null, '', '/payments');
+              }}>
                   <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Status" />
                   </SelectTrigger>

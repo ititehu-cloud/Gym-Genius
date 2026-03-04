@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -101,6 +100,18 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     if (isIdDuplicate) {
       setFormError(`A member with ID "${values.memberId}" already exists. Please use a unique ID.`);
       return;
+    }
+
+    // Check for unique Mobile Number (excluding current member, if provided)
+    if (values.mobileNumber) {
+      const isMobileDuplicate = members?.some(m => 
+        m.id !== member.id && 
+        m.mobileNumber === values.mobileNumber
+      );
+      if (isMobileDuplicate) {
+        setFormError(`A member with mobile number "${values.mobileNumber}" already exists.`);
+        return;
+      }
     }
 
     setFormData(values);

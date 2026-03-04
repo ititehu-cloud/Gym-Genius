@@ -218,7 +218,6 @@
         "id",
         "memberId",
         "name",
-        "mobileNumber",
         "address",
         "planId",
         "joinDate",

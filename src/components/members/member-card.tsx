@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -77,7 +78,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         toast({
             variant: 'destructive',
             title: 'Share Failed',
-            description: "This member doesn't have a mobile number saved.",
+            description: "Sharing is disabled as this member does not have a mobile number saved.",
         });
         return;
     }
@@ -96,7 +97,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return;
     }
 
-    // Temporarily hide elements that shouldn't be in the capture
     const badgeElement = isExpiryShare ? null : elementToCapture.querySelector('[data-badge="status"]');
     if (badgeElement) {
         (badgeElement as HTMLElement).style.visibility = 'hidden';
@@ -272,7 +272,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       <p className="text-lg text-muted-foreground">{planName} Plan</p>
                   </div>
                   <div className="text-left text-base w-full space-y-1 text-muted-foreground mt-2">
-                      <div className='flex items-center gap-2'><Phone className='w-5 h-5' /><span>{member.mobileNumber}</span></div>
+                      <div className='flex items-center gap-2'><Phone className='w-5 h-5' /><span>{member.mobileNumber || "No contact info"}</span></div>
                       <div className='flex items-start gap-2'><MapPin className='w-5 h-5 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
                       <div className='flex items-center gap-2'><Calendar className='w-5 h-5' /><span className='text-chart-2 font-semibold'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
                       <div className='flex items-center gap-2'><CalendarClock className='w-5 h-5' /><span className='text-destructive font-semibold'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
@@ -284,11 +284,18 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         <CardFooter className="p-2 bg-muted/50 flex items-center justify-around">
           <EditMemberDialog member={member} />
           
-          <Button asChild variant="outline" size="icon">
-            <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
-                <PhoneCall className="h-5 w-5" />
-                <span className="sr-only">Call</span>
-            </a>
+          <Button asChild variant="outline" size="icon" disabled={!member.mobileNumber}>
+            {member.mobileNumber ? (
+              <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
+                  <PhoneCall className="h-5 w-5" />
+                  <span className="sr-only">Call</span>
+              </a>
+            ) : (
+              <span title="No contact number saved">
+                  <PhoneCall className="h-5 w-5 opacity-30" />
+                  <span className="sr-only">Call Disabled</span>
+              </span>
+            )}
           </Button>
 
           <RenewPlanDialog member={member} />
@@ -320,7 +327,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               </Button>
           )}
 
-          <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing}>
+          <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing || !member.mobileNumber}>
             {isSharing ? (
               <LoaderCircle className="h-5 w-5 animate-spin" />
             ) : (
@@ -334,7 +341,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </CardFooter>
       </Card>
       
-      {/* Hidden container for rendering the Due Notice for capture */}
       {isExpiryShare && plan && (
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
             <DueNotice 

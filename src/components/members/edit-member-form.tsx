@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,7 +45,7 @@ import { compressImage } from "@/lib/utils";
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  mobileNumber: z.string().min(10, { message: "Please enter a valid mobile number." }),
+  mobileNumber: z.string().optional(),
   address: z.string().min(5, { message: "Address is too short." }),
   planId: z.string({ required_error: "Please select a membership plan." }),
   joinDate: z.string({ required_error: "Please select a joining date." }),
@@ -69,12 +70,15 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
+  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const { data: members } = useCollection<Member>(membersRef);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       memberId: member.memberId || '',
       name: member.name,
-      mobileNumber: member.mobileNumber,
+      mobileNumber: member.mobileNumber || "",
       address: member.address,
       planId: member.planId,
       joinDate: format(parseISO(member.joinDate), 'yyyy-MM-dd'),
@@ -87,6 +91,18 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
 
   function onFormSubmit(values: z.infer<typeof formSchema>) {
     setFormError(null);
+    
+    // Check for unique Member ID (excluding current member)
+    const isIdDuplicate = members?.some(m => 
+      m.id !== member.id && 
+      m.memberId.toLowerCase() === values.memberId.toLowerCase()
+    );
+
+    if (isIdDuplicate) {
+      setFormError(`A member with ID "${values.memberId}" already exists. Please use a unique ID.`);
+      return;
+    }
+
     setFormData(values);
     if (planChanged || joinDateChanged) {
         setConfirmationOpen(true);
@@ -125,7 +141,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             return;
         }
     } else if (imagePreview === null) {
-        // This means the image was removed by the user
         imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
     }
 
@@ -136,11 +151,11 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     }
 
     const memberDocRef = doc(firestore, "members", member.id);
-    
     const { profilePicture, ...dataToSave } = values;
 
     const updateData: Partial<Member & {updatedAt: any}> = {
         ...dataToSave,
+        mobileNumber: values.mobileNumber || "",
         joinDate: new Date(values.joinDate).toISOString(),
         imageUrl: imageUrl,
         updatedAt: serverTimestamp()
@@ -156,7 +171,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
         const newExpiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
         updateData.expiryDate = newExpiryDate.toISOString();
     }
-
 
     try {
       await updateDoc(memberDocRef, updateData);
@@ -270,7 +284,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
               name="mobileNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mobile Number</FormLabel>
+                  <FormLabel>Mobile Number (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="9876543210" {...field} />
                   </FormControl>

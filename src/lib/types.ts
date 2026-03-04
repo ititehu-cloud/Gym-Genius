@@ -3,7 +3,7 @@ export type Member = {
   id: string;
   memberId: string;
   name: string;
-  mobileNumber: string;
+  mobileNumber?: string; // Optional field
   address: string;
   imageUrl: string;
   planId: string;

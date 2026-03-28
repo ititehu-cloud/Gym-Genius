@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, use } from "react";
@@ -86,7 +85,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Main Receipt Content */}
-      <div className="bg-white shadow-2xl rounded-lg overflow-hidden border border-gray-100 mb-10 print:shadow-none print:border-none print:m-0">
+      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print:shadow-none print:m-0 print:w-full">
         <PaymentReceipt
           payment={payment}
           member={member}
@@ -115,15 +114,21 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           }
           .min-h-screen {
             min-height: auto !important;
+            height: auto !important;
             background: white !important;
             padding: 0 !important;
           }
-          /* Ensure the receipt is exactly fit for a single page */
           .bg-white {
             box-shadow: none !important;
             border: none !important;
             width: 100% !important;
             max-width: none !important;
+            margin: 0 !important;
+          }
+          /* Ensure the content is treated as a single block for continuous rolls */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}</style>

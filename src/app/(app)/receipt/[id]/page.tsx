@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, use } from "react";
@@ -14,25 +15,21 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   const firestore = useFirestore();
   const { user } = useUser();
 
-  // 1. Fetch Gym/User Profile for Header
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
-  // 2. Fetch the specific payment
   const paymentRef = useMemoFirebase(() => doc(firestore, "payments", id), [firestore, id]);
   const { data: payment, isLoading: isLoadingPayment } = useDoc<Payment>(paymentRef);
 
-  // 3. Fetch the member associated with the payment
   const memberRef = useMemoFirebase(() => {
     if (!payment) return null;
     return doc(firestore, "members", payment.memberId);
   }, [firestore, payment]);
   const { data: member, isLoading: isLoadingMember } = useDoc<Member>(memberRef);
 
-  // Pass the single payment as an array to the receipt template
   const currentPaymentList = useMemo(() => {
     return payment ? [payment] : [];
   }, [payment]);
@@ -65,7 +62,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         <Link href="/payments">
           <Button variant="ghost" size="sm" className="text-gray-500">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            Back
           </Button>
         </Link>
         <div className="flex gap-2">
@@ -89,7 +86,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Main Receipt Content */}
-      <div className="bg-white shadow-2xl rounded-lg overflow-hidden border border-gray-100 mb-20">
+      <div className="bg-white shadow-2xl rounded-lg overflow-hidden border border-gray-100 mb-10 print:shadow-none print:border-none print:m-0">
         <PaymentReceipt
           payment={payment}
           member={member}
@@ -103,6 +100,10 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
+          @page {
+            margin: 0;
+            size: auto;
+          }
           .no-print {
             display: none !important;
           }
@@ -110,17 +111,19 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
+            height: auto;
           }
           .min-h-screen {
             min-height: auto !important;
             background: white !important;
             padding: 0 !important;
           }
-          .shadow-2xl {
+          /* Ensure the receipt is exactly fit for a single page */
+          .bg-white {
             box-shadow: none !important;
-          }
-          .border {
             border: none !important;
+            width: 100% !important;
+            max-width: none !important;
           }
         }
       `}</style>

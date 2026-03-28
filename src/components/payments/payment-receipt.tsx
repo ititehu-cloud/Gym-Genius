@@ -22,121 +22,116 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
     const isPaid = payment.status === 'paid';
 
     return (
-      <div ref={ref} className="p-8 max-w-2xl mx-auto bg-white text-black font-sans text-lg w-[750px] min-h-[950px] border shadow-sm relative">
-        {/* Header Section */}
-        <header className="flex justify-between items-start mb-12">
-          <div className="flex items-center gap-6">
+      <div ref={ref} className="p-4 max-w-2xl mx-auto bg-white text-black font-sans w-[750px] min-h-fit border-0 shadow-none relative">
+        {/* Header Section - Compressed vertical space */}
+        <header className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-4">
             {gymIconUrl ? (
                 <img
                     src={gymIconUrl}
                     alt="Gym Logo"
-                    className="h-20 w-20 rounded-full object-cover"
+                    className="h-24 w-24 rounded-full object-cover"
                     crossOrigin="anonymous"
                 />
             ) : (
-                <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center">
-                    <Dumbbell className="h-12 w-12 text-white" />
+                <div className="h-24 w-24 rounded-full bg-primary flex items-center justify-center">
+                    <Dumbbell className="h-14 w-14 text-white" />
                 </div>
             )}
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-gray-900">{gymName || 'Gym Genius'}</h1>
-              <div className="text-gray-700 text-lg mt-2 space-y-1">
-                {gymPhone && <p className="font-bold">Mob: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[300px] leading-tight">{gymAddress}</p>}
+              <h1 className="text-6xl font-black tracking-tighter text-gray-900 leading-none">{gymName || 'Gym Genius'}</h1>
+              <div className="text-gray-900 text-2xl font-bold mt-1 space-y-0">
+                {gymPhone && <p>Mob: {gymPhone}</p>}
+                {gymAddress && <p className="max-w-[400px] leading-tight">{gymAddress}</p>}
               </div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-5xl font-black text-gray-900 tracking-tighter uppercase">RECEIPT</div>
-            <div className="text-gray-600 font-mono text-xl tracking-wider mt-1">#{payment.id.slice(-6).toUpperCase()}</div>
+            <div className="text-6xl font-black text-gray-900 tracking-tighter uppercase leading-none">RECEIPT</div>
+            <div className="text-gray-900 font-mono text-2xl font-black mt-1">#{payment.id.slice(-6).toUpperCase()}</div>
             {isPaid && (
-              <div className="mt-6 text-6xl font-black text-green-700 uppercase tracking-widest border-4 border-green-700 px-4 py-1 inline-block rotate-[-5deg] opacity-80">PAID</div>
+              <div className="mt-2 text-7xl font-black text-green-800 uppercase tracking-tighter border-8 border-green-800 px-4 py-0 inline-block rotate-[-3deg]">PAID</div>
             )}
           </div>
         </header>
 
-        <div className="h-1 bg-gray-900 w-full mb-12" />
+        <div className="h-2 bg-black w-full mb-6" />
 
-        {/* Info Grid */}
-        <section className="grid grid-cols-2 gap-16 mb-16">
-          <div className="space-y-6">
+        {/* Info Grid - Larger Text, Tighter Spacing */}
+        <section className="grid grid-cols-2 gap-8 mb-6">
+          <div className="space-y-2">
             <div>
-              <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-2">BILLED TO</h2>
-              <div className="text-gray-900 font-black text-2xl leading-tight">{member.name}</div>
-              <div className="text-gray-700 text-lg mt-2">{member.address}</div>
-              <div className="text-gray-900 text-xl font-bold mt-2">Contact: {member.mobileNumber || 'N/A'}</div>
-              <div className="text-gray-600 text-base mt-1 italic">Member ID: {member.memberId}</div>
+              <h2 className="text-xl font-black text-gray-700 uppercase tracking-widest">BILLED TO</h2>
+              <div className="text-gray-900 font-black text-4xl leading-none">{member.name}</div>
+              <div className="text-gray-800 text-2xl font-bold mt-1">{member.address}</div>
+              <div className="text-gray-900 text-2xl font-black mt-1">Contact: {member.mobileNumber || 'N/A'}</div>
+              <div className="text-gray-700 text-lg font-bold mt-0.5">ID: {member.memberId}</div>
             </div>
           </div>
-          <div className="text-right space-y-8">
+          <div className="text-right space-y-4">
             <div>
-              <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-1">PAYMENT DATE</h2>
-              <div className="text-gray-900 font-black text-2xl">{format(parseISO(payment.paymentDate), 'MMMM do, yyyy')}</div>
+              <h2 className="text-xl font-black text-gray-700 uppercase tracking-widest">DATE</h2>
+              <div className="text-gray-900 font-black text-3xl">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
             </div>
             <div>
-              <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-1">PAYMENT METHOD</h2>
-              <div className="text-gray-900 font-black text-2xl capitalize">{payment.paymentMethod}</div>
+              <h2 className="text-xl font-black text-gray-700 uppercase tracking-widest">METHOD</h2>
+              <div className="text-gray-900 font-black text-3xl capitalize">{payment.paymentMethod}</div>
             </div>
           </div>
         </section>
 
-        {/* Table Section */}
-        <section className="mb-12">
+        {/* Table Section - Maximum Legibility */}
+        <section className="mb-6">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="py-4 px-6 text-sm font-black text-gray-600 uppercase tracking-widest">DESCRIPTION</th>
-                <th className="py-4 px-6 text-right text-sm font-black text-gray-600 uppercase tracking-widest">AMOUNT</th>
+              <tr className="bg-gray-200 border-b-4 border-black">
+                <th className="py-2 px-4 text-xl font-black text-gray-900 uppercase">DESCRIPTION</th>
+                <th className="py-2 px-4 text-right text-xl font-black text-gray-900 uppercase">AMOUNT</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-gray-100">
+            <tbody className="divide-y-4 divide-gray-100">
               {allPayments.length > 0 ? (
                 allPayments.map(p => (
                   <tr key={p.id}>
-                    <td className="py-8 px-6">
-                      <div className="text-gray-900 font-black text-xl capitalize">{p.paymentType} Membership Payment</div>
-                      <div className="text-gray-600 text-base mt-1">Transaction Ref: {p.id.slice(0, 8).toUpperCase()}</div>
+                    <td className="py-4 px-4">
+                      <div className="text-gray-900 font-black text-3xl capitalize">{p.paymentType} Payment</div>
+                      <div className="text-gray-700 text-lg font-bold">Ref: {p.id.slice(0, 8).toUpperCase()}</div>
                     </td>
-                    <td className="py-8 px-6 text-right">
-                      <div className="text-gray-900 font-black text-2xl font-mono">₹{p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    <td className="py-4 px-4 text-right">
+                      <div className="text-gray-900 font-black text-4xl font-mono">₹{p.amount.toLocaleString()}</div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={2} className="py-16 text-center text-gray-400 italic text-xl">No transaction details available</td>
+                  <td colSpan={2} className="py-10 text-center text-gray-400 font-black text-2xl">No Details</td>
                 </tr>
               )}
             </tbody>
           </table>
         </section>
 
-        {/* Totals Section */}
-        <section className="flex justify-end pt-10">
-          <div className="w-80 space-y-4">
-            <div className="flex justify-between text-lg px-6">
-              <span className="text-gray-600 font-bold">Subtotal</span>
-              <span className="text-gray-900 font-mono font-black">₹{totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        {/* Totals Section - Huge Highlight */}
+        <section className="flex justify-end pt-4">
+          <div className="w-96 space-y-2">
+            <div className="flex justify-between text-2xl px-4 font-black">
+              <span className="text-gray-700">Subtotal</span>
+              <span className="text-gray-900 font-mono">₹{totalPaid.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-lg px-6 border-b-2 border-gray-100 pb-4">
-              <span className="text-gray-600 font-bold">Tax (0%)</span>
-              <span className="text-gray-900 font-mono font-black">₹0.00</span>
-            </div>
-            <div className="bg-gray-900 p-8 rounded-lg flex justify-between items-center text-white">
-              <span className="font-black text-2xl">TOTAL PAID</span>
-              <span className="font-black text-4xl font-mono">₹{totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <div className="bg-black p-4 rounded-none flex justify-between items-center text-white">
+              <span className="font-black text-3xl">TOTAL</span>
+              <span className="font-black text-7xl font-mono">₹{totalPaid.toLocaleString()}</span>
             </div>
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="mt-auto pt-24 pb-6 text-center">
-          <div className="h-1 bg-gray-100 w-full mb-10" />
-          <p className="text-gray-900 font-black italic text-2xl mb-4">Thank you for your business!</p>
-          <p className="text-sm text-gray-500 uppercase tracking-[0.3em] font-bold">
+        {/* Footer - Shortened to keep on one page */}
+        <footer className="mt-6 pt-4 text-center border-t-4 border-gray-100">
+          <p className="text-gray-900 font-black italic text-3xl mb-1">Thank you for your business!</p>
+          <p className="text-lg text-gray-600 uppercase font-black tracking-widest">
             {gymName} {gymPhone && `| MOB: ${gymPhone}`}
           </p>
-          <p className="text-xs text-gray-400 mt-4 uppercase tracking-widest">Computer Generated Receipt</p>
+          <p className="text-sm text-gray-400 font-bold mt-2">COMPUTER GENERATED RECEIPT</p>
         </footer>
       </div>
     );

@@ -90,7 +90,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           payment={payment}
           member={member}
           allPayments={currentPaymentList}
-          gymName={userProfile?.displayName || "Gym Genius"}
+          gymName={userProfile?.displayName || "Sardar Fitness"}
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}
           gymPhone={userProfile?.phoneNumber} 
@@ -99,33 +99,42 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
+          /* Hide Header and Bottom Navigation */
+          header, 
+          nav, 
+          .no-print {
+            display: none !important;
+          }
+          
           @page {
             margin: 0;
             size: auto;
           }
-          .no-print {
-            display: none !important;
-          }
+          
           body {
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
-            height: auto;
+            height: auto !important;
+            overflow: visible !important;
           }
+          
           .min-h-screen {
             min-height: auto !important;
             height: auto !important;
             background: white !important;
             padding: 0 !important;
           }
+          
           .bg-white {
             box-shadow: none !important;
             border: none !important;
             width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
+            padding: 0 !important;
           }
-          /* Ensure the content is treated as a single block for continuous rolls */
+          
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;

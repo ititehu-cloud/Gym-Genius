@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, use } from "react";
@@ -85,7 +86,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Main Receipt Content */}
-      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print:shadow-none print:m-0 print:w-full print:p-0">
+      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container print:shadow-none print:m-0 print:w-full print:p-0">
         <PaymentReceipt
           payment={payment}
           member={member}
@@ -99,11 +100,20 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Hide Header, Bottom Navigation, and Action Bar */
-          header, 
-          nav, 
-          .no-print {
-            display: none !important;
+          /* Force only the print-container to be visible */
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           
           @page {
@@ -111,33 +121,16 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             size: auto;
           }
           
+          header, 
+          nav, 
+          .no-print {
+            display: none !important;
+          }
+          
           html, body {
             background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
             height: auto !important;
             overflow: visible !important;
-          }
-          
-          .min-h-screen {
-            min-height: auto !important;
-            height: auto !important;
-            background: white !important;
-            padding: 0 !important;
-          }
-          
-          .bg-white {
-            box-shadow: none !important;
-            border: none !important;
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          /* Ensure the content doesn't break into multiple pages */
-          .bg-white > div {
-            break-inside: avoid;
           }
           
           * {

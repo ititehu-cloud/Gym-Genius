@@ -85,7 +85,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Main Receipt Content */}
-      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print:shadow-none print:m-0 print:w-full">
+      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print:shadow-none print:m-0 print:w-full print:p-0">
         <PaymentReceipt
           payment={payment}
           member={member}
@@ -99,7 +99,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Hide Header and Bottom Navigation */
+          /* Hide Header, Bottom Navigation, and Action Bar */
           header, 
           nav, 
           .no-print {
@@ -111,7 +111,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             size: auto;
           }
           
-          body {
+          html, body {
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
@@ -133,6 +133,11 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             max-width: none !important;
             margin: 0 !important;
             padding: 0 !important;
+          }
+
+          /* Ensure the content doesn't break into multiple pages */
+          .bg-white > div {
+            break-inside: avoid;
           }
           
           * {

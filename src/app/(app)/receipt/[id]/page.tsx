@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, use } from "react";
@@ -55,6 +54,10 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
     );
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
       {/* Action Bar */}
@@ -66,7 +69,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           </Button>
         </Link>
         <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-white">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white">
                 <Printer className="mr-2 h-4 w-4" />
                 Print
             </Button>
@@ -100,20 +103,28 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Force only the print-container to be visible */
-          body * {
-            visibility: hidden;
+          /* Hide everything in the document body */
+          body > * {
+            display: none !important;
           }
-          .print-container, .print-container * {
-            visibility: visible;
+          
+          /* Show ONLY the print container and its contents */
+          body > .print-container, 
+          body > .print-container * {
+            display: block !important;
           }
+
+          /* Force isolation for the thermal printer roll */
           .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
           }
           
           @page {
@@ -121,9 +132,13 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             size: auto;
           }
           
+          /* Standard CSS for layout parts that should never print */
           header, 
           nav, 
-          .no-print {
+          footer,
+          .no-print,
+          [data-sidebar="trigger"],
+          [data-sidebar="sidebar"] {
             display: none !important;
           }
           
@@ -131,9 +146,12 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             background: white !important;
             height: auto !important;
             overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           
           * {
+            color: black !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }

@@ -29,19 +29,19 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                 <img
                     src={gymIconUrl}
                     alt="Gym Logo"
-                    className="h-24 w-24 rounded-full object-cover border-4 border-black"
+                    className="h-20 w-20 rounded-full object-cover border-4 border-black"
                     crossOrigin="anonymous"
                 />
             ) : (
-                <div className="h-24 w-24 rounded-full bg-black flex items-center justify-center">
-                    <Dumbbell className="h-16 w-16 text-white" />
+                <div className="h-20 w-20 rounded-full bg-black flex items-center justify-center">
+                    <Dumbbell className="h-12 w-12 text-white" />
                 </div>
             )}
             <div className="flex flex-col">
-              <h1 className="text-6xl font-black tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
-              <div className="text-black text-2xl font-black mt-1">
+              <h1 className="text-4xl font-black tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
+              <div className="text-black text-xl font-black mt-1">
                 {gymPhone && <p>MOB: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[400px] leading-tight uppercase text-lg">{gymAddress}</p>}
+                {gymAddress && <p className="max-w-[400px] leading-tight uppercase text-base">{gymAddress}</p>}
               </div>
             </div>
           </div>
@@ -56,22 +56,21 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         <section className="grid grid-cols-2 gap-2 mb-1 mt-1">
           <div className="space-y-1">
             <div>
-              <h2 className="text-xl font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">BILLED TO</h2>
-              <div className="text-black font-black text-4xl leading-none uppercase mt-1">{member.name}</div>
-              <div className="text-black text-xl font-bold mt-1 uppercase">{member.address}</div>
-              <div className="text-black text-2xl font-black mt-1">CONTACT: {member.mobileNumber || 'N/A'}</div>
-              {/* Reduced Member ID size from 140px to a more balanced large size */}
-              <div className="text-black text-5xl font-black mt-2 leading-none border-2 border-black p-2 inline-block">ID: {member.memberId}</div>
+              <h2 className="text-lg font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">BILLED TO</h2>
+              <div className="text-black font-black text-3xl leading-none uppercase mt-1">{member.name}</div>
+              <div className="text-black text-lg font-bold mt-1 uppercase">{member.address}</div>
+              <div className="text-black text-xl font-black mt-1">CONTACT: {member.mobileNumber || 'N/A'}</div>
+              <div className="text-black text-4xl font-black mt-2 leading-none border-2 border-black p-2 inline-block">ID: {member.memberId}</div>
             </div>
           </div>
           <div className="text-right space-y-2">
             <div>
-              <h2 className="text-xl font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">DATE</h2>
-              <div className="text-black font-black text-3xl">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
+              <h2 className="text-lg font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">DATE</h2>
+              <div className="text-black font-black text-2xl">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
             </div>
             <div>
-              <h2 className="text-xl font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">METHOD</h2>
-              <div className="text-black font-black text-3xl capitalize">{payment.paymentMethod}</div>
+              <h2 className="text-lg font-black text-black uppercase tracking-widest border-b-2 border-black inline-block">METHOD</h2>
+              <div className="text-black font-black text-2xl capitalize">{payment.paymentMethod}</div>
             </div>
           </div>
         </section>
@@ -81,25 +80,25 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <table className="w-full text-left">
             <thead>
               <tr className="bg-black text-white">
-                <th className="py-2 px-2 text-2xl font-black uppercase">DESCRIPTION</th>
-                <th className="py-2 px-2 text-right text-2xl font-black uppercase">AMOUNT</th>
+                <th className="py-1 px-2 text-xl font-black uppercase">DESCRIPTION</th>
+                <th className="py-1 px-2 text-right text-xl font-black uppercase">AMOUNT</th>
               </tr>
             </thead>
             <tbody className="divide-y-[4px] divide-black">
               {allPayments.length > 0 ? (
                 allPayments.map(p => (
                   <tr key={p.id} className="border-x-[2px] border-black">
-                    <td className="py-3 px-2">
-                      <div className="text-black font-black text-3xl capitalize">{p.paymentType}</div>
+                    <td className="py-2 px-2">
+                      <div className="text-black font-black text-2xl capitalize">{p.paymentType}</div>
                     </td>
-                    <td className="py-3 px-2 text-right">
-                      <div className="text-black font-black text-4xl font-mono">₹{p.amount.toLocaleString()}</div>
+                    <td className="py-2 px-2 text-right">
+                      <div className="text-black font-black text-3xl font-mono">₹{p.amount.toLocaleString()}</div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr className="border-x-[2px] border-black">
-                  <td colSpan={2} className="py-6 text-center text-black font-black text-3xl uppercase">No Transactions</td>
+                  <td colSpan={2} className="py-4 text-center text-black font-black text-2xl uppercase">No Transactions</td>
                 </tr>
               )}
             </tbody>
@@ -109,20 +108,20 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         {/* Totals Section - Clear Highlight */}
         <section className="flex justify-end pt-1">
           <div className="w-full max-w-sm space-y-1">
-            <div className="bg-black p-4 rounded-none flex justify-between items-center text-white">
-              <span className="font-black text-3xl uppercase">TOTAL PAID</span>
-              <span className="font-black text-6xl font-mono leading-none">₹{totalPaid.toLocaleString()}</span>
+            <div className="bg-black p-3 rounded-none flex justify-between items-center text-white">
+              <span className="font-black text-2xl uppercase">TOTAL PAID</span>
+              <span className="font-black text-5xl font-mono leading-none">₹{totalPaid.toLocaleString()}</span>
             </div>
           </div>
         </section>
 
         {/* Footer - Final touch */}
-        <footer className="mt-2 pt-2 text-center border-t-[8px] border-black">
-          <p className="text-black font-black italic text-3xl mb-1 uppercase">Thank you!</p>
-          <p className="text-2xl text-black uppercase font-black tracking-widest leading-tight">
+        <footer className="mt-2 pt-1 text-center border-t-[8px] border-black">
+          <p className="text-black font-black italic text-2xl mb-1 uppercase">Thank you!</p>
+          <p className="text-xl text-black uppercase font-black tracking-widest leading-tight">
             {gymName} {gymPhone && `| MOB: ${gymPhone}`}
           </p>
-          <p className="text-lg text-black font-bold mt-2 uppercase opacity-80">Computer Generated Thermal Receipt</p>
+          <p className="text-base text-black font-bold mt-1 uppercase opacity-80">Computer Generated Thermal Receipt</p>
         </footer>
       </div>
     );

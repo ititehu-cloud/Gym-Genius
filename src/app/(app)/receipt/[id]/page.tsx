@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, use } from "react";
@@ -56,11 +55,14 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   }
 
   const handlePrint = () => {
-    window.print();
+    // Small delay to ensure any potential UI state is settled before print dialog opens
+    setTimeout(() => {
+        window.print();
+    }, 100);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4 receipt-wrapper">
       {/* Action Bar - Hidden during print */}
       <div className="w-full max-w-2xl px-4 py-6 flex items-center justify-between no-print">
         <Link href="/payments">
@@ -104,33 +106,41 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Force core layout elements to disappear */
+          /* Explicitly hide the root layout elements provided by the app's wrapper */
           header, 
           nav, 
           footer,
-          aside,
-          .no-print,
-          [data-sidebar="trigger"],
-          [data-sidebar="sidebar"],
-          .flex-none {
+          .no-print {
             display: none !important;
             height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          
-          /* Reset parent containers for continuous scroll */
-          html, body, main, div[class*="min-h-screen"] {
+
+          /* Ensure all parent containers are visible and reset their layout */
+          html, body {
             background: white !important;
-            height: auto !important;
-            min-height: 0 !important;
-            overflow: visible !important;
             margin: 0 !important;
             padding: 0 !important;
-            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
           }
 
-          /* Optimize the print container for thermal rolls */
+          /* Target common Next.js/React wrapper classes to ensure continuous scroll */
+          main, 
+          .receipt-wrapper, 
+          div[class*="min-h-screen"],
+          #root {
+            display: block !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: none !important;
+          }
+
+          /* Absolute isolation strategy for the receipt container */
           .print-container {
             width: 100% !important;
             max-width: none !important;
@@ -139,7 +149,10 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             border: none !important;
             box-shadow: none !important;
             display: block !important;
-            position: relative !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 9999 !important;
           }
           
           @page {

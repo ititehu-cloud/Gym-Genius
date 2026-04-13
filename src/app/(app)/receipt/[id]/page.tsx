@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, use } from "react";
@@ -59,8 +60,8 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      {/* Action Bar */}
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4">
+      {/* Action Bar - Hidden during print */}
       <div className="w-full max-w-2xl px-4 py-6 flex items-center justify-between no-print">
         <Link href="/payments">
           <Button variant="ghost" size="sm" className="text-gray-500">
@@ -89,7 +90,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Main Receipt Content */}
-      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container print:shadow-none print:m-0 print:w-full print:p-0">
+      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container">
         <PaymentReceipt
           payment={payment}
           member={member}
@@ -103,28 +104,42 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Hide EVERYTHING in the body by default */
-          body > * {
+          /* Force core layout elements to disappear */
+          header, 
+          nav, 
+          footer,
+          aside,
+          .no-print,
+          [data-sidebar="trigger"],
+          [data-sidebar="sidebar"],
+          .flex-none {
             display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           
-          /* Show ONLY our specialized print container */
-          body > .print-container, 
-          body > .print-container * {
+          /* Reset parent containers for continuous scroll */
+          html, body, main, div[class*="min-h-screen"] {
+            background: white !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
             display: block !important;
           }
 
-          /* Force isolation for the thermal printer roll */
+          /* Optimize the print container for thermal rolls */
           .print-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
             width: 100% !important;
+            max-width: none !important;
             margin: 0 !important;
             padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
-            background: white !important;
+            display: block !important;
+            position: relative !important;
           }
           
           @page {
@@ -132,30 +147,9 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             size: auto;
           }
           
-          /* Ensure core layout elements are killed during print */
-          header, 
-          nav, 
-          footer,
-          aside,
-          .no-print,
-          [data-sidebar="trigger"],
-          [data-sidebar="sidebar"] {
-            display: none !important;
-            height: 0 !important;
-            width: 0 !important;
-            overflow: hidden !important;
-          }
-          
-          html, body {
-            background: white !important;
-            height: auto !important;
-            overflow: visible !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          
           * {
             color: black !important;
+            background: transparent !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             text-shadow: none !important;

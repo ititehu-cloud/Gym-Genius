@@ -38,7 +38,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                 </div>
             )}
             <div className="flex flex-col">
-              <h1 className="text-3xl font-black tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
+              <h1 className="text-4xl font-black tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
               <div className="text-black font-bold mt-0.5">
                 {gymPhone && <p className="text-sm">MOB: {gymPhone}</p>}
                 {gymAddress && <p className="max-w-[200px] leading-tight uppercase text-[10px]">{gymAddress}</p>}

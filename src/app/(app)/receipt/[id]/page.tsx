@@ -103,12 +103,12 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Hide everything in the document body */
+          /* Hide EVERYTHING in the body by default */
           body > * {
             display: none !important;
           }
           
-          /* Show ONLY the print container and its contents */
+          /* Show ONLY our specialized print container */
           body > .print-container, 
           body > .print-container * {
             display: block !important;
@@ -132,14 +132,18 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             size: auto;
           }
           
-          /* Standard CSS for layout parts that should never print */
+          /* Ensure core layout elements are killed during print */
           header, 
           nav, 
           footer,
+          aside,
           .no-print,
           [data-sidebar="trigger"],
           [data-sidebar="sidebar"] {
             display: none !important;
+            height: 0 !important;
+            width: 0 !important;
+            overflow: hidden !important;
           }
           
           html, body {
@@ -154,6 +158,8 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             color: black !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
           }
         }
       `}</style>

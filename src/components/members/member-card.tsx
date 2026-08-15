@@ -162,16 +162,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            // Fallback to direct WhatsApp link if native share fails or is cancelled
             console.log("Web share failed or cancelled, falling back to WhatsApp", err);
         }
       }
       
-      // Fallback: Use window.open with a breakout strategy for WhatsApp
-      // On mobile browsers, popups are often blocked if triggered after async work.
-      // We try to use the top-most window to ensure the redirect happens.
-      const targetWindow = window.top || window;
-      targetWindow.location.href = whatsappUrl;
+      // Use window.open with _blank to bypass SecurityError in cross-origin frames
+      window.open(whatsappUrl, '_blank');
       
       toast({
         title: "Opening WhatsApp",

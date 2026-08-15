@@ -107,14 +107,12 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                 });
                 return;
             } catch (err) {
-                // Fallback to WhatsApp link if share fails or is canceled
                 console.log("Web share failed, falling back to WhatsApp", err);
             }
         }
 
-        // Open in top-level window to escape iframe restrictions and ensure the app opens
-        const targetWindow = window.top || window;
-        targetWindow.location.href = whatsappUrl;
+        // Use window.open with _blank to bypass SecurityError in cross-origin frames
+        window.open(whatsappUrl, '_blank');
     };
 
     const renderContent = () => {

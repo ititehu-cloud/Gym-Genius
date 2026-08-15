@@ -88,10 +88,22 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
 
         const message = `Hello ${member.name}, we've missed seeing you at the gym! We noticed that ${riskReason.toLowerCase()}\n\nWe'd love to help you get back on track. Here are some suggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you soon!`;
         
-        const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+        let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+        // Auto-prefix with 91 for Indian numbers if it's 10 digits
+        if (sanitizedPhone.length === 10) {
+          sanitizedPhone = `91${sanitizedPhone}`;
+        }
+
         const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
         
-        window.location.href = whatsappUrl;
+        // Robust navigation that escapes iframes
+        const link = document.createElement('a');
+        link.href = whatsappUrl;
+        link.target = '_top';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const renderContent = () => {

@@ -138,15 +138,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       }
 
       // Sanitize phone number for WhatsApp URL
-      const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      // Auto-prefix with 91 for Indian numbers if it's 10 digits
+      if (sanitizedPhone.length === 10) {
+        sanitizedPhone = `91${sanitizedPhone}`;
+      }
+      
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      // Use window.location.href for more reliable mobile redirection (avoids popup blockers)
-      window.location.href = whatsappUrl;
+      // Robust navigation that escapes iframes
+      const link = document.createElement('a');
+      link.href = whatsappUrl;
+      link.target = '_top';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       toast({
-        title: "Redirecting to WhatsApp",
-        description: isExpiryShare ? "Renewal details are ready to be shared." : "Your ID card is ready to be shared.",
+        title: "Opening WhatsApp",
+        description: isExpiryShare ? "Renewal details are ready." : "Your ID card is ready.",
       });
 
     } catch (error) {

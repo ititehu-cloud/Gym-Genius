@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useMemo, use } from "react";
+import { useMemo, use, useState } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { LoaderCircle, ArrowLeft, Printer, Share2 } from "lucide-react";
@@ -13,6 +14,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   const { id } = use(params);
   const firestore = useFirestore();
   const { user } = useUser();
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -55,10 +57,12 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   }
 
   const handlePrint = () => {
-    // Small delay to ensure any potential UI state is settled before print dialog opens
+    setIsPrinting(true);
+    // Aggressive approach for Chrome mobile: wait for layout to settle
     setTimeout(() => {
         window.print();
-    }, 100);
+        setIsPrinting(false);
+    }, 500);
   };
 
   return (
@@ -72,8 +76,8 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           </Button>
         </Link>
         <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white">
-                <Printer className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white" disabled={isPrinting}>
+                {isPrinting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 Print
             </Button>
             <Button size="sm" onClick={() => {
@@ -106,42 +110,23 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Explicitly hide the root layout elements provided by the app's wrapper */
+          /* Aggressive hide strategy for App layout elements */
           header, 
           nav, 
           footer,
-          .no-print {
+          .no-print,
+          [data-sidebar="trigger"],
+          [data-sidebar="sidebar"],
+          [data-buttons="actions"],
+          [data-badge="status"] {
             display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
           }
 
-          /* Ensure all parent containers are visible and reset their layout */
-          html, body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-          }
-
-          /* Target common Next.js/React wrapper classes to ensure continuous scroll */
-          main, 
-          .receipt-wrapper, 
-          div[class*="min-h-screen"],
-          #root {
-            display: block !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            background: none !important;
-          }
-
-          /* Absolute isolation strategy for the receipt container */
+          /* Ensure the print container is the ONLY thing visible and positioned at the top */
           .print-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
             width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
@@ -149,12 +134,37 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             border: none !important;
             box-shadow: none !important;
             display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
             z-index: 9999 !important;
+            background: white !important;
           }
-          
+
+          /* Reset body and html for thermal printing */
+          html, body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Target the root layout wrapper to prevent it from clipping the print job */
+          main, 
+          .receipt-wrapper,
+          div[class*="flex-col"],
+          div[class*="min-h-screen"],
+          div[class*="flex-1"] {
+            display: block !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: none !important;
+            position: static !important;
+            transform: none !important;
+          }
+
           @page {
             margin: 0;
             size: auto;

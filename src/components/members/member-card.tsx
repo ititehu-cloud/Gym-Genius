@@ -7,7 +7,7 @@ import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Cake, Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint, CalendarClock } from 'lucide-react';
+import { Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint, CalendarClock } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -132,13 +132,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (isExpiryShare) {
         const expiryStr = format(parseISO(member.expiryDate), 'PPP');
         const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan. Renewal Amount: ₹${renewalAmount}. You can view your notice here: ${uploadResult.url}`;
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}\n\nYou can view your notice here: ${uploadResult.url}`;
       } else {
         message = `Here is your gym ID card: ${uploadResult.url}`;
       }
 
-      const whatsappUrl = `https://wa.me/${member.mobileNumber}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
+      // Sanitize phone number for WhatsApp URL
+      const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+      
+      // Use window.location.href for more reliable mobile redirection (avoids popup blockers)
+      window.location.href = whatsappUrl;
       
       toast({
         title: "Redirecting to WhatsApp",

@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertTriangle, Lightbulb, User, TrendingDown } from "lucide-react";
+import { AlertTriangle, Lightbulb, User, TrendingDown, Share2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchInactiveMemberInsights } from '@/app/actions';
 import type { InactiveMemberInsightsInput, InactiveMemberInsightsOutput } from '@/ai/flows/inactive-member-insights';
@@ -12,6 +13,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Member, Payment, Plan, Attendance } from '@/lib/types';
 import { parseISO } from 'date-fns';
+import { Button } from '../ui/button';
 
 type WithId<T> = T & { id: string };
 
@@ -76,8 +78,20 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         loadInsights();
     }, [members, payments, plans, attendanceHistory, isLoadingAttendance]);
 
-    const getMemberName = (memberId: string) => {
-        return memberMap.get(memberId)?.name || 'Unknown Member';
+    const getMember = (memberId: string) => {
+        return memberMap.get(memberId);
+    };
+
+    const handleWhatsAppShare = (memberId: string, riskReason: string, suggestedInterventions: string[]) => {
+        const member = getMember(memberId);
+        if (!member || !member.mobileNumber) return;
+
+        const message = `Hello ${member.name}, we've missed seeing you at the gym! We noticed that ${riskReason.toLowerCase()}\n\nWe'd love to help you get back on track. Here are some suggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you soon!`;
+        
+        const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+        const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+        
+        window.location.href = whatsappUrl;
     };
 
     const renderContent = () => {
@@ -107,48 +121,62 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
 
         return (
             <Accordion type="single" collapsible className="w-full">
-                {insights.atRiskMembers.map((member, index) => (
-                    <AccordionItem value={`item-${index}`} key={member.memberId}>
-                        <AccordionTrigger className="font-medium hover:no-underline">
-                            <div className="flex items-center gap-3">
-                                <User className="h-5 w-5 text-primary" />
-                                <span>{getMemberName(member.memberId)}</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="space-y-4 pt-2">
-                            <div className="flex items-start gap-3 text-sm">
-                                <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive" />
-                                <div>
-                                    <h4 className="font-semibold">Risk Reason</h4>
-                                    <p className="text-muted-foreground">{member.riskReason}</p>
+                {insights.atRiskMembers.map((atRisk, index) => {
+                    const member = getMember(atRisk.memberId);
+                    return (
+                        <AccordionItem value={`item-${index}`} key={atRisk.memberId}>
+                            <AccordionTrigger className="font-medium hover:no-underline">
+                                <div className="flex items-center gap-3">
+                                    <User className="h-5 w-5 text-primary" />
+                                    <span>{member?.name || 'Unknown Member'}</span>
                                 </div>
-                            </div>
-                            <div className="flex items-start gap-3 text-sm">
-                                <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500" />
-                                <div>
-                                    <h4 className="font-semibold">Suggested Interventions</h4>
-                                    <ul className="list-disc pl-5 text-muted-foreground">
-                                        {member.suggestedInterventions.map((intervention, i) => (
-                                            <li key={i}>{intervention}</li>
-                                        ))}
-                                    </ul>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-2">
+                                <div className="flex items-start gap-3 text-sm">
+                                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive" />
+                                    <div>
+                                        <h4 className="font-semibold">Risk Reason</h4>
+                                        <p className="text-muted-foreground">{atRisk.riskReason}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
+                                <div className="flex items-start gap-3 text-sm">
+                                    <Lightbulb className="h-5 w-5 mt-0.5 text-amber-500" />
+                                    <div>
+                                        <h4 className="font-semibold">Suggested Interventions</h4>
+                                        <ul className="list-disc pl-5 text-muted-foreground">
+                                            {atRisk.suggestedInterventions.map((intervention, i) => (
+                                                <li key={i}>{intervention}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {member?.mobileNumber && (
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="w-full"
+                                        onClick={() => handleWhatsAppShare(atRisk.memberId, atRisk.riskReason, atRisk.suggestedInterventions)}
+                                    >
+                                        <Share2 className="mr-2 h-4 w-4" />
+                                        Share Suggestions via WhatsApp
+                                    </Button>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                    )
+                })}
             </Accordion>
         );
     };
 
     return (
-        <Card>
+        <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <TrendingDown className="h-6 w-6 text-destructive" />
                     <CardTitle className="font-headline text-2xl">At-Risk Members</CardTitle>
                 </div>
-                <CardDescription>AI-powered insights to identify members who might become inactive.</CardDescription>
+                <CardDescription>AI-powered insights identifying members who might become inactive soon.</CardDescription>
             </CardHeader>
             <CardContent>
                 {renderContent()}

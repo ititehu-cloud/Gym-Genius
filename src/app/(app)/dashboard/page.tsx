@@ -1,3 +1,4 @@
+
 'use client';
 
 import { format, isSameDay, isThisMonth, parseISO, startOfDay } from "date-fns";
@@ -7,6 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
+import AtRiskMembers from "@/components/dashboard/at-risk-members";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -121,13 +123,7 @@ export default function DashboardPage() {
                     <Skeleton className="h-28 w-full rounded-xl" />
                 </div>
             </div>
-            <div>
-                <Skeleton className="h-7 w-32 mb-4" />
-                <div className="grid gap-6 grid-cols-2">
-                    <Skeleton className="h-28 w-full rounded-xl" />
-                    <Skeleton className="h-28 w-full rounded-xl" />
-                </div>
-            </div>
+            <Skeleton className="h-[400px] w-full rounded-xl" />
         </div>
       </main>
     );
@@ -160,6 +156,14 @@ export default function DashboardPage() {
                     <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href="/payments?filter=due_this_month" className="bg-chart-5/10" valueClassName="text-chart-5" />
                 </div>
             </div>
+
+            {members && payments && plans && (
+              <AtRiskMembers 
+                members={members} 
+                payments={payments} 
+                plans={plans} 
+              />
+            )}
 
             <div>
                 <h2 className="text-xl font-semibold mb-4">Financial Summary</h2>

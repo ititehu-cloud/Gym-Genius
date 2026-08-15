@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -89,21 +88,27 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         const message = `Hello ${member.name}, we've missed seeing you at the gym! We noticed that ${riskReason.toLowerCase()}\n\nWe'd love to help you get back on track. Here are some suggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you soon!`;
         
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-        // Auto-prefix with 91 for Indian numbers if it's 10 digits
+        
+        // Handle India prefix logic
+        if (sanitizedPhone.startsWith('0')) {
+            sanitizedPhone = sanitizedPhone.substring(1);
+        }
         if (sanitizedPhone.length === 10) {
-          sanitizedPhone = `91${sanitizedPhone}`;
+            sanitizedPhone = `91${sanitizedPhone}`;
         }
 
         const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
         
-        // Robust navigation that escapes iframes
-        const link = document.createElement('a');
-        link.href = whatsappUrl;
-        link.target = '_top';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Use top-level navigation to ensure mobile compatibility and escape iframes
+        try {
+            if (window.top) {
+                window.top.location.href = whatsappUrl;
+            } else {
+                window.location.href = whatsappUrl;
+            }
+        } catch (e) {
+            window.location.href = whatsappUrl;
+        }
     };
 
     const renderContent = () => {

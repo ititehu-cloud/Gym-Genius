@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -139,21 +138,27 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       // Sanitize phone number for WhatsApp URL
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      // Auto-prefix with 91 for Indian numbers if it's 10 digits
+      
+      // Handle India prefix logic (standard for Sardar Fitness context)
+      if (sanitizedPhone.startsWith('0')) {
+          sanitizedPhone = sanitizedPhone.substring(1);
+      }
       if (sanitizedPhone.length === 10) {
         sanitizedPhone = `91${sanitizedPhone}`;
       }
       
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      // Robust navigation that escapes iframes
-      const link = document.createElement('a');
-      link.href = whatsappUrl;
-      link.target = '_top';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Top-level navigation ensures it works on mobile and escapes iframes
+      try {
+          if (window.top) {
+              window.top.location.href = whatsappUrl;
+          } else {
+              window.location.href = whatsappUrl;
+          }
+      } catch (e) {
+          window.location.href = whatsappUrl;
+      }
       
       toast({
         title: "Opening WhatsApp",

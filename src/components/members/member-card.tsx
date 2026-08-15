@@ -146,7 +146,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         sanitizedPhone = `91${sanitizedPhone}`;
       }
 
-      // Try Web Share API for native mobile sharing
+      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+
+      // Try Web Share API for native mobile sharing first
       if (navigator.share) {
         try {
           await navigator.share({
@@ -157,16 +159,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             title: "Success",
             description: "Notice shared successfully.",
           });
+          setIsSharing(false);
           return;
         } catch (err) {
-            // Fallback to WhatsApp link if share fails
+            // Fallback to direct WhatsApp link if native share fails or is cancelled
+            console.log("Web share failed or cancelled, falling back to WhatsApp", err);
         }
       }
       
-      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-      
-      // Use window.open to breakout of Studio iframe
-      window.open(whatsappUrl, '_blank');
+      // Fallback: Use window.open with a breakout strategy for WhatsApp
+      // On mobile browsers, popups are often blocked if triggered after async work.
+      // We try to use the top-most window to ensure the redirect happens.
+      const targetWindow = window.top || window;
+      targetWindow.location.href = whatsappUrl;
       
       toast({
         title: "Opening WhatsApp",

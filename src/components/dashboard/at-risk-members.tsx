@@ -96,6 +96,8 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             sanitizedPhone = `91${sanitizedPhone}`;
         }
 
+        const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+        
         // Try Web Share API first for better mobile experience
         if (navigator.share) {
             try {
@@ -106,13 +108,13 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                 return;
             } catch (err) {
                 // Fallback to WhatsApp link if share fails or is canceled
+                console.log("Web share failed, falling back to WhatsApp", err);
             }
         }
 
-        const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-        
-        // Open in new window to escape Studio iframe
-        window.open(whatsappUrl, '_blank');
+        // Open in top-level window to escape iframe restrictions and ensure the app opens
+        const targetWindow = window.top || window;
+        targetWindow.location.href = whatsappUrl;
     };
 
     const renderContent = () => {

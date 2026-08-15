@@ -81,7 +81,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         return memberMap.get(memberId);
     };
 
-    const handleWhatsAppShare = (memberId: string, riskReason: string, suggestedInterventions: string[]) => {
+    const handleWhatsAppShare = async (memberId: string, riskReason: string, suggestedInterventions: string[]) => {
         const member = getMember(memberId);
         if (!member || !member.mobileNumber) return;
 
@@ -89,7 +89,6 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
         
-        // Handle India prefix logic
         if (sanitizedPhone.startsWith('0')) {
             sanitizedPhone = sanitizedPhone.substring(1);
         }
@@ -97,18 +96,23 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             sanitizedPhone = `91${sanitizedPhone}`;
         }
 
+        // Try Web Share API first for better mobile experience
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Gym Activity Update',
+                    text: message,
+                });
+                return;
+            } catch (err) {
+                // Fallback to WhatsApp link if share fails or is canceled
+            }
+        }
+
         const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
         
-        // Use top-level navigation to ensure mobile compatibility and escape iframes
-        try {
-            if (window.top) {
-                window.top.location.href = whatsappUrl;
-            } else {
-                window.location.href = whatsappUrl;
-            }
-        } catch (e) {
-            window.location.href = whatsappUrl;
-        }
+        // Open in new window to escape Studio iframe
+        window.open(whatsappUrl, '_blank');
     };
 
     const renderContent = () => {
@@ -175,7 +179,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                                         onClick={() => handleWhatsAppShare(atRisk.memberId, atRisk.riskReason, atRisk.suggestedInterventions)}
                                     >
                                         <Share2 className="mr-2 h-4 w-4" />
-                                        Share Suggestions via WhatsApp
+                                        Share via WhatsApp
                                     </Button>
                                 )}
                             </AccordionContent>

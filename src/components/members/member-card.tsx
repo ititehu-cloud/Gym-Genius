@@ -139,26 +139,34 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       // Sanitize phone number for WhatsApp URL
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       
-      // Handle India prefix logic (standard for Sardar Fitness context)
       if (sanitizedPhone.startsWith('0')) {
           sanitizedPhone = sanitizedPhone.substring(1);
       }
       if (sanitizedPhone.length === 10) {
         sanitizedPhone = `91${sanitizedPhone}`;
       }
+
+      // Try Web Share API for native mobile sharing
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
+            text: message,
+          });
+          toast({
+            title: "Success",
+            description: "Notice shared successfully.",
+          });
+          return;
+        } catch (err) {
+            // Fallback to WhatsApp link if share fails
+        }
+      }
       
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      // Top-level navigation ensures it works on mobile and escapes iframes
-      try {
-          if (window.top) {
-              window.top.location.href = whatsappUrl;
-          } else {
-              window.location.href = whatsappUrl;
-          }
-      } catch (e) {
-          window.location.href = whatsappUrl;
-      }
+      // Use window.open to breakout of Studio iframe
+      window.open(whatsappUrl, '_blank');
       
       toast({
         title: "Opening WhatsApp",

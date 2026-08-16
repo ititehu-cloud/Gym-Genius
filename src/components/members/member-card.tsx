@@ -119,59 +119,76 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         ? `${member.name.replace(/ /g, '_')}_Expiry_Notice.png`
         : `${member.name.replace(/ /g, '_')}_ID_Card.png`;
 
-      const formData = new FormData();
-      formData.append('image', blob, fileName);
-      
-      const uploadResult = await uploadImage(formData);
-
-      if (uploadResult.error || !uploadResult.url) {
-          throw new Error(uploadResult.error || "Could not get image URL.");
-      }
+      const file = new File([blob], fileName, { type: 'image/png' });
       
       let message = "";
       if (isExpiryShare) {
         const expiryStr = format(parseISO(member.expiryDate), 'PPP');
         const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}\n\nYou can view your notice here: ${uploadResult.url}`;
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}`;
       } else {
-        message = `Hello ${member.name}, here is your gym ID card: ${uploadResult.url}`;
+        message = `Hello ${member.name}, here is your gym ID card.`;
       }
 
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // Native Web Share API
-      if (navigator.share) {
+      // 1. Try Native Web Share API with File (Fastest/Best on Mobile)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
+            files: [file],
             title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
             text: message,
           });
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Web share failed, falling back to direct redirect.", err);
+            console.log("Web share with files failed, trying fallback.", err);
         }
       }
-      
-      // Direct WhatsApp Intent Protocol (Most effective for triggering the app directly)
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
 
-      try {
-        window.location.assign(whatsappUrl);
-        // Fallback for browsers that don't support the protocol
-        setTimeout(() => {
-          window.location.href = webFallback;
-        }, 1500);
-      } catch (e) {
-        window.location.href = webFallback;
+      // 2. Fallback: Upload to Cloud and share link (For desktop or browsers that don't support file sharing)
+      const formData = new FormData();
+      formData.append('image', blob, fileName);
+      const uploadResult = await uploadImage(formData);
+
+      if (uploadResult.error || !uploadResult.url) {
+          throw new Error(uploadResult.error || "Could not get image URL.");
       }
 
+      const messageWithUrl = `${message}\n\nView here: ${uploadResult.url}`;
+      
+      // Try native share again with just the URL
+      if (navigator.share) {
+          try {
+              await navigator.share({
+                  title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
+                  text: messageWithUrl,
+              });
+              setIsSharing(false);
+              return;
+          } catch (e) {
+              console.log("Web share with URL failed, trying direct deep link.");
+          }
+      }
+
+      // 3. Final Fallback: Direct WhatsApp Deep Link
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(messageWithUrl)}`;
+      const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(messageWithUrl)}`;
+
+      // Attempt deep link launch in a way that breaks out of iframes
+      window.open(whatsappUrl, '_blank');
+      
+      // Small delay to check if we should try the web fallback
+      setTimeout(() => {
+          window.open(webFallback, '_blank');
+      }, 500);
+
       toast({
-        title: "Sharing...",
-        description: "Opening WhatsApp app...",
+        title: "Opening WhatsApp",
+        description: "Redirecting to your share...",
       });
 
     } catch (error) {
@@ -369,7 +386,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border border-primary-foreground/20 flex items-center justify-center">
+                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-primary-foreground/20 flex items-center justify-center">
                         <img 
                           src={gymIconUrl} 
                           alt="Logo" 

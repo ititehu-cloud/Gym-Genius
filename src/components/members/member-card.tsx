@@ -96,7 +96,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return;
     }
 
-    const badgeElement = isExpiryShare ? null : elementToCapture.querySelector('[data-badge="status"]');
+    // Hide status badge during capture for a cleaner look
+    const badgeElement = elementToCapture.querySelector('[data-badge="status"]');
     if (badgeElement) {
         (badgeElement as HTMLElement).style.visibility = 'hidden';
     }
@@ -140,7 +141,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // Primary: Web Share API for native mobile experience
+      // Native Share Sheet (Primary on Mobile)
       if (navigator.share) {
         try {
           await navigator.share({
@@ -150,18 +151,18 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Web share failed", err);
+            console.log("Native share cancelled or failed, falling back to direct WhatsApp link.", err);
         }
       }
       
-      // Fallback: Use direct whatsapp protocol for mobile apps
+      // WhatsApp Protocol Redirect (Reliable for triggering the app directly)
       const directUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
       const webUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      // Try to open WhatsApp directly
+      // Attempt to launch WhatsApp app directly
       window.location.href = directUrl;
       
-      // Secondary fallback to web version after a short delay if the app didn't open
+      // Fallback to web version if app doesn't launch
       setTimeout(() => {
         if (document.hasFocus()) {
           window.open(webUrl, '_blank');
@@ -371,8 +372,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-16 w-16 rounded-md bg-white overflow-hidden flex-shrink-0 p-2">
-                        <Image src={gymIconUrl} alt="Logo" fill className="object-contain" />
+                    <div className="relative h-16 w-16 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border border-primary-foreground/20">
+                        <img 
+                          src={gymIconUrl} 
+                          alt="Logo" 
+                          className="h-full w-full object-contain" 
+                          crossOrigin="anonymous" 
+                        />
                     </div>
                   )}
                   <div>
@@ -382,8 +388,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
             <div className="flex flex-col items-center">
-                <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-primary mb-4">
-                    <Image src={member.imageUrl} alt={member.name} fill className="object-cover" />
+                <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-primary mb-4 bg-muted">
+                    <img 
+                      src={member.imageUrl} 
+                      alt={member.name} 
+                      className="h-full w-full object-cover" 
+                      crossOrigin="anonymous" 
+                    />
                 </div>
                 <h3 className="text-3xl font-bold mb-1">{member.name}</h3>
                 <p className="text-xl text-muted-foreground mb-4 font-mono">ID: {member.memberId}</p>

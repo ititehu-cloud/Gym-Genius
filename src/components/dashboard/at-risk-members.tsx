@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,6 +13,7 @@ import { collection } from 'firebase/firestore';
 import type { Member, Payment, Plan, Attendance } from '@/lib/types';
 import { parseISO } from 'date-fns';
 import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 type WithId<T> = T & { id: string };
 
@@ -27,6 +27,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     const [insights, setInsights] = useState<InactiveMemberInsightsOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
 
     const firestore = useFirestore();
     const { data: attendanceHistory, isLoading: isLoadingAttendance } = useCollection<Attendance>(
@@ -86,20 +87,14 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         const member = getMember(memberId);
         if (!member || !member.mobileNumber) return;
 
-        const message = `Hello ${member.name}, we've missed seeing you at the gym! We noticed that ${riskReason.toLowerCase()}\n\nWe'd love to help you get back on track. Here are some suggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you soon!`;
+        const message = `Hello ${member.name}, we missed you! ${riskReason}.\n\nSuggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you back soon!`;
         
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-        
-        if (sanitizedPhone.startsWith('0')) {
-            sanitizedPhone = sanitizedPhone.substring(1);
-        }
-        if (sanitizedPhone.length === 10) {
-            sanitizedPhone = `91${sanitizedPhone}`;
-        }
+        if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+        if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
         const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
         
-        // Try Web Share API first for better mobile experience
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -108,12 +103,12 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                 });
                 return;
             } catch (err) {
-                console.log("Web share failed, falling back to direct navigation", err);
+                console.log("Web share failed", err);
             }
         }
 
-        // Direct navigation is most reliable for triggering the WhatsApp app on Android
         window.location.href = whatsappUrl;
+        toast({ title: "Opening WhatsApp", description: "Redirecting to your share..." });
     };
 
     const renderContent = () => {
@@ -138,7 +133,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         }
 
         if (!insights || insights.atRiskMembers.length === 0) {
-            return <p className="text-muted-foreground">No members currently identified as at-risk. Great job!</p>;
+            return <p className="text-muted-foreground">No members identified as at-risk. Great job!</p>;
         }
 
         return (
@@ -198,7 +193,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                     <TrendingDown className="h-6 w-6 text-destructive" />
                     <CardTitle className="font-headline text-2xl">At-Risk Members</CardTitle>
                 </div>
-                <CardDescription>AI-powered insights identifying members who might become inactive soon.</CardDescription>
+                <CardDescription>AI insights identifying members who might become inactive soon.</CardDescription>
             </CardHeader>
             <CardContent>
                 {renderContent()}

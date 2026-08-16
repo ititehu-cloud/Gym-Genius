@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -78,14 +77,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         toast({
             variant: 'destructive',
             title: 'Share Failed',
-            description: "Sharing is disabled as this member does not have a mobile number saved.",
+            description: "Member does not have a mobile number saved.",
         });
         return;
     }
-
-    // Capture user gesture immediately by opening a blank window
-    // This prevents the mobile browser from blocking the WhatsApp redirect later
-    const newWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
 
     setIsSharing(true);
 
@@ -97,7 +92,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             title: "Share Failed",
             description: `Cannot find ${isExpiryShare ? 'notice' : 'ID card'} element.`,
         });
-        if (newWindow) newWindow.close();
         setIsSharing(false);
         return;
     }
@@ -130,65 +124,49 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const uploadResult = await uploadImage(formData);
 
       if (uploadResult.error || !uploadResult.url) {
-          throw new Error(uploadResult.error || "Could not get image URL after upload.");
+          throw new Error(uploadResult.error || "Could not get image URL.");
       }
       
       let message = "";
       if (isExpiryShare) {
         const expiryStr = format(parseISO(member.expiryDate), 'PPP');
         const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}\n\nYou can view your notice here: ${uploadResult.url}`;
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). Renewal Amount: ₹${renewalAmount}\n\nNotice: ${uploadResult.url}`;
       } else {
         message = `Here is your gym ID card: ${uploadResult.url}`;
       }
 
-      // Sanitize phone number for WhatsApp URL
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      
-      if (sanitizedPhone.startsWith('0')) {
-          sanitizedPhone = sanitizedPhone.substring(1);
-      }
-      if (sanitizedPhone.length === 10) {
-        sanitizedPhone = `91${sanitizedPhone}`;
-      }
+      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
 
-      // Try Web Share API for native mobile sharing first
+      // Use Web Share API if available (best for Android/iOS)
       if (navigator.share) {
         try {
           await navigator.share({
             title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
             text: message,
           });
-          if (newWindow) newWindow.close();
-          toast({
-            title: "Success",
-            description: "Notice shared successfully.",
-          });
+          toast({ title: "Success", description: "Shared successfully." });
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Web share failed or cancelled, falling back to WhatsApp", err);
+            console.log("Web share failed, falling back to direct redirect", err);
         }
       }
       
-      // Update the previously opened window with the WhatsApp URL
-      if (newWindow) {
-        newWindow.location.href = whatsappUrl;
-      } else {
-        // Fallback for unexpected cases
-        window.open(whatsappUrl, '_blank');
-      }
+      // Fallback for browsers without Web Share API
+      window.location.href = whatsappUrl;
       
       toast({
         title: "Opening WhatsApp",
-        description: isExpiryShare ? "Renewal details are ready." : "Your ID card is ready.",
+        description: "Redirecting to your share...",
       });
 
     } catch (error) {
         console.error("Sharing failed:", error);
-        if (newWindow) newWindow.close();
         toast({
             variant: "destructive",
             title: "Share Failed",

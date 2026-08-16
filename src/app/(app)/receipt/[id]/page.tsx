@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, use, useState } from "react";
@@ -58,7 +57,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
   const handlePrint = () => {
     setIsPrinting(true);
-    // Standard delay for print dialog to initialize
+    // Standard delay for print dialog to initialize correctly on mobile
     setTimeout(() => {
         window.print();
         setIsPrinting(false);
@@ -110,21 +109,24 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Aggressive reset to ensure isolation */
-          header, 
-          nav, 
-          footer,
-          .no-print,
-          [data-sidebar="trigger"],
-          [data-sidebar="sidebar"],
-          [data-buttons="actions"] {
+          /* Aggressive reset to isolate the receipt container and force it to the top */
+          body > *:not(.receipt-wrapper) {
             display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
+          }
+          
+          .no-print, header, nav, footer, [data-sidebar], button {
+            display: none !important;
           }
 
-          /* Force the print container to be the absolute only thing visible */
+          .receipt-wrapper {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            min-height: auto !important;
+            width: 100% !important;
+          }
+
           .print-container {
             position: absolute !important;
             top: 0 !important;
@@ -136,21 +138,16 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             border: none !important;
             box-shadow: none !important;
             display: block !important;
-            z-index: 9999 !important;
             background: white !important;
           }
 
-          /* Remove all background colors and styles from parents */
-          html, body, main, .receipt-wrapper, .flex-col, .min-h-screen, .flex-1 {
-            display: block !important;
-            background: white !important;
+          /* Reset all parent containers to avoid layout issues */
+          html, body {
+            overflow: visible !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
-            width: 100% !important;
-            height: auto !important;
-            overflow: visible !important;
-            position: static !important;
-            transform: none !important;
+            background: white !important;
           }
 
           @page {

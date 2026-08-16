@@ -140,9 +140,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-
-      // Use Web Share API if possible
+      // Primary: Web Share API for native mobile experience
       if (navigator.share) {
         try {
           await navigator.share({
@@ -153,19 +151,23 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           return;
         } catch (err) {
             console.log("Web share failed", err);
-            // If sharing is cancelled or fails, continue to the fallback
         }
       }
       
-      // Fallback: Use window.location.href to trigger native deep linking more reliably than window.open
-      // If we are in an iframe (like the preview), we use window.open as a fallback to avoid SecurityError
-      const isInIframe = window.self !== window.top;
-      if (isInIframe) {
-          window.open(whatsappUrl, '_blank');
-      } else {
-          window.location.href = whatsappUrl;
-      }
+      // Fallback: Use direct whatsapp protocol for mobile apps
+      const directUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      const webUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
+      // Try to open WhatsApp directly
+      window.location.href = directUrl;
+      
+      // Secondary fallback to web version after a short delay if the app didn't open
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          window.open(webUrl, '_blank');
+        }
+      }, 500);
+
       toast({
         title: "Sharing Details",
         description: "Redirecting to WhatsApp...",
@@ -369,7 +371,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-14 w-14 rounded-full bg-white overflow-hidden flex-shrink-0 p-1">
+                    <div className="relative h-16 w-16 rounded-md bg-white overflow-hidden flex-shrink-0 p-2">
                         <Image src={gymIconUrl} alt="Logo" fill className="object-contain" />
                     </div>
                   )}

@@ -26,12 +26,14 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         <header className="flex justify-between items-start mb-0.5 border-b-[4px] border-black pb-0.5">
           <div className="flex items-center gap-1.5">
             {gymIconUrl ? (
-                <img
-                    src={gymIconUrl}
-                    alt="Gym Logo"
-                    className="h-12 w-12 rounded-full object-contain border-2 border-black bg-white p-0.5"
-                    crossOrigin="anonymous"
-                />
+                <div className="relative h-14 w-14 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border-2 border-black">
+                    <img
+                        src={gymIconUrl}
+                        alt="Gym Logo"
+                        className="h-full w-full object-contain"
+                        crossOrigin="anonymous"
+                    />
+                </div>
             ) : (
                 <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center">
                     <Dumbbell className="h-6 w-6 text-white" />

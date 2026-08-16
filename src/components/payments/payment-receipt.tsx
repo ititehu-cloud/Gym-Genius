@@ -26,7 +26,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         <header className="flex justify-between items-start mb-0.5 border-b-[4px] border-black pb-0.5">
           <div className="flex items-center gap-1.5 flex-1">
             {gymIconUrl ? (
-                <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
+                <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
                     <img
                         src={gymIconUrl}
                         alt="Gym Logo"
@@ -39,87 +39,87 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                     <Dumbbell className="h-6 w-6 text-white" />
                 </div>
             )}
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col flex-1 ml-2">
               <h1 className="text-4xl font-bold tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
-              <div className="text-black font-bold mt-0.5">
+              <div className="text-black font-bold mt-1">
                 {gymPhone && <p className="text-[12px]">MOB: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[200px] leading-tight uppercase text-[10px]">{gymAddress}</p>}
+                {gymAddress && <p className="max-w-[200px] leading-tight uppercase text-[10px] opacity-80">{gymAddress}</p>}
               </div>
             </div>
           </div>
           <div className="text-right flex flex-col items-end">
             {isPaid && (
-              <div className="text-3xl font-black text-black uppercase tracking-tighter border-[3px] border-black px-1.5 py-0.5 inline-block bg-white">PAID</div>
+              <div className="text-2xl font-black text-black uppercase tracking-tighter border-[3px] border-black px-2 py-0.5 inline-block bg-white">PAID</div>
             )}
           </div>
         </header>
 
-        <section className="grid grid-cols-1 gap-0.5 mb-0.5 mt-0.5">
-          <div className="space-y-0.5">
+        <section className="grid grid-cols-1 gap-0.5 mb-1 mt-2">
+          <div className="space-y-1">
             <div>
               <h2 className="text-[10px] font-black text-black uppercase tracking-widest border-b-[1px] border-black inline-block">BILLED TO</h2>
-              <div className="text-black font-black text-3xl leading-none uppercase mt-0.5">{member.name}</div>
-              <div className="text-black text-xs font-bold uppercase">{member.address}</div>
-              <div className="text-black text-lg font-black mt-0.5">CONTACT: {member.mobileNumber || 'N/A'}</div>
-              <div className="text-black text-5xl font-black mt-1 leading-none border-[3px] border-black p-1 inline-block">ID: {member.memberId}</div>
+              <div className="text-black font-black text-3xl leading-none uppercase mt-1">{member.name}</div>
+              <div className="text-black text-xs font-bold uppercase mt-0.5">{member.address}</div>
+              <div className="text-black text-lg font-black mt-1">CONTACT: {member.mobileNumber || 'N/A'}</div>
+              <div className="text-black text-4xl font-black mt-2 leading-none border-[3px] border-black p-1 inline-block font-mono">ID: {member.memberId}</div>
             </div>
           </div>
-          <div className="flex justify-between items-end border-t-[2px] border-black pt-0.5 mt-0.5">
+          <div className="flex justify-between items-end border-t-[2px] border-black pt-1 mt-2">
             <div>
               <h2 className="text-[10px] font-black text-black uppercase tracking-widest">DATE</h2>
-              <div className="text-black font-black text-lg">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
+              <div className="text-black font-black text-xl">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
             </div>
             <div className="text-right">
               <h2 className="text-[10px] font-black text-black uppercase tracking-widest">METHOD</h2>
-              <div className="text-black font-black text-lg capitalize">{payment.paymentMethod}</div>
+              <div className="text-black font-black text-xl capitalize">{payment.paymentMethod}</div>
             </div>
           </div>
         </section>
 
-        <section className="mb-0.5">
+        <section className="mb-1 mt-2">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-black text-white">
-                <th className="py-0.5 px-1 text-sm font-black uppercase">DESC</th>
-                <th className="py-0.5 px-1 text-right text-sm font-black uppercase">AMT</th>
+                <th className="py-1 px-2 text-sm font-black uppercase">DESCRIPTION</th>
+                <th className="py-1 px-2 text-right text-sm font-black uppercase">AMOUNT</th>
               </tr>
             </thead>
             <tbody className="divide-y-[1px] divide-black">
               {allPayments.length > 0 ? (
                 allPayments.map(p => (
                   <tr key={p.id} className="border-x-[2px] border-black">
-                    <td className="py-0.5 px-1">
+                    <td className="py-1 px-2">
                       <div className="text-black font-black text-lg capitalize">{p.paymentType}</div>
                     </td>
-                    <td className="py-0.5 px-1 text-right">
+                    <td className="py-1 px-2 text-right">
                       <div className="text-black font-black text-3xl font-mono">₹{p.amount.toLocaleString()}</div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr className="border-x-[2px] border-black">
-                  <td colSpan={2} className="py-1 text-center text-black font-black text-lg uppercase">No Transactions</td>
+                  <td colSpan={2} className="py-2 text-center text-black font-black text-lg uppercase">No Transactions Found</td>
                 </tr>
               )}
             </tbody>
           </table>
         </section>
 
-        <section className="flex justify-end mt-0.5">
+        <section className="flex justify-end mt-1">
           <div className="w-full">
-            <div className="bg-black p-1.5 rounded-none flex justify-between items-center text-white">
-              <span className="font-black text-xl uppercase">TOTAL</span>
-              <span className="font-black text-6xl font-mono leading-none">₹{totalPaid.toLocaleString()}</span>
+            <div className="bg-black p-2 rounded-none flex justify-between items-center text-white">
+              <span className="font-black text-xl uppercase">GRAND TOTAL</span>
+              <span className="font-black text-5xl font-mono leading-none">₹{totalPaid.toLocaleString()}</span>
             </div>
           </div>
         </section>
 
-        <footer className="mt-1 pt-0.5 text-center border-t-[3px] border-black">
-          <p className="text-black font-black italic text-xl mb-0.5 uppercase leading-none">Thank you!</p>
+        <footer className="mt-4 pt-2 text-center border-t-[3px] border-black">
+          <p className="text-black font-black italic text-2xl mb-1 uppercase leading-none tracking-tighter">Stay Strong, Stay Fit!</p>
           <p className="text-sm text-black uppercase font-black tracking-widest leading-tight">
             {gymName} {gymPhone && `| MOB: ${gymPhone}`}
           </p>
-          <p className="text-[9px] text-black font-bold mt-0.5 uppercase opacity-80">Computer Generated Receipt</p>
+          <p className="text-[9px] text-black font-bold mt-1 uppercase opacity-60">Computer Generated Receipt - No Signature Required</p>
         </footer>
       </div>
     );

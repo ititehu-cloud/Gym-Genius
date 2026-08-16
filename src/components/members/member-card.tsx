@@ -100,7 +100,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       // 1. High-Speed Capture
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 1.2, // Optimized scale for speed
+        scale: 1.2, // Optimized scale for faster generation on mobile
         backgroundColor: '#ffffff',
         logging: false,
       });
@@ -119,7 +119,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         ? `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue, please renew. Amount: ₹${plan?.price || 'N/A'}`
         : `Hello ${member.name}, here is your gym ID card for ${gymName || 'Sardar Fitness'}.`;
 
-      // 2. Priority: Native Share API (Fastest, attaches actual image file)
+      // 2. Priority: Native Share API (Attaches actual image file)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -134,14 +134,14 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         }
       }
 
-      // 3. Fallback: Direct WhatsApp Deep-Link (Skips landing page)
+      // 3. Fallback: Direct WhatsApp Deep-Link (Skips "Continue to Chat" page)
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
       // Show toast as upload is starting
       toast({
-          title: "Generating Image Link...",
-          description: "This allows WhatsApp to display the card image.",
+          title: "Preparing Share Link...",
+          description: "Directing you to WhatsApp...",
       });
 
       const formData = new FormData();
@@ -153,18 +153,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           finalMessage += `\n\nView Card: ${uploadResult.url}`;
       }
 
+      // Native protocol to trigger the app directly
       const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
       const whatsappWebLink = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
 
       // Attempt to launch app directly
       window.location.href = whatsappDeepLink;
 
-      // Smart fallback for desktop/older browsers
+      // Smart fallback for desktop/unsupported browsers
       setTimeout(() => {
           if (document.hasFocus()) {
               window.open(whatsappWebLink, '_blank');
           }
-      }, 500);
+      }, 800);
 
     } catch (error) {
         console.error("Sharing failed:", error);

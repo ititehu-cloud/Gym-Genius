@@ -142,6 +142,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
 
+      // Use Web Share API if possible
       if (navigator.share) {
         try {
           await navigator.share({
@@ -152,14 +153,22 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           return;
         } catch (err) {
             console.log("Web share failed", err);
+            // If sharing is cancelled or fails, continue to the fallback
         }
       }
       
-      window.open(whatsappUrl, '_blank');
+      // Fallback: Use window.location.href to trigger native deep linking more reliably than window.open
+      // If we are in an iframe (like the preview), we use window.open as a fallback to avoid SecurityError
+      const isInIframe = window.self !== window.top;
+      if (isInIframe) {
+          window.open(whatsappUrl, '_blank');
+      } else {
+          window.location.href = whatsappUrl;
+      }
       
       toast({
-        title: "Opening WhatsApp",
-        description: "Sharing renewal details...",
+        title: "Sharing Details",
+        description: "Redirecting to WhatsApp...",
       });
 
     } catch (error) {
@@ -293,7 +302,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        {/* Action Sidebar - Matches PaymentStatusCard layout */}
+        {/* Action Sidebar */}
         <div className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l bg-muted/30">
           <EditMemberDialog member={member} />
           

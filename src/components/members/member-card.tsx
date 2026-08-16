@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -141,7 +142,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // Native Share Sheet (Primary on Mobile)
+      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+
+      // Web Share API (Primary for Mobile Native Sheet)
       if (navigator.share) {
         try {
           await navigator.share({
@@ -151,27 +154,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Native share cancelled or failed, falling back to direct WhatsApp link.", err);
+            console.log("Web share failed, falling back to direct redirect.", err);
         }
       }
       
-      // WhatsApp Protocol Redirect (Reliable for triggering the app directly)
-      const directUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      const webUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-      
-      // Attempt to launch WhatsApp app directly
-      window.location.href = directUrl;
-      
-      // Fallback to web version if app doesn't launch
-      setTimeout(() => {
-        if (document.hasFocus()) {
-          window.open(webUrl, '_blank');
-        }
-      }, 500);
+      // Direct Navigation Fallback (Most effective for triggering Android WhatsApp intent directly)
+      window.location.href = whatsappUrl;
 
       toast({
-        title: "Sharing Details",
-        description: "Redirecting to WhatsApp...",
+        title: "Sharing Notice",
+        description: "Opening WhatsApp...",
       });
 
     } catch (error) {
@@ -372,17 +364,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-16 w-16 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border border-primary-foreground/20">
+                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border border-primary-foreground/20 flex items-center justify-center">
                         <img 
                           src={gymIconUrl} 
                           alt="Logo" 
-                          className="h-full w-full object-contain" 
+                          className="max-h-full max-w-full object-contain" 
                           crossOrigin="anonymous" 
                         />
                     </div>
                   )}
                   <div>
-                    <h2 className="text-xl font-bold">{gymName}</h2>
+                    <h2 className="text-xl font-bold leading-tight">{gymName}</h2>
                     <p className="text-[10px] leading-tight opacity-80">{gymAddress}</p>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -26,11 +27,11 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         <header className="flex justify-between items-start mb-0.5 border-b-[4px] border-black pb-0.5">
           <div className="flex items-center gap-1.5">
             {gymIconUrl ? (
-                <div className="relative h-14 w-14 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border-2 border-black">
+                <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border-2 border-black flex items-center justify-center">
                     <img
                         src={gymIconUrl}
                         alt="Gym Logo"
-                        className="h-full w-full object-contain"
+                        className="max-h-full max-w-full object-contain"
                         crossOrigin="anonymous"
                     />
                 </div>

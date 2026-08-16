@@ -23,15 +23,14 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
 
     return (
       <div ref={ref} className="p-1 bg-white text-black font-sans w-full max-w-[450px] mx-auto border-0 shadow-none relative overflow-hidden print:p-0">
-        {/* Header Section */}
         <header className="flex justify-between items-start mb-0.5 border-b-[4px] border-black pb-0.5">
           <div className="flex items-center gap-1.5">
             {gymIconUrl ? (
-                <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border-2 border-black flex items-center justify-center">
+                <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
                     <img
                         src={gymIconUrl}
                         alt="Gym Logo"
-                        className="max-h-full max-w-full object-contain"
+                        className="h-full w-full object-contain"
                         crossOrigin="anonymous"
                     />
                 </div>
@@ -55,7 +54,6 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           </div>
         </header>
 
-        {/* Info Grid */}
         <section className="grid grid-cols-1 gap-0.5 mb-0.5 mt-0.5">
           <div className="space-y-0.5">
             <div>
@@ -78,7 +76,6 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           </div>
         </section>
 
-        {/* Table Section */}
         <section className="mb-0.5">
           <table className="w-full text-left">
             <thead>
@@ -108,7 +105,6 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           </table>
         </section>
 
-        {/* Totals Section */}
         <section className="flex justify-end mt-0.5">
           <div className="w-full">
             <div className="bg-black p-1.5 rounded-none flex justify-between items-center text-white">
@@ -118,7 +114,6 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="mt-1 pt-0.5 text-center border-t-[3px] border-black">
           <p className="text-black font-black italic text-xl mb-0.5 uppercase leading-none">Thank you!</p>
           <p className="text-sm text-black uppercase font-black tracking-widest leading-tight">

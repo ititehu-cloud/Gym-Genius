@@ -97,7 +97,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return;
     }
 
-    // Hide status badge during capture for a cleaner look
     const badgeElement = elementToCapture.querySelector('[data-badge="status"]');
     if (badgeElement) {
         (badgeElement as HTMLElement).style.visibility = 'hidden';
@@ -142,9 +141,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-
-      // Web Share API (Primary for Mobile Native Sheet)
+      // Native Web Share API
       if (navigator.share) {
         try {
           await navigator.share({
@@ -158,12 +155,23 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         }
       }
       
-      // Direct Navigation Fallback (Most effective for triggering Android WhatsApp intent directly)
-      window.location.href = whatsappUrl;
+      // Direct WhatsApp Intent Protocol (Most effective for triggering the app directly)
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+
+      try {
+        window.location.assign(whatsappUrl);
+        // Fallback for browsers that don't support the protocol
+        setTimeout(() => {
+          window.location.href = webFallback;
+        }, 1500);
+      } catch (e) {
+        window.location.href = webFallback;
+      }
 
       toast({
-        title: "Sharing Notice",
-        description: "Opening WhatsApp...",
+        title: "Sharing...",
+        description: "Opening WhatsApp app...",
       });
 
     } catch (error) {
@@ -297,7 +305,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        {/* Action Sidebar */}
         <div className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l bg-muted/30">
           <EditMemberDialog member={member} />
           
@@ -357,18 +364,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
       </Card>
 
-      {/* Hidden elements for ID Card / Notice Generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          {/* Portrait ID Card Representation for Sharing */}
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px]">
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-2 border border-primary-foreground/20 flex items-center justify-center">
+                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border border-primary-foreground/20 flex items-center justify-center">
                         <img 
                           src={gymIconUrl} 
                           alt="Logo" 
-                          className="max-h-full max-w-full object-contain" 
+                          className="h-full w-full object-contain" 
                           crossOrigin="anonymous" 
                         />
                     </div>

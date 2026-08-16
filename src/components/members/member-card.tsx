@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -82,6 +83,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return;
     }
 
+    // Capture user gesture immediately by opening a blank window
+    // This prevents the mobile browser from blocking the WhatsApp redirect later
+    const newWindow = typeof window !== 'undefined' ? window.open('about:blank', '_blank') : null;
+
     setIsSharing(true);
 
     const elementToCapture = isExpiryShare ? noticeRef.current : cardRef.current;
@@ -92,6 +97,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             title: "Share Failed",
             description: `Cannot find ${isExpiryShare ? 'notice' : 'ID card'} element.`,
         });
+        if (newWindow) newWindow.close();
         setIsSharing(false);
         return;
     }
@@ -155,6 +161,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
             text: message,
           });
+          if (newWindow) newWindow.close();
           toast({
             title: "Success",
             description: "Notice shared successfully.",
@@ -166,8 +173,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         }
       }
       
-      // Use window.open with _blank to bypass SecurityError in cross-origin frames
-      window.open(whatsappUrl, '_blank');
+      // Update the previously opened window with the WhatsApp URL
+      if (newWindow) {
+        newWindow.location.href = whatsappUrl;
+      } else {
+        // Fallback for unexpected cases
+        window.open(whatsappUrl, '_blank');
+      }
       
       toast({
         title: "Opening WhatsApp",
@@ -176,6 +188,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
     } catch (error) {
         console.error("Sharing failed:", error);
+        if (newWindow) newWindow.close();
         toast({
             variant: "destructive",
             title: "Share Failed",

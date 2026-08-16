@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -107,12 +108,12 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                 });
                 return;
             } catch (err) {
-                console.log("Web share failed, falling back to WhatsApp", err);
+                console.log("Web share failed, falling back to direct navigation", err);
             }
         }
 
-        // Use window.open with _blank to bypass SecurityError in cross-origin frames
-        window.open(whatsappUrl, '_blank');
+        // Direct navigation is most reliable for triggering the WhatsApp app on Android
+        window.location.href = whatsappUrl;
     };
 
     const renderContent = () => {

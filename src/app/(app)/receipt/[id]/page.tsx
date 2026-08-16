@@ -58,7 +58,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
   const handlePrint = () => {
     setIsPrinting(true);
-    // Aggressive approach for Chrome mobile: wait for layout to settle
+    // Standard delay for print dialog to initialize
     setTimeout(() => {
         window.print();
         setIsPrinting(false);
@@ -110,19 +110,21 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Aggressive hide strategy for App layout elements */
+          /* Aggressive reset to ensure isolation */
           header, 
           nav, 
           footer,
           .no-print,
           [data-sidebar="trigger"],
           [data-sidebar="sidebar"],
-          [data-buttons="actions"],
-          [data-badge="status"] {
+          [data-buttons="actions"] {
             display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
 
-          /* Ensure the print container is the ONLY thing visible and positioned at the top */
+          /* Force the print container to be the absolute only thing visible */
           .print-container {
             position: absolute !important;
             top: 0 !important;
@@ -138,29 +140,15 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             background: white !important;
           }
 
-          /* Reset body and html for thermal printing */
-          html, body {
+          /* Remove all background colors and styles from parents */
+          html, body, main, .receipt-wrapper, .flex-col, .min-h-screen, .flex-1 {
+            display: block !important;
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             height: auto !important;
             overflow: visible !important;
-          }
-
-          /* Target the root layout wrapper to prevent it from clipping the print job */
-          main, 
-          .receipt-wrapper,
-          div[class*="flex-col"],
-          div[class*="min-h-screen"],
-          div[class*="flex-1"] {
-            display: block !important;
-            height: auto !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            background: none !important;
             position: static !important;
             transform: none !important;
           }
@@ -175,8 +163,6 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             background: transparent !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            text-shadow: none !important;
-            box-shadow: none !important;
           }
         }
       `}</style>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -14,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import RenewPlanDialog from './renew-plan-dialog';
-import { uploadImage } from '@/app/actions';
 import DueNotice from './due-notice';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -84,6 +82,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     setIsSharing(true);
+    toast({
+        title: "Preparing Share...",
+        description: "Generating your card, please wait.",
+    });
 
     const elementToCapture = isExpiryShare ? noticeRef.current : cardRef.current;
     
@@ -105,16 +107,14 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     try {
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 2,
+        scale: 1.5, // Reduced scale for faster processing on mobile
         backgroundColor: '#ffffff',
         logging: false,
       });
       
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
         
-      if (!blob) {
-          throw new Error("Failed to create image.");
-      }
+      if (!blob) throw new Error("Failed to create image.");
 
       const fileName = isExpiryShare 
         ? `${member.name.replace(/ /g, '_')}_Notice.png`
@@ -134,8 +134,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // 1. FASTEST: Native File Share (Mobile Apps)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      // 1. Native System Share (Supports Image + Text)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
@@ -145,33 +145,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Native share failed, using deep link fallback.", err);
+            console.log("Native share cancelled or failed, falling back.");
         }
       }
 
-      // 2. Fallback: Direct WhatsApp App Launch (bypasses landing page)
+      // 2. Direct WhatsApp Application Launch (Bypasses landing page)
       const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      
-      // We try to trigger the app directly
       window.location.href = whatsappDeepLink;
 
-      // Small delay then try web fallback if deep link failed
+      // 3. Last Resort Fallback (Web browser)
       setTimeout(() => {
-          const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+          const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
           window.open(webFallback, '_blank');
-      }, 500);
-
-      toast({
-        title: "Opening WhatsApp",
-        description: "Your share is being prepared...",
-      });
+      }, 700);
 
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({
             variant: "destructive",
             title: "Share Failed",
-            description: error instanceof Error ? error.message : "Could not share. Please try again.",
+            description: "Could not share. Please check device permissions.",
         });
     } finally {
         if (badgeElement) {

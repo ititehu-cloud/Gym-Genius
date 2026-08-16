@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -16,6 +17,7 @@ import RenewPlanDialog from './renew-plan-dialog';
 import DueNotice from './due-notice';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { uploadImage } from '@/app/actions';
 import {
   Dialog,
   DialogContent,
@@ -95,9 +97,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     try {
+      // 1. Instant Capture
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 1.2, // Balanced for speed and quality
+        scale: 1.5,
         backgroundColor: '#ffffff',
         logging: false,
       });
@@ -111,43 +114,47 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       const file = new File([blob], fileName, { type: 'image/png' });
       
-      let message = "";
-      if (isExpiryShare) {
-        const expiryStr = format(parseISO(member.expiryDate), 'PPP');
-        const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan. Renewal Amount: ₹${renewalAmount}`;
-      } else {
-        message = `Hello ${member.name}, here is your gym ID card for ${gymName || 'our gym'}.`;
-      }
+      const expiryStr = format(parseISO(member.expiryDate), 'PPP');
+      const baseMessage = isExpiryShare 
+        ? `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue, please renew. Amount: ₹${plan?.price || 'N/A'}`
+        : `Hello ${member.name}, here is your gym ID card for ${gymName || 'Sardar Fitness'}.`;
 
-      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
-
-      // 1. Try Native Share API First (Fastest)
+      // 2. Priority: Native Share API (Attaches actual image file)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
             title: isExpiryShare ? 'Gym Notice' : 'Gym ID',
-            text: message,
+            text: baseMessage,
           });
           setIsSharing(false);
           return;
         } catch (err) {
-            // User cancelled or share failed, proceed to direct WhatsApp deep link
+            // Cancelled or failed, proceed to cloud fallback
         }
       }
 
-      // 2. Direct WhatsApp Deep Link (Bypasses landing page)
-      // This is the most effective way to open the app directly on Android
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      window.location.href = whatsappUrl;
-      
-      // 3. Fallback for desktop/unsupported deep links
-      setTimeout(() => {
-          const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-          window.open(webFallback, '_blank');
-      }, 500);
+      // 3. Fallback: Cloud Link Share (Generates a public URL for the "link" sharing)
+      toast({
+          title: "Generating ID Link...",
+          description: "Attaching image for WhatsApp share.",
+      });
+
+      const formData = new FormData();
+      formData.append('image', blob, fileName);
+      const uploadResult = await uploadImage(formData);
+
+      let finalMessage = baseMessage;
+      if (uploadResult.url) {
+          finalMessage += `\n\nView Image: ${uploadResult.url}`;
+      }
+
+      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+
+      // Open WhatsApp directly with the message and link
+      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(finalMessage)}`;
+      window.open(whatsappUrl, '_blank');
 
     } catch (error) {
         console.error("Sharing failed:", error);
@@ -350,7 +357,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         />
                     </div>
                   )}
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-xl font-bold leading-tight uppercase">{gymName}</h2>
                     <p className="text-[10px] leading-tight opacity-80 uppercase">{gymAddress}</p>
                   </div>

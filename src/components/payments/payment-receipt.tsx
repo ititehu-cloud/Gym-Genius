@@ -29,11 +29,11 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                 <img
                     src={gymIconUrl}
                     alt="Gym Logo"
-                    className="h-10 w-10 rounded-full object-cover border-2 border-black"
+                    className="h-12 w-12 rounded-full object-contain border-2 border-black bg-white p-0.5"
                     crossOrigin="anonymous"
                 />
             ) : (
-                <div className="h-10 w-10 rounded-full bg-black flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center">
                     <Dumbbell className="h-6 w-6 text-white" />
                 </div>
             )}

@@ -360,8 +360,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
-                        <Image src={gymIconUrl} alt="Logo" fill className="object-cover" />
+                    <div className="relative h-14 w-14 rounded-full bg-white overflow-hidden flex-shrink-0 p-1">
+                        <Image src={gymIconUrl} alt="Logo" fill className="object-contain" />
                     </div>
                   )}
                   <div>

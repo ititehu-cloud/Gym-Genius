@@ -1,12 +1,12 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint, CalendarClock } from 'lucide-react';
+import { Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint, CalendarClock, User, Hash, Tag } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type MemberCardProps = {
   member: Member;
@@ -131,9 +131,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (isExpiryShare) {
         const expiryStr = format(parseISO(member.expiryDate), 'PPP');
         const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). Renewal Amount: ₹${renewalAmount}\n\nNotice: ${uploadResult.url}`;
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}\n\nYou can view your notice here: ${uploadResult.url}`;
       } else {
-        message = `Here is your gym ID card: ${uploadResult.url}`;
+        message = `Hello ${member.name}, here is your gym ID card: ${uploadResult.url}`;
       }
 
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
@@ -142,27 +142,24 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
 
-      // Use Web Share API if available (best for Android/iOS)
       if (navigator.share) {
         try {
           await navigator.share({
             title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
             text: message,
           });
-          toast({ title: "Success", description: "Shared successfully." });
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Web share failed, falling back to direct redirect", err);
+            console.log("Web share failed", err);
         }
       }
       
-      // Fallback for browsers without Web Share API
-      window.location.href = whatsappUrl;
+      window.open(whatsappUrl, '_blank');
       
       toast({
         title: "Opening WhatsApp",
-        description: "Redirecting to your share...",
+        description: "Sharing renewal details...",
       });
 
     } catch (error) {
@@ -231,90 +228,87 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   const isCheckedOut = !!attendanceRecord?.checkOutTime;
 
-
   return (
     <>
-      <Card className="bg-card w-full max-w-[420px] flex flex-col rounded-xl shadow-lg justify-between">
-        <div ref={cardRef} className="p-4 bg-white pb-12">
-            <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 rounded-t-xl overflow-hidden">
-                <div className="p-2 px-3 text-left w-1/2 flex items-center gap-2">
-                  {gymIconUrl && (
-                    <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative landscape-member-card bg-card">
+        <div className="flex justify-between pr-12 min-h-[220px]">
+          <CardContent className="p-4 flex-grow space-y-3">
+             <div className="flex items-center gap-2 mb-2">
+                <User className="h-5 w-5 text-primary" />
+                <h3 className="text-xl font-bold font-headline truncate">{member.name}</h3>
+             </div>
+             
+             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-2 text-sm items-center">
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> ID :</span>
+                <span className="font-mono font-semibold">{member.memberId}</span>
+                
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> Plan :</span>
+                <span className="font-medium">{planName}</span>
+                
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Joined :</span>
+                <span>{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
+                
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> Expiry :</span>
+                <span className={status === 'expired' ? 'text-destructive font-bold' : 'font-medium'}>
+                    {format(parseISO(member.expiryDate), 'dd-MM-yyyy')}
+                </span>
+                
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Mobile :</span>
+                <span>{member.mobileNumber || "N/A"}</span>
+                
+                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Address :</span>
+                <span className="line-clamp-1 text-xs" title={member.address}>{member.address}</span>
+
+                <span className="font-bold text-muted-foreground">Status :</span>
+                <div>
+                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize" data-badge="status">
+                    {status}
+                  </Badge>
+                </div>
+             </div>
+          </CardContent>
+
+          <div className="p-4 flex-shrink-0 flex items-start justify-center">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Avatar className="h-24 w-24 rounded-md border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity">
+                        <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
+                        <AvatarFallback className="rounded-none">{member.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                </DialogTrigger>
+                <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
+                    <DialogHeader>
+                      <DialogTitle className="sr-only">Photo of {member.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="relative w-full aspect-square">
                         <Image
-                            src={gymIconUrl}
-                            alt={`${gymName || 'Gym'} logo`}
+                            src={member.imageUrl}
+                            alt={`Photo of ${member.name}`}
                             fill
-                            className="object-cover"
-                            crossOrigin="anonymous"
+                            className="object-contain rounded-md"
                         />
                     </div>
-                  )}
-                  <h2 className="text-xl font-bold whitespace-pre-wrap">{gymName}</h2>
-                </div>
-                <div className="p-2 px-3 text-left w-1/2 border-l-2 border-primary-foreground/30">
-                   <p className="text-sm leading-tight whitespace-pre-wrap">{gymAddress || 'Address not set'}</p>
-                </div>
-            </div>
-            <div className="flex flex-col sm:flex-row">
-              <div className="p-3 flex justify-center items-center w-full sm:w-auto">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-primary/50 flex-shrink-0 cursor-pointer">
-                          <Image
-                              src={member.imageUrl}
-                              alt={`Photo of ${member.name}`}
-                              fill
-                              className="object-cover"
-                              crossOrigin="anonymous"
-                          />
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
-                        <DialogHeader>
-                          <DialogTitle className="sr-only">Photo of {member.name}</DialogTitle>
-                        </DialogHeader>
-                        <div className="relative w-full aspect-square">
-                            <Image
-                                src={member.imageUrl}
-                                alt={`Photo of ${member.name}`}
-                                fill
-                                className="object-contain rounded-md"
-                                crossOrigin="anonymous"
-                            />
-                        </div>
-                    </DialogContent>
-                  </Dialog>
-              </div>
-              <CardContent className="p-3 pt-0 flex flex-col justify-center items-start w-full sm:w-auto">
-                  <div className='text-left'>
-                      <h3 className="text-2xl font-bold font-headline leading-tight">{member.name}</h3>
-                      {member.memberId && <p className="text-lg text-muted-foreground">ID: {member.memberId}</p>}
-                      <p className="text-lg text-muted-foreground">{planName} Plan</p>
-                  </div>
-                  <div className="text-left text-base w-full space-y-1 text-muted-foreground mt-2">
-                      <div className='flex items-center gap-2'><Phone className='w-5 h-5' /><span>{member.mobileNumber || "No contact info"}</span></div>
-                      <div className='flex items-start gap-2'><MapPin className='w-5 h-5 mt-0.5 flex-shrink-0' /><span className="break-words">{member.address}</span></div>
-                      <div className='flex items-center gap-2'><Calendar className='w-5 h-5' /><span className='text-chart-2 font-semibold'>Joined: {format(parseISO(member.joinDate), 'MMM dd, yyyy')}</span></div>
-                      <div className='flex items-center gap-2'><CalendarClock className='w-5 h-5' /><span className='text-destructive font-semibold'>Expires: {format(parseISO(member.expiryDate), 'MMM dd, yyyy')}</span></div>
-                  </div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize text-lg px-4 py-1 mt-3" data-badge="status">{status}</Badge>
-              </CardContent>
-            </div>
+                </DialogContent>
+            </Dialog>
+          </div>
         </div>
-        <CardFooter className="p-2 bg-muted/50 flex items-center justify-around">
+
+        {/* Action Sidebar - Matches PaymentStatusCard layout */}
+        <div className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l bg-muted/30">
           <EditMemberDialog member={member} />
           
-          <Button asChild variant="outline" size="icon" disabled={!member.mobileNumber}>
+          <Button 
+            asChild 
+            variant="ghost" 
+            className="flex-1 w-full rounded-none hover:bg-blue-500 hover:text-white" 
+            disabled={!member.mobileNumber}
+          >
             {member.mobileNumber ? (
-              <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
-                  <PhoneCall className="h-5 w-5" />
-                  <span className="sr-only">Call</span>
-              </a>
+                <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
+                    <PhoneCall className="h-5 w-5" />
+                </a>
             ) : (
-              <span title="No contact number saved">
-                  <PhoneCall className="h-5 w-5 opacity-30" />
-                  <span className="sr-only">Call Disabled</span>
-              </span>
+                <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>
             )}
           </Button>
 
@@ -322,8 +316,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
           {!attendanceRecord ? (
               <Button
-                  variant="outline"
-                  size="icon"
+                  variant="ghost"
+                  className="flex-1 w-full rounded-none hover:bg-green-500 hover:text-white"
                   onClick={handleCheckIn}
                   disabled={isAttendanceLoading}
                   title="Check In"
@@ -332,9 +326,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               </Button>
           ) : !isCheckedOut ? (
               <Button
-                  variant="default"
-                  className="bg-chart-2 hover:bg-chart-2/90"
-                  size="icon"
+                  variant="ghost"
+                  className="flex-1 w-full rounded-none bg-chart-2 text-white hover:bg-chart-2/90"
                   onClick={handleCheckOut}
                   disabled={isAttendanceLoading}
                   title="Check Out"
@@ -342,35 +335,66 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
               </Button>
           ) : (
-              <Button variant="outline" size="icon" disabled title="Attendance completed">
+              <Button variant="ghost" className="flex-1 w-full rounded-none opacity-50 cursor-not-allowed" disabled>
                   <Fingerprint className="h-5 w-5 text-green-500" />
               </Button>
           )}
 
-          <Button variant="outline" size="icon" onClick={handleShare} disabled={isSharing || !member.mobileNumber}>
-            {isSharing ? (
-              <LoaderCircle className="h-5 w-5 animate-spin" />
-            ) : (
-              <Share2 className="h-5 w-5" />
-            )}
-            <span className='sr-only'>Share</span>
+          <Button 
+            variant="ghost" 
+            className="flex-1 w-full rounded-none hover:bg-indigo-500 hover:text-white" 
+            onClick={handleShare} 
+            disabled={isSharing || !member.mobileNumber}
+          >
+            {isSharing ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
           </Button>
           
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
-
-        </CardFooter>
+        </div>
       </Card>
-      
-      {isExpiryShare && plan && (
-        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+
+      {/* Hidden elements for ID Card / Notice Generation */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+          {/* Portrait ID Card Representation for Sharing */}
+          <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px]">
+            <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
+                <div className="flex items-center gap-3 w-full">
+                  {gymIconUrl && (
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden flex-shrink-0">
+                        <Image src={gymIconUrl} alt="Logo" fill className="object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-xl font-bold">{gymName}</h2>
+                    <p className="text-[10px] leading-tight opacity-80">{gymAddress}</p>
+                  </div>
+                </div>
+            </div>
+            <div className="flex flex-col items-center">
+                <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-primary mb-4">
+                    <Image src={member.imageUrl} alt={member.name} fill className="object-cover" />
+                </div>
+                <h3 className="text-3xl font-bold mb-1">{member.name}</h3>
+                <p className="text-xl text-muted-foreground mb-4 font-mono">ID: {member.memberId}</p>
+                <div className="w-full space-y-2 text-base text-left border-t pt-4">
+                    <div className="flex justify-between"><strong>Plan:</strong> <span>{planName}</span></div>
+                    <div className="flex justify-between"><strong>Mobile:</strong> <span>{member.mobileNumber}</span></div>
+                    <div className="flex justify-between"><strong>Joined:</strong> <span>{format(parseISO(member.joinDate), 'PPP')}</span></div>
+                    <div className="flex justify-between text-destructive font-bold"><strong>Expires:</strong> <span>{format(parseISO(member.expiryDate), 'PPP')}</span></div>
+                </div>
+                <Badge variant={getStatusBadgeVariant(status)} className="mt-6 scale-150" data-badge="status">{status}</Badge>
+            </div>
+          </div>
+
+          {isExpiryShare && plan && (
             <DueNotice 
                 ref={noticeRef}
                 member={member}
                 plan={plan}
                 gymName={gymName}
             />
-        </div>
-      )}
+          )}
+      </div>
     </>
   );
 }

@@ -107,6 +107,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         useCORS: true,
         scale: 2,
         backgroundColor: '#ffffff',
+        logging: false,
       });
       
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -116,8 +117,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       }
 
       const fileName = isExpiryShare 
-        ? `${member.name.replace(/ /g, '_')}_Expiry_Notice.png`
-        : `${member.name.replace(/ /g, '_')}_ID_Card.png`;
+        ? `${member.name.replace(/ /g, '_')}_Notice.png`
+        : `${member.name.replace(/ /g, '_')}_ID.png`;
 
       const file = new File([blob], fileName, { type: 'image/png' });
       
@@ -131,64 +132,38 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       }
 
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // 1. Try Native Web Share API with File (Fastest/Best on Mobile)
+      // 1. FASTEST: Native File Share (Mobile Apps)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
+            title: isExpiryShare ? 'Gym Notice' : 'Gym ID',
             text: message,
           });
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Web share with files failed, trying fallback.", err);
+            console.log("Native share failed, using deep link fallback.", err);
         }
       }
 
-      // 2. Fallback: Upload to Cloud and share link (For desktop or browsers that don't support file sharing)
-      const formData = new FormData();
-      formData.append('image', blob, fileName);
-      const uploadResult = await uploadImage(formData);
-
-      if (uploadResult.error || !uploadResult.url) {
-          throw new Error(uploadResult.error || "Could not get image URL.");
-      }
-
-      const messageWithUrl = `${message}\n\nView here: ${uploadResult.url}`;
+      // 2. Fallback: Direct WhatsApp App Launch (bypasses landing page)
+      const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
       
-      // Try native share again with just the URL
-      if (navigator.share) {
-          try {
-              await navigator.share({
-                  title: isExpiryShare ? 'Gym Renewal Notice' : 'Gym ID Card',
-                  text: messageWithUrl,
-              });
-              setIsSharing(false);
-              return;
-          } catch (e) {
-              console.log("Web share with URL failed, trying direct deep link.");
-          }
-      }
+      // We try to trigger the app directly
+      window.location.href = whatsappDeepLink;
 
-      // 3. Final Fallback: Direct WhatsApp Deep Link
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(messageWithUrl)}`;
-      const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(messageWithUrl)}`;
-
-      // Attempt deep link launch in a way that breaks out of iframes
-      window.open(whatsappUrl, '_blank');
-      
-      // Small delay to check if we should try the web fallback
+      // Small delay then try web fallback if deep link failed
       setTimeout(() => {
+          const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
           window.open(webFallback, '_blank');
       }, 500);
 
       toast({
         title: "Opening WhatsApp",
-        description: "Redirecting to your share...",
+        description: "Your share is being prepared...",
       });
 
     } catch (error) {

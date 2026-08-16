@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -90,10 +91,9 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         const message = `Hello ${member.name}, we missed you! ${riskReason}.\n\nSuggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you back soon!`;
         
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-        if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
         if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-        const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+        const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
         
         if (navigator.share) {
             try {
@@ -107,8 +107,16 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             }
         }
 
-        window.location.href = whatsappUrl;
-        toast({ title: "Opening WhatsApp", description: "Redirecting to your share..." });
+        // Force native app launch
+        window.location.href = whatsappDeepLink;
+        
+        // Fallback for desktop
+        setTimeout(() => {
+            const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+            window.open(webFallback, '_blank');
+        }, 500);
+
+        toast({ title: "Opening WhatsApp", description: "Launching your native application..." });
     };
 
     const renderContent = () => {

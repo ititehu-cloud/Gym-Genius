@@ -97,10 +97,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     try {
-      // 1. Instant Capture
+      // 1. High-Speed Capture
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 1.5,
+        scale: 1.2, // Optimized scale for speed
         backgroundColor: '#ffffff',
         logging: false,
       });
@@ -119,7 +119,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         ? `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue, please renew. Amount: ₹${plan?.price || 'N/A'}`
         : `Hello ${member.name}, here is your gym ID card for ${gymName || 'Sardar Fitness'}.`;
 
-      // 2. Priority: Native Share API (Attaches actual image file)
+      // 2. Priority: Native Share API (Fastest, attaches actual image file)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -130,14 +130,18 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            // Cancelled or failed, proceed to cloud fallback
+            // Cancelled or failed, proceed to deep-link fallback
         }
       }
 
-      // 3. Fallback: Cloud Link Share (Generates a public URL for the "link" sharing)
+      // 3. Fallback: Direct WhatsApp Deep-Link (Skips landing page)
+      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+
+      // Show toast as upload is starting
       toast({
-          title: "Generating ID Link...",
-          description: "Attaching image for WhatsApp share.",
+          title: "Generating Image Link...",
+          description: "This allows WhatsApp to display the card image.",
       });
 
       const formData = new FormData();
@@ -146,15 +150,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       let finalMessage = baseMessage;
       if (uploadResult.url) {
-          finalMessage += `\n\nView Image: ${uploadResult.url}`;
+          finalMessage += `\n\nView Card: ${uploadResult.url}`;
       }
 
-      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+      const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
+      const whatsappWebLink = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
 
-      // Open WhatsApp directly with the message and link
-      const whatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(finalMessage)}`;
-      window.open(whatsappUrl, '_blank');
+      // Attempt to launch app directly
+      window.location.href = whatsappDeepLink;
+
+      // Smart fallback for desktop/older browsers
+      setTimeout(() => {
+          if (document.hasFocus()) {
+              window.open(whatsappWebLink, '_blank');
+          }
+      }, 500);
 
     } catch (error) {
         console.error("Sharing failed:", error);

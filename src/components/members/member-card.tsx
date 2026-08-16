@@ -82,38 +82,27 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     setIsSharing(true);
-    toast({
-        title: "Preparing Share...",
-        description: "Generating your card, please wait.",
-    });
-
     const elementToCapture = isExpiryShare ? noticeRef.current : cardRef.current;
     
     if (!elementToCapture) {
         toast({
             variant: "destructive",
             title: "Share Failed",
-            description: `Cannot find ${isExpiryShare ? 'notice' : 'ID card'} element.`,
+            description: "Cannot find capture element.",
         });
         setIsSharing(false);
         return;
     }
 
-    const badgeElement = elementToCapture.querySelector('[data-badge="status"]');
-    if (badgeElement) {
-        (badgeElement as HTMLElement).style.visibility = 'hidden';
-    }
-
     try {
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 1.5, // Reduced scale for faster processing on mobile
+        scale: 1.2, // Balanced for speed and quality
         backgroundColor: '#ffffff',
         logging: false,
       });
       
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-        
       if (!blob) throw new Error("Failed to create image.");
 
       const fileName = isExpiryShare 
@@ -126,15 +115,15 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (isExpiryShare) {
         const expiryStr = format(parseISO(member.expiryDate), 'PPP');
         const renewalAmount = plan?.price || 'N/A';
-        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan.\n\nRenewal Amount: ₹${renewalAmount}`;
+        message = `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue your workouts, please renew your plan. Renewal Amount: ₹${renewalAmount}`;
       } else {
-        message = `Hello ${member.name}, here is your gym ID card.`;
+        message = `Hello ${member.name}, here is your gym ID card for ${gymName || 'our gym'}.`;
       }
 
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // 1. Native System Share (Supports Image + Text)
+      // 1. Try Native Share API First (Fastest)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -145,31 +134,29 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            console.log("Native share cancelled or failed, falling back.");
+            // User cancelled or share failed, proceed to direct WhatsApp deep link
         }
       }
 
-      // 2. Direct WhatsApp Application Launch (Bypasses landing page)
-      const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      window.location.href = whatsappDeepLink;
-
-      // 3. Last Resort Fallback (Web browser)
+      // 2. Direct WhatsApp Deep Link (Bypasses landing page)
+      // This is the most effective way to open the app directly on Android
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      window.location.href = whatsappUrl;
+      
+      // 3. Fallback for desktop/unsupported deep links
       setTimeout(() => {
           const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
           window.open(webFallback, '_blank');
-      }, 700);
+      }, 500);
 
     } catch (error) {
         console.error("Sharing failed:", error);
         toast({
             variant: "destructive",
             title: "Share Failed",
-            description: "Could not share. Please check device permissions.",
+            description: "An unexpected error occurred while sharing.",
         });
     } finally {
-        if (badgeElement) {
-            (badgeElement as HTMLElement).style.visibility = 'visible';
-        }
         setIsSharing(false);
     }
   };
@@ -258,7 +245,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
                 <span className="font-bold text-muted-foreground">Status :</span>
                 <div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize" data-badge="status">
+                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize">
                     {status}
                   </Badge>
                 </div>
@@ -350,11 +337,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       </Card>
 
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px]">
+          <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-primary-foreground/20 flex items-center justify-center">
+                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
                         <img 
                           src={gymIconUrl} 
                           alt="Logo" 
@@ -364,13 +351,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     </div>
                   )}
                   <div>
-                    <h2 className="text-xl font-bold leading-tight">{gymName}</h2>
-                    <p className="text-[10px] leading-tight opacity-80">{gymAddress}</p>
+                    <h2 className="text-xl font-bold leading-tight uppercase">{gymName}</h2>
+                    <p className="text-[10px] leading-tight opacity-80 uppercase">{gymAddress}</p>
                   </div>
                 </div>
             </div>
             <div className="flex flex-col items-center">
-                <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-primary mb-4 bg-muted">
+                <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
                     <img 
                       src={member.imageUrl} 
                       alt={member.name} 
@@ -378,15 +365,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       crossOrigin="anonymous" 
                     />
                 </div>
-                <h3 className="text-3xl font-bold mb-1">{member.name}</h3>
-                <p className="text-xl text-muted-foreground mb-4 font-mono">ID: {member.memberId}</p>
-                <div className="w-full space-y-2 text-base text-left border-t pt-4">
-                    <div className="flex justify-between"><strong>Plan:</strong> <span>{planName}</span></div>
-                    <div className="flex justify-between"><strong>Mobile:</strong> <span>{member.mobileNumber}</span></div>
-                    <div className="flex justify-between"><strong>Joined:</strong> <span>{format(parseISO(member.joinDate), 'PPP')}</span></div>
-                    <div className="flex justify-between text-destructive font-bold"><strong>Expires:</strong> <span>{format(parseISO(member.expiryDate), 'PPP')}</span></div>
+                <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{member.name}</h3>
+                <div className="border-[3px] border-black p-2 mb-4 bg-white">
+                  <p className="text-3xl font-black tracking-widest font-mono">ID: {member.memberId}</p>
                 </div>
-                <Badge variant={getStatusBadgeVariant(status)} className="mt-6 scale-150" data-badge="status">{status}</Badge>
+                <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
+                    <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>
+                    <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>
+                    <div className="flex justify-between uppercase"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
+                    <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</span></div>
+                </div>
             </div>
           </div>
 

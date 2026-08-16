@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -93,30 +92,32 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
         if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-        const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+        // Direct WhatsApp deep link to bypass browser landing page
+        const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
         
-        if (navigator.share) {
-            try {
+        try {
+            // Priority 1: Native Share API (Text only here)
+            if (navigator.share) {
                 await navigator.share({
                     title: 'Gym Activity Update',
                     text: message,
                 });
                 return;
-            } catch (err) {
-                console.log("Web share failed", err);
             }
+        } catch (err) {
+            // Fallback to deep link
         }
 
         // Force native app launch
-        window.location.href = whatsappDeepLink;
+        window.location.href = whatsappUrl;
         
-        // Fallback for desktop
+        // Fallback for desktop/non-deep-link support
         setTimeout(() => {
-            const webFallback = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+            const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
             window.open(webFallback, '_blank');
         }, 500);
 
-        toast({ title: "Opening WhatsApp", description: "Launching your native application..." });
+        toast({ title: "Opening WhatsApp", description: "Launching native application..." });
     };
 
     const renderContent = () => {

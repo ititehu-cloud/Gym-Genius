@@ -159,9 +159,9 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         <span>{plan.name}</span>
                         <span className="font-bold">Validity :</span>
                         <div className="flex items-center gap-1">
-                            <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
+                            <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yy')}</span>
                             <span className="text-muted-foreground text-xs mx-0.5">to</span>
-                            <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
+                            <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yy')}</span>
                         </div>
                         <span className="font-bold">Amount :</span>
                         <span>₹{totalAmountForPlan.toFixed(2)}</span>

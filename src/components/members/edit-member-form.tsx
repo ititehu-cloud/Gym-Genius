@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,33 +86,18 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     },
   });
 
+  const nameChanged = form.watch('name') !== member.name;
+  const mobileChanged = form.watch('mobileNumber') !== member.mobileNumber;
   const planChanged = form.watch('planId') !== member.planId;
   const joinDateChanged = form.watch('joinDate') !== format(parseISO(member.joinDate), 'yyyy-MM-dd');
 
   function onFormSubmit(values: z.infer<typeof formSchema>) {
     setFormError(null);
     
-    // Check for unique Member ID (excluding current member)
-    const isIdDuplicate = members?.some(m => 
-      m.id !== member.id && 
-      m.memberId.toLowerCase() === values.memberId.toLowerCase()
-    );
-
+    const isIdDuplicate = members?.some(m => m.id !== member.id && m.memberId.toLowerCase() === values.memberId.toLowerCase());
     if (isIdDuplicate) {
-      setFormError(`A member with ID "${values.memberId}" already exists. Please use a unique ID.`);
+      setFormError(`A member with ID "${values.memberId}" already exists.`);
       return;
-    }
-
-    // Check for unique Mobile Number (excluding current member, if provided)
-    if (values.mobileNumber) {
-      const isMobileDuplicate = members?.some(m => 
-        m.id !== member.id && 
-        m.mobileNumber === values.mobileNumber
-      );
-      if (isMobileDuplicate) {
-        setFormError(`A member with mobile number "${values.mobileNumber}" already exists.`);
-        return;
-      }
     }
 
     setFormData(values);
@@ -136,66 +122,41 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             const formData = new FormData();
             formData.append('image', compressedBlob, imageFile.name.replace(/\.[^/.]+$/, ".jpg"));
             const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error) {
-                setFormError(uploadResult.error);
-                setIsSubmitting(false);
-                return;
-            }
-            if (uploadResult.url) {
-                imageUrl = uploadResult.url;
-            }
-        } catch (compressionError: any) {
-            console.error("Image compression error:", compressionError);
-            setFormError(compressionError.message || "Failed to process image. Please try a different one.");
+            if (uploadResult.url) imageUrl = uploadResult.url;
+        } catch (err) {
+            setFormError("Failed to process image.");
             setIsSubmitting(false);
             return;
         }
-    } else if (imagePreview === null) {
-        imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
     }
 
-    if (!plans) {
-      setFormError('Plans not loaded.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const memberDocRef = doc(firestore, "members", member.id);
     const { profilePicture, ...dataToSave } = values;
-
-    const updateData: Partial<Member & {updatedAt: any}> = {
+    const updateData: any = {
         ...dataToSave,
-        mobileNumber: values.mobileNumber || "",
         joinDate: new Date(values.joinDate).toISOString(),
         imageUrl: imageUrl,
         updatedAt: serverTimestamp()
     };
     
-    if(updateExpiry) {
+    // IF critical ID card data changed, clear the pre-generated URL so it regenerates on next share
+    if (nameChanged || mobileChanged || planChanged || updateExpiry || imageFile) {
+      updateData.idCardUrl = null; 
+    }
+
+    if(updateExpiry && plans) {
         const selectedPlan = plans.find(p => p.id === values.planId);
-        if (!selectedPlan) {
-            setFormError('Selected plan not found.');
-            setIsSubmitting(false);
-            return;
+        if (selectedPlan) {
+            updateData.expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration).toISOString();
+            updateData.status = 'active';
         }
-        const newExpiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
-        updateData.expiryDate = newExpiryDate.toISOString();
     }
 
     try {
-      await updateDoc(memberDocRef, updateData);
-
-      toast({
-        title: "Member Updated!",
-        description: `${values.name}'s details have been successfully updated.`,
-      });
-      form.reset({ ...values, profilePicture: null });
+      await updateDoc(doc(firestore, "members", member.id), updateData);
+      toast({ title: "Member Updated!", description: "Details updated successfully." });
       setDialogOpen(false);
     } catch (error) {
-      console.error("Error updating member:", error);
-      const errorMessage = error instanceof Error ? error.message : "There was a problem updating the member. Please try again.";
-      setFormError(errorMessage);
+      setFormError("Update failed.");
     } finally {
       setIsSubmitting(false);
     }
@@ -239,7 +200,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                                 <label htmlFor="picture-upload-edit" className="cursor-pointer">
                                     <div className="relative h-16 w-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden hover:bg-muted/80">
                                     {imagePreview ? (
-                                        <Image src={imagePreview} alt="Profile preview" fill className="object-cover" />
+                                        <Image src={imagePreview} alt="Preview" fill className="object-cover" />
                                     ) : (
                                         <Camera className="h-8 w-8" />
                                     )}
@@ -252,136 +213,46 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                        form.setValue('profilePicture', e.target.files);
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                            setImagePreview(reader.result as string);
-                                        };
-                                        reader.readAsDataURL(file);
+                                          form.setValue('profilePicture', e.target.files);
+                                          const reader = new FileReader();
+                                          reader.onloadend = () => setImagePreview(reader.result as string);
+                                          reader.readAsDataURL(file);
                                         }
                                     }}
                                     />
                                 </label>
                             </FormControl>
-                            <FormMessage />
                         </FormItem>
                     )}
                 />
-                 {imagePreview && (
-                    <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => {
-                        form.setValue('profilePicture', null);
-                        setImagePreview(null);
-                    }}>Remove</Button>
-                )}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="memberId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Member ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., GYM-001" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mobileNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile Number (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="9876543210" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField control={form.control} name="memberId" render={({ field }) => (
+                <FormItem><FormLabel>Member ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="mobileNumber" render={({ field }) => (
+                <FormItem><FormLabel>Mobile</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="joinDate"
-              render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Joining Date</FormLabel>
-                      <FormControl>
-                          <Input
-                              type="date"
-                              {...field}
-                          />
-                      </FormControl>
-                      <FormMessage />
-                  </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="planId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingPlans ? "Loading..." : "Select a plan"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {plans?.map(plan => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField control={form.control} name="joinDate" render={({ field }) => (
+                <FormItem><FormLabel>Join Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="planId" render={({ field }) => (
+                <FormItem><FormLabel>Plan</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+            )} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-             <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Input placeholder="123, Main Street, Anytown..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select member status" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="expired">Expired</SelectItem>
-                                <SelectItem value="due">Due</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-              />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField control={form.control} name="address" render={({ field }) => (
+                <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="expired">Expired</SelectItem><SelectItem value="due">Due</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+            )} />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -395,20 +266,10 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
       </Form>
       <AlertDialog open={isConfirmationOpen} onOpenChange={setConfirmationOpen}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Update Expiry Date?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    You have changed the membership plan or the joining date. Do you want to automatically recalculate and update the membership expiry date based on the new selection?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
+            <AlertDialogHeader><AlertDialogTitle>Update Expiry Date?</AlertDialogTitle><AlertDialogDescription>Would you like to recalculate the expiry date based on the new selection?</AlertDialogDescription></AlertDialogHeader>
             <AlertDialogFooter>
-                <Button variant="outline" onClick={() => formData && handleUpdate(formData, false)} disabled={isSubmitting}>
-                    No, Keep Old Expiry
-                </Button>
-                <AlertDialogAction onClick={() => formData && handleUpdate(formData, true)} disabled={isSubmitting}>
-                    {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Yes, Update Expiry
-                </AlertDialogAction>
+                <Button variant="outline" onClick={() => formData && handleUpdate(formData, false)} disabled={isSubmitting}>No</Button>
+                <AlertDialogAction onClick={() => formData && handleUpdate(formData, true)} disabled={isSubmitting}>Yes</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

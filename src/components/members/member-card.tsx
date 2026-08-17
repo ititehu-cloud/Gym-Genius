@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -32,14 +33,14 @@ type MemberCardProps = {
   gymName?: string | null;
   gymAddress?: string;
   gymIconUrl?: string | null;
-  isExpiryShare?: boolean;
   attendanceRecord?: Attendance;
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, isExpiryShare = false, attendanceRecord }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [isShareType, setIsShareType] = useState<'id' | 'notice'>('id');
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -69,131 +70,111 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         return 'outline';
     }
   };
-  
-  const handleShare = async () => {
+
+  const handleShare = async (type: 'id' | 'notice') => {
     if (isSharing) return;
 
     if (!member.mobileNumber) {
-        toast({
-            variant: 'destructive',
-            title: 'Share Failed',
-            description: "Member does not have a mobile number saved.",
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Share Failed',
+        description: "Member does not have a mobile number saved.",
+      });
+      return;
     }
 
     setIsSharing(true);
-    const elementToCapture = isExpiryShare ? noticeRef.current : cardRef.current;
-    
-    if (!elementToCapture) {
-        toast({
-            variant: "destructive",
-            title: "Share Failed",
-            description: "Cannot find capture element.",
-        });
-        setIsSharing(false);
-        return;
-    }
+    setIsShareType(type);
 
     try {
-      const canvas = await html2canvas(elementToCapture, {
-        useCORS: true,
-        scale: 1.2,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-      
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error("Failed to create image.");
+      let sharedUrl = type === 'id' ? member.idCardUrl : null;
 
-      const fileName = isExpiryShare 
-        ? `${member.name.replace(/ /g, '_')}_Notice.png`
-        : `${member.name.replace(/ /g, '_')}_ID.png`;
+      // If ID card URL is missing or it's a Renewal Notice, generate it now
+      if (!sharedUrl) {
+        toast({ title: "Generating Image...", description: "One-time generation in progress..." });
+        
+        const elementToCapture = type === 'id' ? cardRef.current : noticeRef.current;
+        if (!elementToCapture) throw new Error("Capture area not found");
 
-      const file = new File([blob], fileName, { type: 'image/png' });
-      
-      const expiryStr = format(parseISO(member.expiryDate), 'PPP');
-      const baseMessage = isExpiryShare 
-        ? `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue, please renew. Amount: ₹${plan?.price || 'N/A'}`
-        : `Hello ${member.name}, here is your gym ID card for ${gymName || 'Sardar Fitness'}.`;
+        const canvas = await html2canvas(elementToCapture, {
+          useCORS: true,
+          scale: 1.5,
+          backgroundColor: '#ffffff',
+          logging: false,
+          allowTaint: true,
+        });
 
-      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+        if (!blob) throw new Error("Blob creation failed");
 
-      // Try native share first
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: isExpiryShare ? 'Gym Notice' : 'Gym ID',
-            text: baseMessage,
-          });
-          setIsSharing(false);
-          return;
-        } catch (err) {
-            // Cancelled or failed, proceed to deep-link
+        const file = new File([blob], `${member.name}_${type}.png`, { type: 'image/png' });
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const uploadResult = await uploadImage(formData);
+        if (!uploadResult.url) throw new Error("Upload failed");
+        
+        sharedUrl = uploadResult.url;
+
+        // If it was an ID card, save it back to Firestore for next time
+        if (type === 'id') {
+          await updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
         }
       }
 
-      // Fallback: Direct WhatsApp Deep-Link with Image URL
-      toast({
-          title: "Preparing Share Link...",
-          description: "Directing you to WhatsApp...",
-      });
-
-      const formData = new FormData();
-      formData.append('image', blob, fileName);
-      const uploadResult = await uploadImage(formData);
-
-      let finalMessage = baseMessage;
-      if (uploadResult.url) {
-          finalMessage += `\n\nView Card: ${uploadResult.url}`;
+      // Prepare Message
+      const expiryStr = format(parseISO(member.expiryDate), 'PPP');
+      let message = '';
+      
+      if (type === 'id') {
+        message = `🏋️ ${gymName || 'Your Gym'} ID Card\n\n` +
+          `👤 Name: ${member.name.toUpperCase()}\n` +
+          `🆔 ID: ${member.memberId}\n` +
+          `📅 Expiry: ${expiryStr}\n\n` +
+          `🔗 View Card: ${sharedUrl}`;
+      } else {
+        message = `🔔 RENEWAL NOTICE 🔔\n\n` +
+          `🏋️ From: ${gymName || 'Your Gym'}\n` +
+          `👤 Customer: ${member.name.toUpperCase()}\n` +
+          `💰 Amount Due: ₹${plan?.price || 'N/A'}\n` +
+          `📅 Date: ${expiryStr}\n\n` +
+          `🔗 View Notice: ${sharedUrl}`;
       }
 
-      // Use native protocol to bypass browser landing page
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
+      const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
+
+      // Direct WhatsApp Protocol (High reliability on Android)
+      const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
       window.location.href = whatsappUrl;
 
-      // Smart fallback for non-mobile/desktop
+      // Fallback to Web if Deep-link fails
       setTimeout(() => {
-          if (document.hasFocus()) {
-              const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
-              window.open(webFallback, '_blank');
-          }
-      }, 800);
+        if (document.hasFocus()) {
+          const webUrl = `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(message)}`;
+          window.open(webUrl, '_blank');
+        }
+      }, 1500);
 
     } catch (error) {
-        console.error("Sharing failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Share Failed",
-            description: "An unexpected error occurred while sharing.",
-        });
+      console.error("Sharing failed:", error);
+      toast({ variant: "destructive", title: "Error", description: "Sharing failed. Please try again." });
     } finally {
-        setIsSharing(false);
+      setIsSharing(false);
     }
   };
 
   const handleCheckIn = async () => {
     setIsAttendanceLoading(true);
-    const attendanceCollection = collection(firestore, "attendance");
     try {
-      await addDoc(attendanceCollection, {
+      await addDoc(collection(firestore, "attendance"), {
         memberId: member.id,
         checkInTime: new Date().toISOString(),
         createdAt: serverTimestamp()
       });
-      toast({
-        title: "Checked In!",
-        description: `${member.name} has been checked in for today.`
-      });
+      toast({ title: "Checked In!", description: `${member.name} has been marked present.` });
     } catch (error) {
-      console.error("Error checking in member:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem checking the member in.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Check-in failed." });
     } finally {
       setIsAttendanceLoading(false);
     }
@@ -202,28 +183,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const handleCheckOut = async () => {
     if (!attendanceRecord) return;
     setIsAttendanceLoading(true);
-    const attendanceDocRef = doc(firestore, "attendance", attendanceRecord.id);
     try {
-      await updateDoc(attendanceDocRef, {
+      await updateDoc(doc(firestore, "attendance", attendanceRecord.id), {
         checkOutTime: new Date().toISOString()
       });
-      toast({
-        title: "Checked Out!",
-        description: `${member.name} has been checked out for today.`
-      });
+      toast({ title: "Checked Out!", description: `${member.name} has been marked out.` });
     } catch (error) {
-      console.error("Error checking out member:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem checking the member out.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Check-out failed." });
     } finally {
       setIsAttendanceLoading(false);
     }
   };
-
-  const isCheckedOut = !!attendanceRecord?.checkOutTime;
 
   return (
     <>
@@ -246,44 +216,45 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> Expiry :</span>
-                <span className="text-destructive font-bold">
-                    {format(parseISO(member.expiryDate), 'dd-MM-yyyy')}
-                </span>
+                <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Mobile :</span>
                 <span>{member.mobileNumber || "N/A"}</span>
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Address :</span>
-                <span className="line-clamp-1 text-xs" title={member.address}>{member.address}</span>
+                <span className="line-clamp-1 text-xs">{member.address}</span>
 
                 <span className="font-bold text-muted-foreground">Status :</span>
                 <div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize">
-                    {status}
-                  </Badge>
+                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
                 </div>
+             </div>
+
+             <div className="flex gap-2 mt-4 pt-3 border-t">
+               <Button
+                 variant="outline"
+                 size="sm"
+                 onClick={() => handleShare('notice')}
+                 disabled={isSharing || !member.mobileNumber}
+                 className="flex-1 gap-2 text-xs"
+               >
+                 {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+                 Due Notice
+               </Button>
              </div>
           </CardContent>
 
           <div className="p-4 flex-shrink-0 flex items-start justify-center">
             <Dialog>
                 <DialogTrigger asChild>
-                    <Avatar className="h-24 w-24 rounded-md border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity">
+                    <Avatar className="h-24 w-24 rounded-md border-2 border-primary cursor-pointer hover:opacity-90">
                         <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
-                        <AvatarFallback className="rounded-none">{member.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                 </DialogTrigger>
                 <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
-                    <DialogHeader>
-                      <DialogTitle className="sr-only">Photo of {member.name}</DialogTitle>
-                    </DialogHeader>
                     <div className="relative w-full aspect-square">
-                        <Image
-                            src={member.imageUrl}
-                            alt={`Photo of ${member.name}`}
-                            fill
-                            className="object-contain rounded-md"
-                        />
+                        <Image src={member.imageUrl} alt={member.name} fill className="object-contain rounded-md" />
                     </div>
                 </DialogContent>
             </Dialog>
@@ -293,91 +264,54 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         <div className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l bg-muted/30">
           <EditMemberDialog member={member} />
           
-          <Button 
-            asChild 
-            variant="ghost" 
-            className="flex-1 w-full rounded-none hover:bg-blue-500 hover:text-white" 
-            disabled={!member.mobileNumber}
-          >
-            {member.mobileNumber ? (
-                <a href={`tel:${member.mobileNumber}`} title={`Call ${member.name}`}>
-                    <PhoneCall className="h-5 w-5" />
-                </a>
-            ) : (
-                <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>
-            )}
+          <Button asChild variant="ghost" className="flex-1 w-full rounded-none hover:bg-blue-500 hover:text-white" disabled={!member.mobileNumber}>
+            {member.mobileNumber ? <a href={`tel:${member.mobileNumber}`}><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
           </Button>
 
           <RenewPlanDialog member={member} />
 
-          {!attendanceRecord ? (
-              <Button
-                  variant="ghost"
-                  className="flex-1 w-full rounded-none hover:bg-green-500 hover:text-white"
-                  onClick={handleCheckIn}
-                  disabled={isAttendanceLoading}
-                  title="Check In"
-              >
-                  {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
-              </Button>
-          ) : !isCheckedOut ? (
-              <Button
-                  variant="ghost"
-                  className="flex-1 w-full rounded-none bg-chart-2 text-white hover:bg-chart-2/90"
-                  onClick={handleCheckOut}
-                  disabled={isAttendanceLoading}
-                  title="Check Out"
-              >
-                  {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
-              </Button>
-          ) : (
-              <Button variant="ghost" className="flex-1 w-full rounded-none opacity-50 cursor-not-allowed" disabled>
-                  <Fingerprint className="h-5 w-5 text-green-500" />
-              </Button>
-          )}
+          <Button
+              variant="ghost"
+              className={`flex-1 w-full rounded-none ${attendanceRecord && !attendanceRecord.checkOutTime ? 'bg-chart-2 text-white' : 'hover:bg-green-500 hover:text-white'}`}
+              onClick={attendanceRecord && !attendanceRecord.checkOutTime ? handleCheckOut : handleCheckIn}
+              disabled={isAttendanceLoading || (!!attendanceRecord?.checkOutTime)}
+          >
+              {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
+          </Button>
 
           <Button 
             variant="ghost" 
             className="flex-1 w-full rounded-none hover:bg-indigo-500 hover:text-white" 
-            onClick={handleShare} 
+            onClick={() => handleShare('id')} 
             disabled={isSharing || !member.mobileNumber}
+            title="Share ID Card"
           >
-            {isSharing ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
+            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
           </Button>
           
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
         </div>
       </Card>
 
-      {/* Hidden high-res capture areas */}
+      {/* Hidden high-res capture area */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
-            <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
+            <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-24 w-24 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
-                        <img 
-                          src={gymIconUrl} 
-                          alt="Logo" 
-                          className="h-full w-full object-contain" 
-                          crossOrigin="anonymous" 
-                        />
+                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
+                        <img src={gymIconUrl} alt="Logo" className="h-full w-full object-contain" />
                     </div>
                   )}
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold leading-tight uppercase">{gymName}</h2>
-                    <p className="text-[10px] leading-tight opacity-80 uppercase">{gymAddress}</p>
+                    <h2 className="text-xl font-bold uppercase">{gymName || 'Your Gym'}</h2>
+                    <p className="text-[10px] opacity-80 uppercase">{gymAddress || ''}</p>
                   </div>
                 </div>
             </div>
             <div className="flex flex-col items-center">
                 <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
-                    <img 
-                      src={member.imageUrl} 
-                      alt={member.name} 
-                      className="h-full w-full object-cover" 
-                      crossOrigin="anonymous" 
-                    />
+                    <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                 </div>
                 <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{member.name}</h3>
                 <div className="border-[3px] border-black p-2 mb-4 bg-white">
@@ -392,14 +326,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             </div>
           </div>
 
-          {isExpiryShare && plan && (
-            <DueNotice 
-                ref={noticeRef}
-                member={member}
-                plan={plan}
-                gymName={gymName}
-            />
-          )}
+          <DueNotice ref={noticeRef} member={member} plan={plan!} gymName={gymName} />
       </div>
     </>
   );

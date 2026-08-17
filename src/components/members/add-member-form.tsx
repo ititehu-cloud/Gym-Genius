@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,16 +22,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
-import { addMonths, format } from "date-fns";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import type { Plan, Member } from "@/lib/types";
+import { addMonths, format, parseISO } from "date-fns";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import type { Plan, Member, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { compressImage } from "@/lib/utils";
+import html2canvas from "html2canvas";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -49,15 +51,25 @@ type AddMemberFormProps = {
 export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  
+  // Ref for hidden ID card generation
+  const cardCaptureRef = useRef<HTMLDivElement>(null);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection<Member>(membersRef);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +82,36 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     },
   });
 
+  async function generateAndUploadIdCard(memberData: any, planName: string): Promise<string | null> {
+    if (!cardCaptureRef.current) return null;
+    
+    try {
+      // Small delay to ensure the hidden DOM reflects the new state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const canvas = await html2canvas(cardCaptureRef.current, {
+        useCORS: true,
+        scale: 1.5,
+        backgroundColor: '#ffffff',
+        logging: false,
+        allowTaint: true,
+      });
+      
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+      if (!blob) return null;
+
+      const file = new File([blob], `${memberData.name}_ID.png`, { type: 'image/png' });
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const uploadResult = await uploadImage(formData);
+      return uploadResult.url || null;
+    } catch (err) {
+      console.error("ID Card Pre-generation failed:", err);
+      return null;
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     setFormError(null);
@@ -80,16 +122,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       setFormError(`A member with ID "${values.memberId}" already exists. Please use a unique ID.`);
       setIsSubmitting(false);
       return;
-    }
-
-    // Check for unique Mobile Number (if provided)
-    if (values.mobileNumber) {
-      const isMobileDuplicate = members?.some(m => m.mobileNumber === values.mobileNumber);
-      if (isMobileDuplicate) {
-        setFormError(`A member with mobile number "${values.mobileNumber}" already exists.`);
-        setIsSubmitting(false);
-        return;
-      }
     }
 
     let imageUrl: string | undefined = undefined;
@@ -112,7 +144,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             }
         } catch (compressionError: any) {
             console.error("Image compression error:", compressionError);
-            setFormError(compressionError.message || "Failed to process image. Please try a different one.");
+            setFormError("Failed to process image. Please try a different one.");
             setIsSubmitting(false);
             return;
         }
@@ -122,13 +154,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
     }
 
-    if (!plans) {
-        setFormError('Plans not loaded. Cannot calculate expiry date.');
-        setIsSubmitting(false);
-        return;
-    }
-
-    const selectedPlan = plans.find(p => p.id === values.planId);
+    const selectedPlan = plans?.find(p => p.id === values.planId);
     if (!selectedPlan) {
         setFormError('Selected plan not found.');
         setIsSubmitting(false);
@@ -137,13 +163,14 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     
     const expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
     
-    const { profilePicture, ...dataToSave } = values;
-
     try {
       const membersCollection = collection(firestore, "members");
-      await addDoc(membersCollection, {
-        ...dataToSave,
-        mobileNumber: values.mobileNumber || "", // Save empty if not provided
+      const newMemberDoc = await addDoc(membersCollection, {
+        memberId: values.memberId,
+        name: values.name,
+        address: values.address,
+        planId: values.planId,
+        mobileNumber: values.mobileNumber || "",
         joinDate: new Date(values.joinDate).toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
@@ -151,20 +178,37 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         createdAt: serverTimestamp()
       });
 
+      // Now generate the ID card in the background and save the link
+      toast({ title: "Member Added", description: "Generating digital ID card..." });
+      
+      const idCardUrl = await generateAndUploadIdCard({
+        ...values,
+        imageUrl,
+        expiryDate: expiryDate.toISOString()
+      }, selectedPlan.name);
+
+      if (idCardUrl) {
+        await updateDoc(doc(firestore, "members", newMemberDoc.id), {
+          idCardUrl: idCardUrl
+        });
+      }
+
       toast({
-        title: "Member Added!",
-        description: `${values.name} has been successfully added.`,
+        title: "Member Ready!",
+        description: `${values.name} has been successfully added with a generated ID card.`,
       });
+      
       form.reset();
       setDialogOpen(false);
     } catch (error) {
       console.error("Error adding member:", error);
-      const errorMessage = error instanceof Error ? error.message : "There was a problem adding the member. Please try again.";
-      setFormError(errorMessage);
+      setFormError("There was a problem adding the member. Please try again.");
     } finally {
         setIsSubmitting(false);
     }
   }
+
+  const selectedPlan = plans?.find(p => p.id === form.watch('planId'));
 
   return (
     <Form {...form}>
@@ -231,16 +275,10 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                         </FormItem>
                     )}
                 />
-                {imagePreview && (
-                    <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => {
-                        form.setValue('profilePicture', null);
-                        setImagePreview(null);
-                    }}>Remove</Button>
-                )}
             </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="memberId"
@@ -248,7 +286,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               <FormItem>
                 <FormLabel>Member ID</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., GYM-001" {...field} />
+                  <Input placeholder="GYM-001" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -259,7 +297,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             name="mobileNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Mobile Number (Optional)</FormLabel>
+                <FormLabel>Mobile</FormLabel>
                 <FormControl>
                   <Input placeholder="9876543210" {...field} />
                 </FormControl>
@@ -268,18 +306,16 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             )}
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="joinDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Joining Date</FormLabel>
+                <FormLabel>Join Date</FormLabel>
                 <FormControl>
-                  <Input
-                    type="date"
-                    {...field}
-                  />
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -291,18 +327,14 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Plan</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPlans}>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={isLoadingPlans ? "Loading..." : "Select a plan"} />
+                      <SelectValue placeholder="Select plan" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {plans?.map(plan => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </SelectItem>
-                    ))}
+                    {plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -310,6 +342,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             )}
           />
         </div>
+
         <FormField
           control={form.control}
           name="address"
@@ -317,7 +350,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input placeholder="123, Main Street, Anytown..." {...field} />
+                <Input placeholder="Main St..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -330,6 +363,44 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                 Add Member
             </Button>
+        </div>
+
+        {/* Hidden high-res capture area for ID card generation on-the-fly */}
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+          <div ref={cardCaptureRef} className="p-4 bg-white pb-12 w-[400px] text-black">
+              <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
+                  <div className="flex items-center gap-3 w-full">
+                    {userProfile?.icon && (
+                      <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
+                          <img src={userProfile.icon} alt="Logo" className="h-full w-full object-contain" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold uppercase">{userProfile?.displayName || 'Gym Genius'}</h2>
+                      <p className="text-[10px] opacity-80 uppercase">{userProfile?.displayAddress || ''}</p>
+                    </div>
+                  </div>
+              </div>
+              <div className="flex flex-col items-center">
+                  <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
+                      {imagePreview || imageUrl ? (
+                        <img src={imagePreview || imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-muted flex items-center justify-center text-muted-foreground">PHOTO</div>
+                      )}
+                  </div>
+                  <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{form.watch('name') || 'NAME'}</h3>
+                  <div className="border-[3px] border-black p-2 mb-4 bg-white">
+                    <p className="text-3xl font-black tracking-widest font-mono">ID: {form.watch('memberId') || 'ID'}</p>
+                  </div>
+                  <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
+                      <div className="flex justify-between uppercase"><span>Plan</span> <span>{selectedPlan?.name || 'N/A'}</span></div>
+                      <div className="flex justify-between uppercase"><span>Mobile</span> <span>{form.watch('mobileNumber') || 'N/A'}</span></div>
+                      <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</span></div>
+                      <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</span></div>
+                  </div>
+              </div>
+          </div>
         </div>
       </form>
     </Form>

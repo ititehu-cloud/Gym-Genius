@@ -6,6 +6,7 @@ export type Member = {
   mobileNumber?: string; // Optional field
   address: string;
   imageUrl: string;
+  idCardUrl?: string; // Permanent link to the generated ID card image
   planId: string;
   joinDate: string; // Should be ISO string
   expiryDate: string; // Should be ISO string

@@ -134,7 +134,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
         }
 
-        message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 ID: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
+        message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
       } else {
         message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
       }
@@ -196,7 +196,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <span className="font-bold">Name :</span>
                 <span className="font-semibold text-lg">{member.name}</span>
                 
-                <span className="font-bold">M.ship Type :</span>
+                <span className="font-bold">Plan Type :</span>
                 <span>{planName}</span>
                 
                 <span className="font-bold">Joined :</span>
@@ -322,9 +322,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                 </div>
                 <h3 className="text-4xl font-black mb-4 uppercase tracking-tight text-center px-2">{member.name}</h3>
-                <p className="text-xl font-bold mb-6">ID: {member.memberId}</p>
+                <p className="text-xl font-bold mb-6">Member Id: {member.memberId}</p>
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
-                    <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>
+                    <div className="flex justify-between uppercase"><span>Plan Type</span> <span>{planName}</span></div>
                     <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>
                     <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
                     <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</span></div>

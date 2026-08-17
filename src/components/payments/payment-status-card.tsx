@@ -144,8 +144,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             return;
         }
         
-        // Navigation triggers Android's shouldOverrideUrlLoading interception
-        // This is the cleanest way to open in a Chrome Custom Tab
         window.location.href = `/receipt/${latestPayment.id}`;
     };
     
@@ -158,7 +156,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         <span>{member.memberId}</span>
                         <span className="font-bold">Name :</span>
                         <span className="font-semibold text-lg">{member.name}</span>
-                        <span className="font-bold">M.ship Type :</span>
+                        <span className="font-bold">Plan Type :</span>
                         <span>{plan.name}</span>
                         <span className="font-bold">Validity :</span>
                         <span>{validity}</span>

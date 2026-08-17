@@ -127,26 +127,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
 
-      // Prioritize system share if image was freshly generated (allows attaching the file directly)
-      if (navigator.share && !member.idCardUrl) {
-          try {
-              // Convert blob to file again for sharing if it's the fresh one
-              const elementToCapture = type === 'id' ? cardRef.current : noticeRef.current;
-              const canvas = await html2canvas(elementToCapture!, { useCORS: true, scale: 1.2 });
-              const shareBlob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-              if (shareBlob) {
-                  const shareFile = new File([shareBlob], `${member.name}_${type}.png`, { type: 'image/png' });
-                  await navigator.share({
-                      title: 'Gym Share',
-                      text: message,
-                      files: [shareFile]
-                  });
-                  setIsSharing(false);
-                  return;
-              }
-          } catch (e) {}
-      }
-
       // Direct WhatsApp native application launch
       const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
       window.location.href = whatsappUrl;
@@ -311,10 +291,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
                     <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                 </div>
-                <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{member.name}</h3>
-                <div className="mb-4 bg-white">
-                  <p className="text-xl font-black tracking-widest font-mono">ID: {member.memberId}</p>
-                </div>
+                <h3 className="text-4xl font-black mb-4 uppercase tracking-tight">{member.name}</h3>
+                <p className="text-xl font-black tracking-widest font-mono mb-4">ID: {member.memberId}</p>
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                     <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>
                     <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>

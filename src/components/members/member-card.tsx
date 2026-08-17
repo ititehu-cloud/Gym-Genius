@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import RenewPlanDialog from './renew-plan-dialog';
-import DueNotice from './due-notice';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { uploadImage } from '@/app/actions';
@@ -35,7 +34,6 @@ type MemberCardProps = {
 
 export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const noticeRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isShareType, setIsShareType] = useState<'id' | 'notice'>('id');
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
@@ -84,45 +82,48 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     setIsShareType(type);
 
     try {
-      // For ID cards, prioritize the saved URL if it exists
-      let sharedUrl = type === 'id' ? member.idCardUrl : null;
+      const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
+      let message = "";
 
-      // Only regenerate if missing URL or if it's a Renewal Notice
-      if (!sharedUrl) {
-        toast({ title: "Sharing...", description: "Generating high-speed share link..." });
-        
-        const elementToCapture = type === 'id' ? cardRef.current : noticeRef.current;
-        if (!elementToCapture) throw new Error("Capture target missing");
+      if (type === 'id') {
+        // For ID cards, prioritize the saved URL (generated when member was added)
+        let sharedUrl = member.idCardUrl || null;
 
-        const canvas = await html2canvas(elementToCapture, {
-          useCORS: true,
-          scale: 1.2,
-          backgroundColor: '#ffffff',
-          logging: false,
-        });
+        // Fallback: Regenerate only if missing (e.g. for members added before this update)
+        if (!sharedUrl) {
+          toast({ title: "Sharing...", description: "Generating high-speed share link..." });
+          
+          const elementToCapture = cardRef.current;
+          if (!elementToCapture) throw new Error("Capture target missing");
 
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
-        if (!blob) throw new Error("Image creation failed");
+          const canvas = await html2canvas(elementToCapture, {
+            useCORS: true,
+            scale: 1.2,
+            backgroundColor: '#ffffff',
+            logging: false,
+          });
 
-        const file = new File([blob], `${member.name}_${type}.png`, { type: 'image/png' });
-        const formData = new FormData();
-        formData.append('image', file);
-        
-        const uploadResult = await uploadImage(formData);
-        if (!uploadResult.url) throw new Error("Upload failed");
-        
-        sharedUrl = uploadResult.url;
+          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+          if (!blob) throw new Error("Image creation failed");
 
-        // Save the generated link back to Firestore for future instant sharing
-        if (type === 'id') {
+          const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          const uploadResult = await uploadImage(formData);
+          if (!uploadResult.url) throw new Error("Upload failed");
+          
+          sharedUrl = uploadResult.url;
+
+          // Save the generated link back to Firestore for future instant sharing
           updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
         }
-      }
 
-      const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
-      const message = type === 'id' 
-        ? `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 ID: ${member.memberId}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`
-        : `🔔 RENEWAL NOTICE\n\n👤 Customer: ${member.name.toUpperCase()}\n💰 Amount: ₹${plan?.price || 'N/A'}\n📅 Due Date: ${expiryStr}\n\n🔗 View Notice: ${sharedUrl}`;
+        message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 ID: ${member.memberId}\n📅 Joined: ${format(parseISO(member.joinDate), 'dd MMM yyyy')}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
+      } else {
+        // Text-only Renewal Notice (No image generation requested)
+        message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
+      }
 
       const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
@@ -271,13 +272,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
       </Card>
 
-      {/* Hidden capture areas */}
+      {/* Hidden capture area - Only for ID Card */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
                 <div className="flex items-center gap-3 w-full">
                   {gymIconUrl && (
-                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
+                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
                         <img src={gymIconUrl} alt="Logo" className="h-full w-full object-contain" />
                     </div>
                   )}
@@ -301,8 +302,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
           </div>
-
-          <DueNotice ref={noticeRef} member={member} plan={plan!} gymName={gymName} />
       </div>
     </>
   );

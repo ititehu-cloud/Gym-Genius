@@ -154,7 +154,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             <div className="flex justify-between pr-12">
                 <CardContent className="p-4 flex-grow space-y-2">
                     <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
-                        <span className="font-bold">Reg. Number :</span>
+                        <span className="font-bold">Member Id :</span>
                         <span>{member.memberId}</span>
                         <span className="font-bold">Name :</span>
                         <span className="font-semibold text-lg">{member.name}</span>

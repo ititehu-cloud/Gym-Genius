@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -97,10 +96,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     try {
-      // 1. High-Speed Capture
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
-        scale: 1.2, // Optimized scale for faster generation on mobile
+        scale: 1.2,
         backgroundColor: '#ffffff',
         logging: false,
       });
@@ -119,7 +117,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         ? `Hello ${member.name}, your membership at ${gymName || 'the gym'} expires today (${expiryStr}). To continue, please renew. Amount: ₹${plan?.price || 'N/A'}`
         : `Hello ${member.name}, here is your gym ID card for ${gymName || 'Sardar Fitness'}.`;
 
-      // 2. Priority: Native Share API (Attaches actual image file)
+      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+
+      // Try native share first
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -130,15 +131,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           setIsSharing(false);
           return;
         } catch (err) {
-            // Cancelled or failed, proceed to deep-link fallback
+            // Cancelled or failed, proceed to deep-link
         }
       }
 
-      // 3. Fallback: Direct WhatsApp Deep-Link (Skips "Continue to Chat" page)
-      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
-
-      // Show toast as upload is starting
+      // Fallback: Direct WhatsApp Deep-Link with Image URL
       toast({
           title: "Preparing Share Link...",
           description: "Directing you to WhatsApp...",
@@ -153,17 +150,15 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           finalMessage += `\n\nView Card: ${uploadResult.url}`;
       }
 
-      // Native protocol to trigger the app directly
-      const whatsappDeepLink = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
-      const whatsappWebLink = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
+      // Use native protocol to bypass browser landing page
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
+      window.location.href = whatsappUrl;
 
-      // Attempt to launch app directly
-      window.location.href = whatsappDeepLink;
-
-      // Smart fallback for desktop/unsupported browsers
+      // Smart fallback for non-mobile/desktop
       setTimeout(() => {
           if (document.hasFocus()) {
-              window.open(whatsappWebLink, '_blank');
+              const webFallback = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodeURIComponent(finalMessage)}`;
+              window.open(webFallback, '_blank');
           }
       }, 800);
 
@@ -248,10 +243,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <span className="font-medium">{planName}</span>
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Joined :</span>
-                <span>{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
+                <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> Expiry :</span>
-                <span className={status === 'expired' ? 'text-destructive font-bold' : 'font-medium'}>
+                <span className="text-destructive font-bold">
                     {format(parseISO(member.expiryDate), 'dd-MM-yyyy')}
                 </span>
                 
@@ -354,6 +349,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
       </Card>
 
+      {/* Hidden high-res capture areas */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground font-headline -m-4 mb-4 p-4">
@@ -390,7 +386,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                     <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>
                     <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>
-                    <div className="flex justify-between uppercase"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
+                    <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
                     <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</span></div>
                 </div>
             </div>

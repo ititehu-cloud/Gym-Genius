@@ -362,7 +362,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   </div>
                   <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{form.watch('name') || 'NAME'}</h3>
                   <div className="border-[3px] border-black p-2 mb-4 bg-white">
-                    <p className="text-3xl font-black tracking-widest font-mono">ID: {form.watch('memberId') || 'ID'}</p>
+                    <p className="text-xl font-black tracking-widest font-mono">ID: {form.watch('memberId') || 'ID'}</p>
                   </div>
                   <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                       <div className="flex justify-between uppercase"><span>Plan</span> <span>{selectedPlan?.name || 'N/A'}</span></div>

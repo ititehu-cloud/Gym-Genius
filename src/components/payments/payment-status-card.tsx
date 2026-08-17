@@ -148,7 +148,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     
     return (
         <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-            <div className="flex justify-between pr-20">
+            <div className="flex justify-between pr-14">
                 <CardContent className="p-4 flex-grow space-y-2">
                     <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                         <span className="font-bold">Member Id :</span>
@@ -183,7 +183,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 </div>
             </div>
             {showHistory && (
-                <div className="px-4 pb-4 border-t pt-4 pr-20">
+                <div className="px-4 pb-4 border-t pt-4 pr-14">
                     <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
                     {paymentsToShow.length > 0 ? (
                         <ul className="space-y-2">
@@ -205,20 +205,19 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     )}
                 </div>
             )}
-            <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-20 rounded-r-lg overflow-hidden border-l">
-                <Button onClick={() => setRecordPaymentOpen(true)} className="flex-1 w-full flex-col gap-1 rounded-none bg-green-500 hover:bg-green-600 text-white p-1">
-                    <Plus className="h-4 w-4" />
-                    <span className="text-[10px] font-bold uppercase">Pay</span>
+            <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
+                <Button onClick={() => setRecordPaymentOpen(true)} className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white p-0">
+                    <Plus className="h-5 w-5" />
                 </Button>
-                <Button onClick={handleViewReceipt} className="flex-1 w-full flex-col gap-1 rounded-none bg-blue-500 hover:bg-blue-600 text-white p-1">
-                    <Printer className="h-4 w-4" />
-                    <span className="text-[10px] font-bold uppercase">Print</span>
+                <Button onClick={handleViewReceipt} className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white p-0">
+                    <Printer className="h-5 w-5" />
                 </Button>
-                <Button onClick={() => setShowHistory(!showHistory)} className="flex-1 w-full flex-col gap-1 rounded-none bg-indigo-500 hover:bg-indigo-600 text-white p-1">
-                    <History className="h-4 w-4" />
-                    <span className="text-[10px] font-bold uppercase">Hist</span>
+                <Button onClick={() => setShowHistory(!showHistory)} className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white p-0">
+                    <History className="h-5 w-5" />
                 </Button>
-                <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+                <div className="flex-1">
+                  <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
+                </div>
             </div>
 
             <Dialog open={isRecordPaymentOpen} onOpenChange={setRecordPaymentOpen}>

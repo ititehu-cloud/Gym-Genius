@@ -6,7 +6,7 @@ import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, FilePenLine, Trash2 } from 'lucide-react';
+import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, FilePenLine, Trash2, IdCard } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -204,7 +204,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   return (
     <TooltipProvider>
       <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-        <div className="flex justify-between pr-20">
+        <div className="flex justify-between pr-14">
           <CardContent className="p-4 flex-grow space-y-2">
              <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                 <span className="font-bold">Member Id :</span>
@@ -269,21 +269,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-20 rounded-r-lg overflow-hidden border-l">
-          <EditMemberDialog member={member} />
+        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
+          <div className="flex-1">
+            <EditMemberDialog member={member} />
+          </div>
           
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button asChild variant="ghost" className="flex-1 w-full flex-col gap-1 rounded-none bg-sky-500 hover:bg-sky-600 text-white p-1" disabled={!hasPhone}>
+              <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white p-0" disabled={!hasPhone}>
                 {hasPhone ? (
-                  <a href={`tel:${member.mobileNumber}`} className="flex flex-col items-center justify-center w-full h-full">
-                    <PhoneCall className="h-4 w-4" />
-                    <span className="text-[10px] font-bold uppercase">Call</span>
+                  <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full">
+                    <PhoneCall className="h-5 w-5" />
                   </a>
                 ) : (
-                  <div className="opacity-30 flex flex-col items-center">
-                    <PhoneCall className="h-4 w-4" />
-                    <span className="text-[10px] font-bold uppercase">Call</span>
+                  <div className="opacity-30 flex items-center justify-center h-full">
+                    <PhoneCall className="h-5 w-5" />
                   </div>
                 )}
               </Button>
@@ -293,41 +293,38 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
           <Button 
             variant="ghost" 
-            className="flex-1 w-full flex-col gap-1 rounded-none bg-green-500 hover:bg-green-600 text-white p-1"
+            className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white p-0"
             onClick={() => setPaymentOpen(true)}
           >
-            <CreditCard className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase">Pay</span>
+            <CreditCard className="h-5 w-5" />
           </Button>
 
           <Button
               variant="ghost"
-              className={`flex-1 w-full flex-col gap-1 rounded-none p-1 ${isCheckedIn ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
+              className={`flex-1 w-full rounded-none p-0 ${isCheckedIn ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
               onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
               disabled={isAttendanceLoading || (!!attendanceRecord?.checkOutTime)}
           >
-              {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
-              <span className="text-[10px] font-bold uppercase">{isCheckedIn ? 'Out' : 'In'}</span>
+              {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
           </Button>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex-1 w-full">
-                <Button 
-                  variant="ghost" 
-                  className="w-full h-full flex-col gap-1 rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white p-1" 
-                  onClick={() => handleShare('id')} 
-                  disabled={isSharing || !hasPhone}
-                >
-                  {isSharing && isShareType === 'id' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
-                  <span className="text-[10px] font-bold uppercase">ID</span>
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                className="flex-1 w-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white p-0" 
+                onClick={() => handleShare('id')} 
+                disabled={isSharing || !hasPhone}
+              >
+                {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5" />}
+              </Button>
             </TooltipTrigger>
             {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
           </Tooltip>
           
-          <DeleteMemberDialog memberId={member.id} memberName={member.name} />
+          <div className="flex-1">
+            <DeleteMemberDialog memberId={member.id} memberName={member.name} />
+          </div>
         </div>
       </Card>
 

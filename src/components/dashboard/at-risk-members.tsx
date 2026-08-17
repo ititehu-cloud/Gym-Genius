@@ -198,7 +198,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                                         </Button>
                                       </div>
                                     </TooltipTrigger>
-                                    {!hasPhone && <TooltipContent>Missing phone number</TooltipContent>}
+                                    {!hasPhone && <TooltipContent>N/A</TooltipContent>}
                                   </Tooltip>
                               </AccordionContent>
                           </AccordionItem>

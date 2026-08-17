@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -34,7 +33,7 @@ const DueNotice = React.forwardRef<HTMLDivElement, DueNoticeProps>(
             </div>
             <div className="flex justify-between border-b border-gray-100 pb-1">
                 <span className="font-bold">Mobile:</span>
-                <span>{member.mobileNumber}</span>
+                <span>{member.mobileNumber || 'N/A'}</span>
             </div>
             <div className="flex justify-between border-b border-gray-100 pb-1">
                 <span className="font-bold">Expiry Date:</span>

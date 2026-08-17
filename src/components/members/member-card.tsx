@@ -146,18 +146,14 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
       }
 
-      // Robust phone sanitization for WhatsApp
       let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
-      // Handle India logic: if 10 digits, prepend 91. If starts with 0, remove it and prepend 91.
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
       
-      // Try native deep link first
       window.location.href = whatsappUrl;
       
-      // Fallback to web link if window stays focused (suggesting app didn't open)
       setTimeout(() => { 
         if (document.hasFocus()) {
           window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -225,7 +221,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
                 
                 <span className="font-bold">Mobile :</span>
-                <span className={!hasPhone ? 'text-destructive italic' : ''}>{member.mobileNumber || "Missing Phone"}</span>
+                <span>{member.mobileNumber || "N/A"}</span>
 
                 <span className="font-bold">Status :</span>
                 <div>
@@ -249,7 +245,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       </Button>
                     </div>
                  </TooltipTrigger>
-                 {!hasPhone && <TooltipContent>Missing mobile number in profile</TooltipContent>}
+                 {!hasPhone && <TooltipContent>N/A</TooltipContent>}
                </Tooltip>
              </div>
           </CardContent>
@@ -280,7 +276,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 {hasPhone ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
               </Button>
             </TooltipTrigger>
-            {!hasPhone && <TooltipContent side="left">No phone number</TooltipContent>}
+            {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
           </Tooltip>
 
           <Button 
@@ -315,7 +311,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </Button>
               </div>
             </TooltipTrigger>
-            {!hasPhone && <TooltipContent side="left">No phone number</TooltipContent>}
+            {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
           </Tooltip>
           
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
@@ -355,7 +351,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <p className="text-xl font-bold mb-6">Member Id: {member.memberId}</p>
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                     <div className="flex justify-between uppercase"><span>Plan Type</span> <span>{planName}</span></div>
-                    <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>
+                    <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber || 'N/A'}</span></div>
                     <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
                     <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</span></div>
                 </div>

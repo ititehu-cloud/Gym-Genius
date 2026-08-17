@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -22,8 +21,6 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -78,7 +75,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       toast({
         variant: 'destructive',
         title: 'Share Failed',
-        description: "Member does not have a mobile number saved.",
+        description: "Member mobile number missing.",
       });
       return;
     }
@@ -89,23 +86,22 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     try {
       let sharedUrl = type === 'id' ? member.idCardUrl : null;
 
-      // If ID card URL is missing or it's a Renewal Notice, generate it now
+      // Only regenerate if missing URL or if it's a Renewal Notice
       if (!sharedUrl) {
-        toast({ title: "Generating Image...", description: "One-time generation in progress..." });
+        toast({ title: "Sharing...", description: "Generating high-speed share link..." });
         
         const elementToCapture = type === 'id' ? cardRef.current : noticeRef.current;
-        if (!elementToCapture) throw new Error("Capture area not found");
+        if (!elementToCapture) throw new Error("Capture target missing");
 
         const canvas = await html2canvas(elementToCapture, {
           useCORS: true,
-          scale: 1.5,
+          scale: 1.2,
           backgroundColor: '#ffffff',
           logging: false,
-          allowTaint: true,
         });
 
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
-        if (!blob) throw new Error("Blob creation failed");
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+        if (!blob) throw new Error("Image creation failed");
 
         const file = new File([blob], `${member.name}_${type}.png`, { type: 'image/png' });
         const formData = new FormData();
@@ -116,49 +112,42 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         
         sharedUrl = uploadResult.url;
 
-        // If it was an ID card, save it back to Firestore for next time
         if (type === 'id') {
-          await updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
+          updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
         }
       }
 
-      // Prepare Message
-      const expiryStr = format(parseISO(member.expiryDate), 'PPP');
-      let message = '';
-      
-      if (type === 'id') {
-        message = `🏋️ ${gymName || 'Your Gym'} ID Card\n\n` +
-          `👤 Name: ${member.name.toUpperCase()}\n` +
-          `🆔 ID: ${member.memberId}\n` +
-          `📅 Expiry: ${expiryStr}\n\n` +
-          `🔗 View Card: ${sharedUrl}`;
-      } else {
-        message = `🔔 RENEWAL NOTICE 🔔\n\n` +
-          `🏋️ From: ${gymName || 'Your Gym'}\n` +
-          `👤 Customer: ${member.name.toUpperCase()}\n` +
-          `💰 Amount Due: ₹${plan?.price || 'N/A'}\n` +
-          `📅 Date: ${expiryStr}\n\n` +
-          `🔗 View Notice: ${sharedUrl}`;
-      }
+      const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
+      const message = type === 'id' 
+        ? `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 ID: ${member.memberId}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`
+        : `🔔 RENEWAL NOTICE\n\n👤 Customer: ${member.name.toUpperCase()}\n💰 Amount: ₹${plan?.price || 'N/A'}\n📅 Due Date: ${expiryStr}\n\n🔗 View Notice: ${sharedUrl}`;
 
       const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
 
-      // Direct WhatsApp Protocol (High reliability on Android)
+      // Prioritize system share if image is freshly generated
+      if (navigator.share && !member.idCardUrl) {
+          try {
+              await navigator.share({ title: 'Gym Share', text: message });
+              setIsSharing(false);
+              return;
+          } catch (e) {}
+      }
+
+      // Direct WhatsApp App Launch
       const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
       window.location.href = whatsappUrl;
 
-      // Fallback to Web if Deep-link fails
+      // Fast fallback to web if app doesn't open
       setTimeout(() => {
         if (document.hasFocus()) {
-          const webUrl = `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(message)}`;
-          window.open(webUrl, '_blank');
+          window.open(`https://wa.me/${phoneWithCode}?text=${encodeURIComponent(message)}`, '_blank');
         }
-      }, 1500);
+      }, 800);
 
     } catch (error) {
-      console.error("Sharing failed:", error);
-      toast({ variant: "destructive", title: "Error", description: "Sharing failed. Please try again." });
+      console.error("Share error:", error);
+      toast({ variant: "destructive", title: "Error", description: "Sharing failed." });
     } finally {
       setIsSharing(false);
     }
@@ -172,7 +161,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         checkInTime: new Date().toISOString(),
         createdAt: serverTimestamp()
       });
-      toast({ title: "Checked In!", description: `${member.name} has been marked present.` });
+      toast({ title: "Checked In!", description: `${member.name} marked present.` });
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Check-in failed." });
     } finally {
@@ -187,7 +176,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       await updateDoc(doc(firestore, "attendance", attendanceRecord.id), {
         checkOutTime: new Date().toISOString()
       });
-      toast({ title: "Checked Out!", description: `${member.name} has been marked out.` });
+      toast({ title: "Checked Out!", description: `${member.name} marked out.` });
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Check-out failed." });
     } finally {
@@ -197,15 +186,15 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   return (
     <>
-      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative landscape-member-card bg-card">
-        <div className="flex justify-between pr-12 min-h-[220px]">
-          <CardContent className="p-4 flex-grow space-y-3">
-             <div className="flex items-center gap-2 mb-2">
+      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative bg-card border-primary/10">
+        <div className="flex justify-between pr-12 min-h-[200px]">
+          <CardContent className="p-4 flex-grow space-y-2">
+             <div className="flex items-center gap-2 mb-1">
                 <User className="h-5 w-5 text-primary" />
                 <h3 className="text-xl font-bold font-headline truncate">{member.name}</h3>
              </div>
              
-             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-2 text-sm items-center">
+             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1.5 text-sm items-center">
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> ID :</span>
                 <span className="font-mono font-semibold">{member.memberId}</span>
                 
@@ -220,9 +209,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 
                 <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Mobile :</span>
                 <span>{member.mobileNumber || "N/A"}</span>
-                
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Address :</span>
-                <span className="line-clamp-1 text-xs">{member.address}</span>
 
                 <span className="font-bold text-muted-foreground">Status :</span>
                 <div>
@@ -230,7 +216,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
              </div>
 
-             <div className="flex gap-2 mt-4 pt-3 border-t">
+             <div className="flex gap-2 mt-3 pt-2 border-t border-primary/5">
                <Button
                  variant="outline"
                  size="sm"
@@ -284,7 +270,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             className="flex-1 w-full rounded-none hover:bg-indigo-500 hover:text-white" 
             onClick={() => handleShare('id')} 
             disabled={isSharing || !member.mobileNumber}
-            title="Share ID Card"
           >
             {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
           </Button>
@@ -293,7 +278,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
       </Card>
 
-      {/* Hidden high-res capture area */}
+      {/* Hidden capture areas */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">

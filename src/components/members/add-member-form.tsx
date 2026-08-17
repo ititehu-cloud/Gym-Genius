@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,11 +55,10 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   
-  // Ref for hidden ID card generation
   const cardCaptureRef = useRef<HTMLDivElement>(null);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+  const { data: plans } = useCollection<Plan>(plansRef);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection<Member>(membersRef);
@@ -86,18 +84,16 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     if (!cardCaptureRef.current) return null;
     
     try {
-      // Small delay to ensure the hidden DOM reflects the new state
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const canvas = await html2canvas(cardCaptureRef.current, {
         useCORS: true,
-        scale: 1.5,
+        scale: 1.2,
         backgroundColor: '#ffffff',
         logging: false,
-        allowTaint: true,
       });
       
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
       if (!blob) return null;
 
       const file = new File([blob], `${memberData.name}_ID.png`, { type: 'image/png' });
@@ -116,10 +112,9 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     setIsSubmitting(true);
     setFormError(null);
     
-    // Check for unique Member ID
     const isIdDuplicate = members?.some(m => m.memberId.toLowerCase() === values.memberId.toLowerCase());
     if (isIdDuplicate) {
-      setFormError(`A member with ID "${values.memberId}" already exists. Please use a unique ID.`);
+      setFormError(`A member with ID "${values.memberId}" already exists.`);
       setIsSubmitting(false);
       return;
     }
@@ -133,30 +128,19 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             const formData = new FormData();
             formData.append('image', compressedBlob, imageFile.name.replace(/\.[^/.]+$/, ".jpg"));
             const uploadResult = await uploadImage(formData);
-
-            if (uploadResult.error) {
-                setFormError(uploadResult.error);
-                setIsSubmitting(false);
-                return;
-            }
-            if (uploadResult.url) {
-                imageUrl = uploadResult.url;
-            }
-        } catch (compressionError: any) {
-            console.error("Image compression error:", compressionError);
-            setFormError("Failed to process image. Please try a different one.");
-            setIsSubmitting(false);
-            return;
+            if (uploadResult.url) imageUrl = uploadResult.url;
+        } catch (err) {
+            console.error("Image upload error:", err);
         }
     }
 
     if (!imageUrl) {
-      imageUrl = `https://picsum.photos/seed/${Math.random()}/400/400`;
+      imageUrl = `https://picsum.photos/seed/${values.memberId}/400/400`;
     }
 
     const selectedPlan = plans?.find(p => p.id === values.planId);
     if (!selectedPlan) {
-        setFormError('Selected plan not found.');
+        setFormError('Plan not found.');
         setIsSubmitting(false);
         return;
     }
@@ -178,8 +162,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         createdAt: serverTimestamp()
       });
 
-      // Now generate the ID card in the background and save the link
-      toast({ title: "Member Added", description: "Generating digital ID card..." });
+      toast({ title: "Member Created", description: "Finalizing digital ID card..." });
       
       const idCardUrl = await generateAndUploadIdCard({
         ...values,
@@ -188,27 +171,22 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       }, selectedPlan.name);
 
       if (idCardUrl) {
-        await updateDoc(doc(firestore, "members", newMemberDoc.id), {
-          idCardUrl: idCardUrl
-        });
+        await updateDoc(doc(firestore, "members", newMemberDoc.id), { idCardUrl });
       }
 
-      toast({
-        title: "Member Ready!",
-        description: `${values.name} has been successfully added with a generated ID card.`,
-      });
-      
+      toast({ title: "Success!", description: `${values.name} added successfully.` });
       form.reset();
       setDialogOpen(false);
     } catch (error) {
-      console.error("Error adding member:", error);
-      setFormError("There was a problem adding the member. Please try again.");
+      console.error("Add member error:", error);
+      setFormError("Failed to add member.");
     } finally {
         setIsSubmitting(false);
     }
   }
 
   const selectedPlan = plans?.find(p => p.id === form.watch('planId'));
+  const captureImageUrl = imagePreview || `https://picsum.photos/seed/${form.watch('memberId') || 'temp'}/400/400`;
 
   return (
     <Form {...form}>
@@ -247,7 +225,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                                 <label htmlFor="picture-upload-add" className="cursor-pointer">
                                     <div className="relative h-16 w-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden hover:bg-muted/80">
                                     {imagePreview ? (
-                                        <Image src={imagePreview} alt="Profile preview" fill className="object-cover" />
+                                        <Image src={imagePreview} alt="Preview" fill className="object-cover" />
                                     ) : (
                                         <Camera className="h-8 w-8" />
                                     )}
@@ -262,16 +240,13 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                                         if (file) {
                                         form.setValue('profilePicture', e.target.files);
                                         const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                            setImagePreview(reader.result as string);
-                                        };
+                                        reader.onloadend = () => setImagePreview(reader.result as string);
                                         reader.readAsDataURL(file);
                                         }
                                     }}
                                     />
                                 </label>
                             </FormControl>
-                            <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -365,7 +340,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden high-res capture area for ID card generation on-the-fly */}
+        {/* Hidden capture area */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardCaptureRef} className="p-4 bg-white pb-12 w-[400px] text-black">
               <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
@@ -383,11 +358,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               </div>
               <div className="flex flex-col items-center">
                   <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
-                      {imagePreview || imageUrl ? (
-                        <img src={imagePreview || imageUrl} alt="Preview" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="h-full w-full bg-muted flex items-center justify-center text-muted-foreground">PHOTO</div>
-                      )}
+                      <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
                   </div>
                   <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{form.watch('name') || 'NAME'}</h3>
                   <div className="border-[3px] border-black p-2 mb-4 bg-white">

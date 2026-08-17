@@ -113,7 +113,6 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     }
 
     const membershipStatus = getMembershipStatus();
-    const validity = `${format(parseISO(member.joinDate), 'dd-MM-yyyy')} to ${format(parseISO(member.expiryDate), 'dd-MM-yyyy')}`;
 
     const paymentsToShow = useMemo(() => {
         const allMemberPayments = payments;
@@ -159,7 +158,11 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         <span className="font-bold">Plan Type :</span>
                         <span>{plan.name}</span>
                         <span className="font-bold">Validity :</span>
-                        <span>{validity}</span>
+                        <div className="flex items-center gap-1">
+                            <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
+                            <span className="text-muted-foreground text-xs mx-0.5">to</span>
+                            <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
+                        </div>
                         <span className="font-bold">Amount :</span>
                         <span>₹{totalAmountForPlan.toFixed(2)}</span>
                         <span className="font-bold">Paid :</span>

@@ -84,6 +84,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     if (!cardCaptureRef.current) return null;
     
     try {
+      // Delay slightly for React to render the hidden capture area with real data
       await new Promise(resolve => setTimeout(resolve, 800));
       
       const canvas = await html2canvas(cardCaptureRef.current, {
@@ -185,7 +186,8 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     }
   }
 
-  const selectedPlan = plans?.find(p => p.id === form.watch('planId'));
+  const selectedPlanId = form.watch('planId');
+  const selectedPlan = plans?.find(p => p.id === selectedPlanId);
   const captureImageUrl = imagePreview || `https://picsum.photos/seed/${form.watch('memberId') || 'temp'}/400/400`;
 
   return (
@@ -361,7 +363,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                       <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
                   </div>
                   <h3 className="text-4xl font-black mb-1 uppercase tracking-tighter">{form.watch('name') || 'NAME'}</h3>
-                  <div className="border-[3px] border-black p-2 mb-4 bg-white">
+                  <div className="mb-4 bg-white">
                     <p className="text-xl font-black tracking-widest font-mono">ID: {form.watch('memberId') || 'ID'}</p>
                   </div>
                   <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">

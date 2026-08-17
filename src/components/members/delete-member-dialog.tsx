@@ -54,8 +54,8 @@ export default function DeleteMemberDialog({ memberId, memberName }: DeleteMembe
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="icon">
-          <Trash2 className="h-4 w-4" />
+        <Button variant="ghost" className="flex-1 w-full rounded-none bg-red-500 hover:bg-red-600 text-white">
+          <Trash2 className="h-5 w-5" />
            <span className="sr-only">Delete</span>
         </Button>
       </AlertDialogTrigger>

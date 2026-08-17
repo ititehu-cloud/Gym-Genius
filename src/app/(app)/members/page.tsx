@@ -122,7 +122,6 @@ function MemberList() {
                 className="w-full sm:w-64"
             />
             <Select value={statusFilter} onValueChange={(value: Member['status'] | "all") => {
-              // Cannot have both expiry and status filter, so we clear the URL
               if (expiryParam) window.history.replaceState(null, '', '/members');
               setStatusFilter(value)
             }}>
@@ -148,9 +147,9 @@ function MemberList() {
               plan={planMap.get(member.planId)} 
               gymName={gymName} 
               gymAddress={gymAddress} 
-              gymIconUrl={gymIconUrl} 
-              isExpiryShare={expiryParam === 'today'}
+              gymIconUrl={gymIconUrl}
               attendanceRecord={attendanceMap.get(member.id)}
+              allMembers={members || []}
             />
           ))}
         </div>

@@ -6,22 +6,25 @@ import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Phone, Share2, MapPin, LoaderCircle, PhoneCall, Fingerprint, CalendarClock, User, Hash, Tag } from 'lucide-react';
+import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, FilePenLine, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
-import RenewPlanDialog from './renew-plan-dialog';
 import { useFirestore } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { uploadImage } from '@/app/actions';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import RecordPaymentForm from '../payments/record-payment-form';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -43,13 +46,15 @@ type MemberCardProps = {
   gymAddress?: string;
   gymIconUrl?: string | null;
   attendanceRecord?: Attendance;
+  allMembers: Member[];
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord, allMembers }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isShareType, setIsShareType] = useState<'id' | 'notice'>('id');
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
+  const [isPaymentOpen, setPaymentOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   
@@ -138,17 +143,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
 
       const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
-      
-      // Attempt native app redirection directly
       window.location.href = whatsappUrl;
-
-      // Fallback only if the above doesn't trigger
-      setTimeout(() => {
-        if (document.hasFocus()) {
-          window.open(`https://api.whatsapp.com/send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`, '_blank');
-        }
-      }, 800);
-
+      setTimeout(() => { if (document.hasFocus()) window.open(`https://api.whatsapp.com/send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`, '_blank'); }, 800);
     } catch (error) {
       console.error("Share error:", error);
       toast({ variant: "destructive", title: "Error", description: "Sharing failed." });
@@ -191,7 +187,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   return (
     <>
       <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-        <div className="flex justify-between pr-12">
+        <div className="flex justify-between pr-14">
           <CardContent className="p-4 flex-grow space-y-2">
              <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                 <span className="font-bold">Reg. Number :</span>
@@ -249,27 +245,39 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
+        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
+          {/* Edit Option - Slate */}
           <EditMemberDialog member={member} />
           
-          <Button asChild variant="ghost" className="flex-1 w-full rounded-none hover:bg-blue-500 hover:text-white" disabled={!member.mobileNumber}>
+          {/* Call Option - Sky Blue */}
+          <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white" disabled={!member.mobileNumber}>
             {member.mobileNumber ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
           </Button>
 
-          <RenewPlanDialog member={member} />
+          {/* Payment Option - Green */}
+          <Button 
+            variant="ghost" 
+            className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"
+            onClick={() => setPaymentOpen(true)}
+            title="Record Payment"
+          >
+            <CreditCard className="h-5 w-5" />
+          </Button>
 
+          {/* Attendance Option - Orange */}
           <Button
               variant="ghost"
-              className={`flex-1 w-full rounded-none ${attendanceRecord && !attendanceRecord.checkOutTime ? 'bg-chart-2 text-white' : 'hover:bg-green-500 hover:text-white'}`}
+              className={`flex-1 w-full rounded-none ${attendanceRecord && !attendanceRecord.checkOutTime ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
               onClick={attendanceRecord && !attendanceRecord.checkOutTime ? handleCheckOut : handleCheckIn}
               disabled={isAttendanceLoading || (!!attendanceRecord?.checkOutTime)}
           >
               {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
           </Button>
 
+          {/* Share ID Option - WhatsApp Green */}
           <Button 
             variant="ghost" 
-            className="flex-1 w-full rounded-none hover:bg-green-600 hover:text-white" 
+            className="flex-1 w-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white" 
             onClick={() => handleShare('id')} 
             disabled={isSharing || !member.mobileNumber}
             title="Share ID Card"
@@ -277,9 +285,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5" />}
           </Button>
           
+          {/* Delete Option - Red */}
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
         </div>
       </Card>
+
+      {/* Record Payment Dialog for Member Card */}
+      <Dialog open={isPaymentOpen} onOpenChange={setPaymentOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Record New Payment</DialogTitle>
+            <DialogDescription>Recording a payment for {member.name}.</DialogDescription>
+          </DialogHeader>
+          <RecordPaymentForm members={allMembers} setDialogOpen={setPaymentOpen} defaultMemberId={member.id} />
+        </DialogContent>
+      </Dialog>
 
       {/* Hidden capture area - Only for ID Card link generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
@@ -298,11 +318,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
             <div className="flex flex-col items-center">
-                <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-6 bg-muted">
+                <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
                     <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                 </div>
                 <h3 className="text-4xl font-black mb-4 uppercase tracking-tight text-center px-2">{member.name}</h3>
-                <p className="text-xl font-black tracking-widest font-mono mb-6">ID: {member.memberId}</p>
+                <p className="text-xl font-bold mb-6">ID: {member.memberId}</p>
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                     <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>
                     <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber}</span></div>

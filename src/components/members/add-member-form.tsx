@@ -80,7 +80,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     },
   });
 
-  async function generateAndUploadIdCard(memberData: any, planName: string): Promise<string | null> {
+  async function generateAndUploadIdCard(memberData: any, planName: string, imageUrl: string): Promise<string | null> {
     if (!cardCaptureRef.current) return null;
     
     try {
@@ -165,11 +165,12 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
       toast({ title: "Member Created", description: "Finalizing digital ID card..." });
       
+      // Use the final imageUrl for generation
       const idCardUrl = await generateAndUploadIdCard({
         ...values,
         imageUrl,
         expiryDate: expiryDate.toISOString()
-      }, selectedPlan.name);
+      }, selectedPlan.name, imageUrl);
 
       if (idCardUrl) {
         await updateDoc(doc(firestore, "members", newMemberDoc.id), { idCardUrl });
@@ -342,7 +343,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden capture area */}
+        {/* Hidden capture area - Replicating MemberCard layout */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardCaptureRef} className="p-4 bg-white pb-12 w-[400px] text-black">
               <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
@@ -359,11 +360,11 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   </div>
               </div>
               <div className="flex flex-col items-center">
-                  <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
+                  <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-6 bg-muted">
                       <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
                   </div>
-                  <h3 className="text-4xl font-black mb-4 uppercase tracking-tight">{form.watch('name') || 'NAME'}</h3>
-                  <p className="text-xl font-black tracking-widest font-mono mb-4">ID: {form.watch('memberId') || 'ID'}</p>
+                  <h3 className="text-4xl font-black mb-6 uppercase tracking-tight text-center px-2">{form.watch('name') || 'NAME'}</h3>
+                  <p className="text-xl font-black tracking-widest font-mono mb-6">ID: {form.watch('memberId') || 'ID'}</p>
                   <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                       <div className="flex justify-between uppercase"><span>Plan</span> <span>{selectedPlan?.name || 'N/A'}</span></div>
                       <div className="flex justify-between uppercase"><span>Mobile</span> <span>{form.watch('mobileNumber') || 'N/A'}</span></div>

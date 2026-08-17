@@ -89,7 +89,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
   };
 
-  const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0;
+  const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
   const handleShare = async (type: 'id' | 'notice') => {
     if (isSharing) return;
@@ -199,10 +199,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
   };
 
+  const isCheckedIn = attendanceRecord && !attendanceRecord.checkOutTime;
+
   return (
     <TooltipProvider>
       <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-        <div className="flex justify-between pr-14">
+        <div className="flex justify-between pr-20">
           <CardContent className="p-4 flex-grow space-y-2">
              <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                 <span className="font-bold">Member Id :</span>
@@ -267,13 +269,23 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
+        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-20 rounded-r-lg overflow-hidden border-l">
           <EditMemberDialog member={member} />
           
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white" disabled={!hasPhone}>
-                {hasPhone ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
+              <Button asChild variant="ghost" className="flex-1 w-full flex-col gap-1 rounded-none bg-sky-500 hover:bg-sky-600 text-white p-1" disabled={!hasPhone}>
+                {hasPhone ? (
+                  <a href={`tel:${member.mobileNumber}`} className="flex flex-col items-center justify-center w-full h-full">
+                    <PhoneCall className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase">Call</span>
+                  </a>
+                ) : (
+                  <div className="opacity-30 flex flex-col items-center">
+                    <PhoneCall className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase">Call</span>
+                  </div>
+                )}
               </Button>
             </TooltipTrigger>
             {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
@@ -281,20 +293,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
           <Button 
             variant="ghost" 
-            className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"
+            className="flex-1 w-full flex-col gap-1 rounded-none bg-green-500 hover:bg-green-600 text-white p-1"
             onClick={() => setPaymentOpen(true)}
-            title="Record Payment"
           >
-            <CreditCard className="h-5 w-5" />
+            <CreditCard className="h-4 w-4" />
+            <span className="text-[10px] font-bold uppercase">Pay</span>
           </Button>
 
           <Button
               variant="ghost"
-              className={`flex-1 w-full rounded-none ${attendanceRecord && !attendanceRecord.checkOutTime ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
-              onClick={attendanceRecord && !attendanceRecord.checkOutTime ? handleCheckOut : handleCheckIn}
+              className={`flex-1 w-full flex-col gap-1 rounded-none p-1 ${isCheckedIn ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
+              onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
               disabled={isAttendanceLoading || (!!attendanceRecord?.checkOutTime)}
           >
-              {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
+              {isAttendanceLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+              <span className="text-[10px] font-bold uppercase">{isCheckedIn ? 'Out' : 'In'}</span>
           </Button>
 
           <Tooltip>
@@ -302,12 +315,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               <div className="flex-1 w-full">
                 <Button 
                   variant="ghost" 
-                  className="w-full h-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white" 
+                  className="w-full h-full flex-col gap-1 rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white p-1" 
                   onClick={() => handleShare('id')} 
                   disabled={isSharing || !hasPhone}
-                  title="Share ID Card"
                 >
-                  {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5" />}
+                  {isSharing && isShareType === 'id' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
+                  <span className="text-[10px] font-bold uppercase">ID</span>
                 </Button>
               </div>
             </TooltipTrigger>

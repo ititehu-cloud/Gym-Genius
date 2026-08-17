@@ -71,7 +71,10 @@ export default function DeleteMemberPaymentDialog({ payments, memberName }: Dele
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button title="Delete Payment" className="flex-1 w-full rounded-none bg-yellow-500 hover:bg-yellow-600 text-white"><Trash2 /></Button>
+        <Button className="flex-1 w-full flex-col gap-1 rounded-none bg-yellow-500 hover:bg-yellow-600 text-white p-1">
+          <Trash2 className="h-4 w-4" />
+          <span className="text-[10px] font-bold uppercase">Del</span>
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

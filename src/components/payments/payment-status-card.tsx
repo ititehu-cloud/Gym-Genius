@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus, Share2, LoaderCircle, History, Printer } from 'lucide-react';
+import { Plus, LoaderCircle, History, Printer } from 'lucide-react';
 import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
@@ -148,7 +148,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     
     return (
         <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-            <div className="flex justify-between pr-12">
+            <div className="flex justify-between pr-20">
                 <CardContent className="p-4 flex-grow space-y-2">
                     <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
                         <span className="font-bold">Member Id :</span>
@@ -183,7 +183,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 </div>
             </div>
             {showHistory && (
-                <div className="px-4 pb-4 border-t pt-4 pr-12">
+                <div className="px-4 pb-4 border-t pt-4 pr-20">
                     <h4 className="font-semibold mb-2 text-center">Transaction History</h4>
                     {paymentsToShow.length > 0 ? (
                         <ul className="space-y-2">
@@ -205,12 +205,19 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                     )}
                 </div>
             )}
-            <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
-                <Button onClick={() => setRecordPaymentOpen(true)} title="Add Payment" className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"><Plus /></Button>
-                <Button onClick={handleViewReceipt} title="View/Print Receipt" className="flex-1 w-full rounded-none bg-blue-500 hover:bg-blue-600 text-white">
-                    <Printer />
+            <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-20 rounded-r-lg overflow-hidden border-l">
+                <Button onClick={() => setRecordPaymentOpen(true)} className="flex-1 w-full flex-col gap-1 rounded-none bg-green-500 hover:bg-green-600 text-white p-1">
+                    <Plus className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase">Pay</span>
                 </Button>
-                <Button onClick={() => setShowHistory(!showHistory)} title="Payment History" className="flex-1 w-full rounded-none bg-indigo-500 hover:bg-indigo-600 text-white"><History /></Button>
+                <Button onClick={handleViewReceipt} className="flex-1 w-full flex-col gap-1 rounded-none bg-blue-500 hover:bg-blue-600 text-white p-1">
+                    <Printer className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase">Print</span>
+                </Button>
+                <Button onClick={() => setShowHistory(!showHistory)} className="flex-1 w-full flex-col gap-1 rounded-none bg-indigo-500 hover:bg-indigo-600 text-white p-1">
+                    <History className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase">Hist</span>
+                </Button>
                 <DeleteMemberPaymentDialog payments={payments} memberName={member.name} />
             </div>
 

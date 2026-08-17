@@ -23,6 +23,18 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    stroke="none" 
+    className={className} 
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.87 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .015 5.394 0 12.03c0 2.12.551 4.189 1.595 6.04L0 24l4.062-1.065a11.85 11.85 0 005.733 1.488h.005c6.632 0 12.032-5.396 12.033-12.034a11.83 11.83 0 00-3.353-8.697"/>
+  </svg>
+)
+
 type MemberCardProps = {
   member: Member;
   plan?: Plan;
@@ -86,10 +98,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       let message = "";
 
       if (type === 'id') {
-        // For ID cards, prioritize the saved URL (generated when member was added)
+        // Use pre-generated URL for instant sharing
         let sharedUrl = member.idCardUrl || null;
 
-        // Fallback: Regenerate only if missing (e.g. for members added before this update)
         if (!sharedUrl) {
           toast({ title: "Sharing...", description: "Generating high-speed share link..." });
           
@@ -114,25 +125,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           if (!uploadResult.url) throw new Error("Upload failed");
           
           sharedUrl = uploadResult.url;
-
-          // Save the generated link back to Firestore for future instant sharing
           updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
         }
 
         message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 ID: ${member.memberId}\n📅 Joined: ${format(parseISO(member.joinDate), 'dd MMM yyyy')}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
       } else {
-        // Text-only Renewal Notice (No image generation requested)
+        // Text-only reminder as requested
         message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
       }
 
       const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
 
-      // Direct WhatsApp native application launch
       const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
       window.location.href = whatsappUrl;
 
-      // Fallback for browsers that don't support the protocol
       setTimeout(() => {
         if (document.hasFocus()) {
           window.open(`https://wa.me/${phoneWithCode}?text=${encodeURIComponent(message)}`, '_blank');
@@ -218,7 +225,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                  disabled={isSharing || !member.mobileNumber}
                  className="flex-1 gap-2 text-xs"
                >
-                 {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+                 {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
                  Due Notice
                </Button>
              </div>
@@ -261,18 +268,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
           <Button 
             variant="ghost" 
-            className="flex-1 w-full rounded-none hover:bg-indigo-500 hover:text-white" 
+            className="flex-1 w-full rounded-none hover:bg-green-600 hover:text-white" 
             onClick={() => handleShare('id')} 
             disabled={isSharing || !member.mobileNumber}
+            title="Share ID Card"
           >
-            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
+            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5" />}
           </Button>
           
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
         </div>
       </Card>
 
-      {/* Hidden capture area - Only for ID Card */}
+      {/* Hidden capture area - Only for ID Card link generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">

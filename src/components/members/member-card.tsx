@@ -25,15 +25,20 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import RecordPaymentForm from '../payments/record-payment-form';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
     fill="currentColor" 
-    stroke="none" 
     className={className} 
     xmlns="http://www.w3.org/2000/svg"
-    style={{ display: 'block', overflow: 'visible' }}
+    style={{ overflow: 'visible' }}
   >
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .015 5.394 0 12.03c0 2.12.551 4.189 1.595 6.04L0 24l4.062-1.065a11.85 11.85 0 005.733 1.488h.005c6.632 0 12.032-5.396 12.033-12.034a11.83 11.83 0 00-3.353-8.697"/>
   </svg>
@@ -84,14 +89,16 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
   };
 
+  const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0;
+
   const handleShare = async (type: 'id' | 'notice') => {
     if (isSharing) return;
 
-    if (!member.mobileNumber) {
+    if (!hasPhone) {
       toast({
         variant: 'destructive',
         title: 'Share Failed',
-        description: "Member mobile number missing.",
+        description: "Please update the member's profile with a mobile number to use WhatsApp sharing.",
       });
       return;
     }
@@ -139,15 +146,27 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
       }
 
-      const sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      const phoneWithCode = sanitizedPhone.length === 10 ? `91${sanitizedPhone}` : sanitizedPhone;
+      // Robust phone sanitization for WhatsApp
+      let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
+      // Handle India logic: if 10 digits, prepend 91. If starts with 0, remove it and prepend 91.
+      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      const whatsappUrl = `whatsapp://send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      
+      // Try native deep link first
       window.location.href = whatsappUrl;
-      setTimeout(() => { if (document.hasFocus()) window.open(`https://api.whatsapp.com/send?phone=${phoneWithCode}&text=${encodeURIComponent(message)}`, '_blank'); }, 800);
+      
+      // Fallback to web link if window stays focused (suggesting app didn't open)
+      setTimeout(() => { 
+        if (document.hasFocus()) {
+          window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        } 
+      }, 1000);
+
     } catch (error) {
       console.error("Share error:", error);
-      toast({ variant: "destructive", title: "Error", description: "Sharing failed." });
+      toast({ variant: "destructive", title: "Error", description: "Sharing failed. Please check your connection." });
     } finally {
       setIsSharing(false);
     }
@@ -185,7 +204,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   };
 
   return (
-    <>
+    <TooltipProvider>
       <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
         <div className="flex justify-between pr-14">
           <CardContent className="p-4 flex-grow space-y-2">
@@ -206,7 +225,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
                 
                 <span className="font-bold">Mobile :</span>
-                <span>{member.mobileNumber || "N/A"}</span>
+                <span className={!hasPhone ? 'text-destructive italic' : ''}>{member.mobileNumber || "Missing Phone"}</span>
 
                 <span className="font-bold">Status :</span>
                 <div>
@@ -215,16 +234,23 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
              </div>
 
              <div className="flex gap-2 mt-3 pt-2 border-t border-primary/5">
-               <Button
-                 variant="outline"
-                 size="sm"
-                 onClick={() => handleShare('notice')}
-                 disabled={isSharing || !member.mobileNumber}
-                 className="flex-1 gap-2 text-xs"
-               >
-                 {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
-                 Due Notice
-               </Button>
+               <Tooltip>
+                 <TooltipTrigger asChild>
+                    <div className="flex-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleShare('notice')}
+                        disabled={isSharing || !hasPhone}
+                        className="w-full gap-2 text-xs"
+                      >
+                        {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
+                        Due Notice
+                      </Button>
+                    </div>
+                 </TooltipTrigger>
+                 {!hasPhone && <TooltipContent>Missing mobile number in profile</TooltipContent>}
+               </Tooltip>
              </div>
           </CardContent>
 
@@ -246,15 +272,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
 
         <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
-          {/* Edit Option - Slate */}
           <EditMemberDialog member={member} />
           
-          {/* Call Option - Sky Blue */}
-          <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white" disabled={!member.mobileNumber}>
-            {member.mobileNumber ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white" disabled={!hasPhone}>
+                {hasPhone ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
+              </Button>
+            </TooltipTrigger>
+            {!hasPhone && <TooltipContent side="left">No phone number</TooltipContent>}
+          </Tooltip>
 
-          {/* Payment Option - Green */}
           <Button 
             variant="ghost" 
             className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white"
@@ -264,7 +292,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <CreditCard className="h-5 w-5" />
           </Button>
 
-          {/* Attendance Option - Orange */}
           <Button
               variant="ghost"
               className={`flex-1 w-full rounded-none ${attendanceRecord && !attendanceRecord.checkOutTime ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
@@ -274,23 +301,27 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
           </Button>
 
-          {/* Share ID Option - WhatsApp Green */}
-          <Button 
-            variant="ghost" 
-            className="flex-1 w-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white" 
-            onClick={() => handleShare('id')} 
-            disabled={isSharing || !member.mobileNumber}
-            title="Share ID Card"
-          >
-            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5" />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex-1 w-full">
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white" 
+                  onClick={() => handleShare('id')} 
+                  disabled={isSharing || !hasPhone}
+                  title="Share ID Card"
+                >
+                  {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5" />}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!hasPhone && <TooltipContent side="left">No phone number</TooltipContent>}
+          </Tooltip>
           
-          {/* Delete Option - Red */}
           <DeleteMemberDialog memberId={member.id} memberName={member.name} />
         </div>
       </Card>
 
-      {/* Record Payment Dialog for Member Card */}
       <Dialog open={isPaymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -301,7 +332,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* Hidden capture area - Only for ID Card link generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
@@ -332,6 +362,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             </div>
           </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 }

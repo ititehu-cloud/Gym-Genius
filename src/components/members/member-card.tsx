@@ -190,31 +190,29 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   return (
     <>
-      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative bg-card border-primary/10">
-        <div className="flex justify-between pr-12 min-h-[200px]">
+      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
+        <div className="flex justify-between pr-12">
           <CardContent className="p-4 flex-grow space-y-2">
-             <div className="flex items-center gap-2 mb-1">
-                <User className="h-5 w-5 text-primary" />
-                <h3 className="text-xl font-bold font-headline truncate">{member.name}</h3>
-             </div>
-             
-             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1.5 text-sm items-center">
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" /> ID :</span>
-                <span className="font-mono font-semibold">{member.memberId}</span>
+             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
+                <span className="font-bold">Reg. Number :</span>
+                <span>{member.memberId}</span>
+
+                <span className="font-bold">Name :</span>
+                <span className="font-semibold text-lg">{member.name}</span>
                 
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Tag className="h-3.5 w-3.5" /> Plan :</span>
-                <span className="font-medium">{planName}</span>
+                <span className="font-bold">M.ship Type :</span>
+                <span>{planName}</span>
                 
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Joined :</span>
+                <span className="font-bold">Joined :</span>
                 <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
                 
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> Expiry :</span>
+                <span className="font-bold">Expiry :</span>
                 <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
                 
-                <span className="font-bold text-muted-foreground flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Mobile :</span>
+                <span className="font-bold">Mobile :</span>
                 <span>{member.mobileNumber || "N/A"}</span>
 
-                <span className="font-bold text-muted-foreground">Status :</span>
+                <span className="font-bold">Status :</span>
                 <div>
                   <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
                 </div>
@@ -234,10 +232,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
              </div>
           </CardContent>
 
-          <div className="p-4 flex-shrink-0 flex items-start justify-center">
+          <div className="p-4 flex-shrink-0 flex items-start">
             <Dialog>
                 <DialogTrigger asChild>
-                    <Avatar className="h-24 w-24 rounded-md border-2 border-primary cursor-pointer hover:opacity-90">
+                    <Avatar className="h-16 w-16 rounded-md border-2 border-primary cursor-pointer hover:opacity-90">
                         <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
                         <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -251,11 +249,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
 
-        <div className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l bg-muted/30">
+        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-12 rounded-r-lg overflow-hidden border-l">
           <EditMemberDialog member={member} />
           
           <Button asChild variant="ghost" className="flex-1 w-full rounded-none hover:bg-blue-500 hover:text-white" disabled={!member.mobileNumber}>
-            {member.mobileNumber ? <a href={`tel:${member.mobileNumber}`}><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
+            {member.mobileNumber ? <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full"><PhoneCall className="h-5 w-5" /></a> : <div className="opacity-30"><PhoneCall className="h-5 w-5" /></div>}
           </Button>
 
           <RenewPlanDialog member={member} />
@@ -303,7 +301,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-6 bg-muted">
                     <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
                 </div>
-                <h3 className="text-4xl font-black mb-6 uppercase tracking-tight text-center px-2">{member.name}</h3>
+                <h3 className="text-4xl font-black mb-4 uppercase tracking-tight text-center px-2">{member.name}</h3>
                 <p className="text-xl font-black tracking-widest font-mono mb-6">ID: {member.memberId}</p>
                 <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
                     <div className="flex justify-between uppercase"><span>Plan</span> <span>{planName}</span></div>

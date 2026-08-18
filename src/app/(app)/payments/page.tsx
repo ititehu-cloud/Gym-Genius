@@ -42,10 +42,10 @@ function PaymentsList() {
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("paymentDate", "desc")), [firestore]);
+  const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("createdAt", "desc")), [firestore]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
-  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const membersRef = useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore]);
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);

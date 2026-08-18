@@ -2,7 +2,7 @@
 
 import MemberCard from "@/components/members/member-card";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, query, where } from "firebase/firestore";
+import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
 import type { Member, Plan, Attendance } from "@/lib/types";
@@ -16,7 +16,7 @@ function MemberList() {
   const firestore = useFirestore();
   const { user, isUserLoading: isAuthLoading } = useUser();
 
-  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const membersRef = useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore]);
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);

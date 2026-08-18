@@ -20,11 +20,11 @@ export default function TransactionsPage() {
     const [fromDate, setFromDate] = useState<string>("");
     const [toDate, setToDate] = useState<string>("");
 
-    const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("paymentDate", "desc")), [firestore]);
+    const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("createdAt", "desc")), [firestore]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(
-        useMemoFirebase(() => collection(firestore, "members"), [firestore])
+        useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore])
     );
 
     const memberMap = useMemo(() => {
@@ -117,7 +117,7 @@ export default function TransactionsPage() {
                             type="date"
                             value={toDate}
                             onChange={(e) => setToDate(e.target.value)}
-                            className="w-full"
+                            className="full"
                         />
                     </div>
                 </div>

@@ -5,9 +5,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import type { Member, Plan, Payment, Attendance } from "@/lib/types";
+import type { Member, Plan, Payment } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -16,7 +15,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { CreditCard, ClipboardCheck, User, Info, MapPin, Calendar, Smartphone, LoaderCircle } from "lucide-react";
+import { CreditCard, User, LoaderCircle } from "lucide-react";
 import { useMemo } from "react";
 
 type MemberDetailsDialogProps = {
@@ -39,17 +38,6 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
   }, [firestore, member.id]);
   
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
-
-  const attendanceQuery = useMemoFirebase(() => {
-    if (!firestore || !member.id) return null;
-    return query(
-      collection(firestore, "attendance"),
-      where("memberId", "==", member.id),
-      orderBy("checkInTime", "desc")
-    );
-  }, [firestore, member.id]);
-  
-  const { data: attendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
   const totalPaid = useMemo(() => {
     if (!payments) return 0;
@@ -83,10 +71,9 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
         <div className="flex-1 overflow-hidden p-0">
             <Tabs defaultValue="profile" className="h-full flex flex-col">
                 <div className="px-6 pt-4 bg-muted/30 border-b">
-                    <TabsList className="grid w-full grid-cols-3 h-12 bg-muted p-1">
+                    <TabsList className="grid w-full grid-cols-2 h-12 bg-muted p-1">
                         <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4"/> Profile</TabsTrigger>
                         <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><CreditCard className="h-4 w-4"/> Payments</TabsTrigger>
-                        <TabsTrigger value="attendance" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><ClipboardCheck className="h-4 w-4"/> Attendance</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -209,70 +196,6 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                 </div>
                             </div>
                          )}
-                    </TabsContent>
-
-                    <TabsContent value="attendance" className="mt-0 h-full">
-                        {isLoadingAttendance ? (
-                            <div className="flex flex-col items-center justify-center h-64 gap-4">
-                                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Attendance...</p>
-                            </div>
-                        ) : (
-                            <div className="h-full flex flex-col">
-                                <div className="mb-4 flex justify-between items-end">
-                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-chart-2">Log Records</h3>
-                                    <Badge variant="outline" className="font-mono">Days Visited: {attendance?.length || 0}</Badge>
-                                </div>
-                                <div className="flex-1 overflow-hidden border rounded-xl bg-card shadow-inner">
-                                    <ScrollArea className="h-full">
-                                        <Table>
-                                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                                                <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Check-In</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Check-Out</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase">Session</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {attendance && attendance.length > 0 ? (
-                                                    attendance.map((a) => {
-                                                        const inTime = parseISO(a.checkInTime);
-                                                        const outTime = a.checkOutTime ? parseISO(a.checkOutTime) : null;
-                                                        
-                                                        return (
-                                                            <TableRow key={a.id} className="hover:bg-muted/30 transition-colors">
-                                                                <TableCell className="font-bold">{format(inTime, 'dd MMM yyyy')}</TableCell>
-                                                                <TableCell className="font-medium text-xs">{format(inTime, 'hh:mm a')}</TableCell>
-                                                                <TableCell className="font-medium text-xs">{outTime ? format(outTime, 'hh:mm a') : <span className="text-muted-foreground">--:--</span>}</TableCell>
-                                                                <TableCell className="text-right">
-                                                                    {outTime ? (
-                                                                        <span className="text-xs font-bold bg-muted px-2 py-1 rounded">
-                                                                            {Math.floor((outTime.getTime() - inTime.getTime()) / (1000 * 60))} mins
-                                                                        </span>
-                                                                    ) : (
-                                                                        <Badge variant="outline" className="text-orange-600 border-orange-600 animate-pulse text-[9px] h-5">LIVE NOW</Badge>
-                                                                    )}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        )
-                                                    })
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="text-center py-20">
-                                                            <div className="flex flex-col items-center gap-2 opacity-40">
-                                                                <ClipboardCheck className="h-10 w-10" />
-                                                                <p className="text-sm font-bold uppercase tracking-widest">No attendance logs</p>
-                                                            </div>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </ScrollArea>
-                                </div>
-                            </div>
-                        )}
                     </TabsContent>
                 </div>
             </Tabs>

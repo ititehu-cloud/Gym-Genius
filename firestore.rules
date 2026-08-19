@@ -61,28 +61,28 @@ service cloud.firestore {
      * Members management.
      */
     match /members/{memberId} {
-      allow read, list, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     /**
      * Attendance tracking.
      */
     match /attendance/{attendanceId} {
-      allow read, list, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     /**
      * Payment records.
      */
     match /payments/{paymentId} {
-      allow read, list, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     /**
      * Membership plans.
      */
     match /plans/{planId} {
-      allow read, list, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
   }
 }

@@ -128,21 +128,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const membershipStatus = getMembershipStatus();
     const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
-    const handleViewReceipt = () => {
-        const latestPayment = [...paymentsForCurrentCycle].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime())[0];
-        if (!latestPayment) {
-            toast({
-                variant: 'destructive',
-                title: 'No Payments',
-                description: 'No transactions found to generate a receipt.'
-            });
-            return;
-        }
-        window.location.href = `/receipt/${latestPayment.id}`;
-    };
-
     return (
-        <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden flex flex-col bg-white border border-muted/50">
+        <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
             <div className="relative p-6 pb-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Avatar */}

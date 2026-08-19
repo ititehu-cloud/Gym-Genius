@@ -190,7 +190,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   return (
     <TooltipProvider>
-      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden flex flex-col bg-white border border-muted/50">
+      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
         <div className="relative p-6 pb-4">
           {/* Top Right Edit Action */}
           <div className="absolute top-4 right-4">

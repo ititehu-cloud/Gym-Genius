@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import type { Member, Plan, Payment } from "@/lib/types";
 import { format, parseISO } from "date-fns";
@@ -29,13 +30,13 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
   const firestore = useFirestore();
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore || !member.id) return null;
+    if (!firestore || !member.id || !isOpen) return null;
     return query(
       collection(firestore, "payments"),
       where("memberId", "==", member.id),
       orderBy("paymentDate", "desc")
     );
-  }, [firestore, member.id]);
+  }, [firestore, member.id, isOpen]);
   
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
@@ -47,7 +48,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border-2 border-primary/20">
-        <DialogHeader className="p-6 pb-4 bg-primary text-primary-foreground">
+        <DialogHeader className="p-6 pb-4 bg-primary text-primary-foreground shrink-0">
           <div className="flex items-center gap-6">
              <Avatar className="h-20 w-20 border-4 border-white/20 shadow-xl">
                 <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
@@ -66,11 +67,14 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                 </div>
             </div>
           </div>
+          <DialogDescription className="sr-only">
+            Detailed information for member {member.name}, including profile and payment history.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden p-0">
             <Tabs defaultValue="profile" className="h-full flex flex-col">
-                <div className="px-6 pt-4 bg-muted/30 border-b">
+                <div className="px-6 pt-4 bg-muted/30 border-b shrink-0">
                     <TabsList className="grid w-full grid-cols-2 h-12 bg-muted p-1">
                         <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4"/> Profile</TabsTrigger>
                         <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><CreditCard className="h-4 w-4"/> Payments</TabsTrigger>
@@ -78,7 +82,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                 </div>
 
                 <div className="flex-1 overflow-hidden p-6">
-                    <TabsContent value="profile" className="mt-0 h-full">
+                    <TabsContent value="profile" className="mt-0 h-full data-[state=active]:flex flex-col">
                         <ScrollArea className="h-full pr-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <section className="space-y-4">
@@ -141,15 +145,15 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                         </ScrollArea>
                     </TabsContent>
 
-                    <TabsContent value="payments" className="mt-0 h-full">
+                    <TabsContent value="payments" className="mt-0 h-full data-[state=active]:flex flex-col">
                          {isLoadingPayments ? (
-                             <div className="flex flex-col items-center justify-center h-64 gap-4">
+                             <div className="flex flex-col items-center justify-center flex-1 gap-4">
                                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Transactions...</p>
                              </div>
                          ) : (
                             <div className="h-full flex flex-col">
-                                <div className="mb-4 flex justify-between items-end">
+                                <div className="mb-4 flex justify-between items-end shrink-0">
                                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Payment Passbook</h3>
                                     <Badge variant="outline" className="font-mono">Total Records: {payments?.length || 0}</Badge>
                                 </div>
@@ -198,7 +202,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                          )}
                     </TabsContent>
                 </div>
-            </Tabs>
+            </div>
         </div>
       </DialogContent>
     </Dialog>

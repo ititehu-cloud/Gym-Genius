@@ -1,0 +1,283 @@
+'use client';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import type { Member, Plan, Payment, Attendance } from "@/lib/types";
+import { format, parseISO } from "date-fns";
+import { Badge } from "../ui/badge";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy } from "firebase/firestore";
+import { ScrollArea } from "../ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { CreditCard, ClipboardCheck, User, Info, MapPin, Calendar, Smartphone, LoaderCircle } from "lucide-react";
+import { useMemo } from "react";
+
+type MemberDetailsDialogProps = {
+  member: Member;
+  plan?: Plan;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange }: MemberDetailsDialogProps) {
+  const firestore = useFirestore();
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !member.id) return null;
+    return query(
+      collection(firestore, "payments"),
+      where("memberId", "==", member.id),
+      orderBy("paymentDate", "desc")
+    );
+  }, [firestore, member.id]);
+  
+  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
+
+  const attendanceQuery = useMemoFirebase(() => {
+    if (!firestore || !member.id) return null;
+    return query(
+      collection(firestore, "attendance"),
+      where("memberId", "==", member.id),
+      orderBy("checkInTime", "desc")
+    );
+  }, [firestore, member.id]);
+  
+  const { data: attendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+
+  const totalPaid = useMemo(() => {
+    if (!payments) return 0;
+    return payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
+  }, [payments]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border-2 border-primary/20">
+        <DialogHeader className="p-6 pb-4 bg-primary text-primary-foreground">
+          <div className="flex items-center gap-6">
+             <Avatar className="h-20 w-20 border-4 border-white/20 shadow-xl">
+                <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
+                <AvatarFallback className="bg-white text-primary text-3xl font-bold">{member.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+                <DialogTitle className="text-3xl font-black uppercase tracking-tight">{member.name}</DialogTitle>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium opacity-90">
+                    <span>ID: <span className="font-mono">{member.memberId}</span></span>
+                    <span>•</span>
+                    <span>{plan?.name || 'No Plan'}</span>
+                    <span>•</span>
+                    <Badge variant="outline" className="bg-white/10 text-white border-white/30 text-[10px] font-bold uppercase tracking-widest">
+                        {member.status}
+                    </Badge>
+                </div>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-hidden p-0">
+            <Tabs defaultValue="profile" className="h-full flex flex-col">
+                <div className="px-6 pt-4 bg-muted/30 border-b">
+                    <TabsList className="grid w-full grid-cols-3 h-12 bg-muted p-1">
+                        <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4"/> Profile</TabsTrigger>
+                        <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><CreditCard className="h-4 w-4"/> Payments</TabsTrigger>
+                        <TabsTrigger value="attendance" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><ClipboardCheck className="h-4 w-4"/> Attendance</TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <div className="flex-1 overflow-hidden p-6">
+                    <TabsContent value="profile" className="mt-0 h-full">
+                        <ScrollArea className="h-full pr-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <section className="space-y-4">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-l-4 border-primary pl-3">
+                                        Personal Profile
+                                    </h3>
+                                    <div className="grid gap-3">
+                                        <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Full Name</p>
+                                            <p className="font-bold text-lg">{member.name}</p>
+                                        </div>
+                                        <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Member ID</p>
+                                            <p className="font-black font-mono text-lg">{member.memberId}</p>
+                                        </div>
+                                        <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Mobile Number</p>
+                                            <p className="font-bold text-lg">{member.mobileNumber || 'N/A'}</p>
+                                        </div>
+                                        <div className="p-3 bg-muted/40 rounded-lg space-y-1">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Home Address</p>
+                                            <p className="font-medium text-sm leading-relaxed">{member.address}</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-chart-2 border-l-4 border-chart-2 pl-3">
+                                        Membership Status
+                                    </h3>
+                                    <div className="grid gap-3">
+                                         <div className="p-3 bg-muted/40 rounded-lg space-y-1 border-l-4 border-primary">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Plan</p>
+                                            <p className="font-black text-xl text-primary">{plan?.name || 'N/A'}</p>
+                                            <p className="text-xs font-bold text-muted-foreground">₹{plan?.price} for {plan?.duration} Months</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 bg-chart-2/10 rounded-lg space-y-1">
+                                                <p className="text-[10px] font-bold text-chart-2 uppercase">Join Date</p>
+                                                <p className="font-black text-chart-2">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                                            </div>
+                                            <div className="p-3 bg-destructive/10 rounded-lg space-y-1">
+                                                <p className="text-[10px] font-bold text-destructive uppercase">Expiry Date</p>
+                                                <p className="font-black text-destructive">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex justify-between items-center">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Total Collections</p>
+                                                <p className="text-2xl font-black text-primary">₹{totalPaid}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Plan Value</p>
+                                                <p className="text-lg font-bold">₹{plan?.price || 0}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="payments" className="mt-0 h-full">
+                         {isLoadingPayments ? (
+                             <div className="flex flex-col items-center justify-center h-64 gap-4">
+                                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Transactions...</p>
+                             </div>
+                         ) : (
+                            <div className="h-full flex flex-col">
+                                <div className="mb-4 flex justify-between items-end">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Payment Passbook</h3>
+                                    <Badge variant="outline" className="font-mono">Total Records: {payments?.length || 0}</Badge>
+                                </div>
+                                <div className="flex-1 overflow-hidden border rounded-xl bg-card shadow-inner">
+                                    <ScrollArea className="h-full">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Method</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-black uppercase">Amount</TableHead>
+                                                    <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {payments && payments.length > 0 ? (
+                                                    payments.map((p) => (
+                                                        <TableRow key={p.id} className="hover:bg-muted/30 transition-colors">
+                                                            <TableCell className="font-bold">{format(parseISO(p.paymentDate), 'dd MMM yyyy')}</TableCell>
+                                                            <TableCell className="capitalize font-medium text-xs">{p.paymentType}</TableCell>
+                                                            <TableCell className="capitalize font-medium text-xs">{p.paymentMethod}</TableCell>
+                                                            <TableCell className="text-right font-black font-mono text-primary text-base">₹{p.amount}</TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Badge variant={p.status === 'paid' ? 'default' : 'destructive'} className={`${p.status === 'paid' ? 'bg-green-600' : ''} text-[9px] h-5`}>
+                                                                    {p.status.toUpperCase()}
+                                                                </Badge>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="text-center py-20">
+                                                            <div className="flex flex-col items-center gap-2 opacity-40">
+                                                                <CreditCard className="h-10 w-10" />
+                                                                <p className="text-sm font-bold uppercase tracking-widest">No transactions recorded</p>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                         )}
+                    </TabsContent>
+
+                    <TabsContent value="attendance" className="mt-0 h-full">
+                        {isLoadingAttendance ? (
+                            <div className="flex flex-col items-center justify-center h-64 gap-4">
+                                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Loading Attendance...</p>
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col">
+                                <div className="mb-4 flex justify-between items-end">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-chart-2">Log Records</h3>
+                                    <Badge variant="outline" className="font-mono">Days Visited: {attendance?.length || 0}</Badge>
+                                </div>
+                                <div className="flex-1 overflow-hidden border rounded-xl bg-card shadow-inner">
+                                    <ScrollArea className="h-full">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-black uppercase">Date</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Check-In</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Check-Out</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-black uppercase">Session</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {attendance && attendance.length > 0 ? (
+                                                    attendance.map((a) => {
+                                                        const inTime = parseISO(a.checkInTime);
+                                                        const outTime = a.checkOutTime ? parseISO(a.checkOutTime) : null;
+                                                        
+                                                        return (
+                                                            <TableRow key={a.id} className="hover:bg-muted/30 transition-colors">
+                                                                <TableCell className="font-bold">{format(inTime, 'dd MMM yyyy')}</TableCell>
+                                                                <TableCell className="font-medium text-xs">{format(inTime, 'hh:mm a')}</TableCell>
+                                                                <TableCell className="font-medium text-xs">{outTime ? format(outTime, 'hh:mm a') : <span className="text-muted-foreground">--:--</span>}</TableCell>
+                                                                <TableCell className="text-right">
+                                                                    {outTime ? (
+                                                                        <span className="text-xs font-bold bg-muted px-2 py-1 rounded">
+                                                                            {Math.floor((outTime.getTime() - inTime.getTime()) / (1000 * 60))} mins
+                                                                        </span>
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="text-orange-600 border-orange-600 animate-pulse text-[9px] h-5">LIVE NOW</Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )
+                                                    })
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="text-center py-20">
+                                                            <div className="flex flex-col items-center gap-2 opacity-40">
+                                                                <ClipboardCheck className="h-10 w-10" />
+                                                                <p className="text-sm font-bold uppercase tracking-widest">No attendance logs</p>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                        )}
+                    </TabsContent>
+                </div>
+            </Tabs>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

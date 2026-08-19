@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from '../ui/separator';
+import MemberDetailsDialog from './member-details-dialog';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -61,6 +62,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const [isShareType, setIsShareType] = useState<'id' | 'notice'>('id');
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isPaymentOpen, setPaymentOpen] = useState(false);
+  const [isDetailsOpen, setDetailsOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   
@@ -196,39 +198,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         {/* Bottom Left Decorative Accent */}
         <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
-        <div className="relative p-6 pb-4">
+        <div className="relative p-6 pb-4 cursor-pointer group" onClick={() => setDetailsOpen(true)}>
           {/* Top Right Edit Action - Z-index to be above accent */}
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-10" onClick={(e) => e.stopPropagation()}>
             <EditMemberDialog member={member} />
           </div>
 
           <div className="flex gap-6 items-start">
             {/* Left: Avatar */}
             <div className="flex-shrink-0">
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Avatar className="h-24 w-24 rounded-full border-4 border-primary/10 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                            <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
-                            <AvatarFallback className="bg-primary text-white text-3xl font-bold">{member.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                    </DialogTrigger>
-                    <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
-                        <DialogHeader className="sr-only">
-                          <DialogTitle>View Profile Picture</DialogTitle>
-                          <DialogDescription>{member.name}'s profile photo.</DialogDescription>
-                        </DialogHeader>
-                        <div className="relative w-full aspect-square">
-                            <Image src={member.imageUrl} alt={member.name} fill className="object-contain rounded-md" />
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <Avatar className="h-24 w-24 rounded-full border-4 border-primary/10 transition-all group-hover:ring-2 group-hover:ring-primary">
+                    <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
+                    <AvatarFallback className="bg-primary text-white text-3xl font-bold">{member.name.charAt(0)}</AvatarFallback>
+                </Avatar>
             </div>
 
             {/* Right: Details */}
             <div className="flex-grow space-y-4 pt-1">
                 <div className="space-y-0.5">
                     <p className="text-sm font-medium text-muted-foreground leading-none">Name:</p>
-                    <h3 className="text-2xl font-bold tracking-tight text-foreground">{member.name}</h3>
+                    <h3 className="text-2xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{member.name}</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-4">
@@ -260,7 +249,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => handleShare('id')}
+            onClick={(e) => { e.stopPropagation(); handleShare('id'); }}
             disabled={isSharing || !hasPhone}
           >
             {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5 text-foreground" />}
@@ -272,6 +261,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
             disabled={!hasPhone}
+            onClick={(e) => e.stopPropagation()}
           >
             {hasPhone ? (
               <a href={`tel:${member.mobileNumber}`} className="flex flex-col items-center justify-center gap-1">
@@ -289,7 +279,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => handleShare('notice')}
+            onClick={(e) => { e.stopPropagation(); handleShare('notice'); }}
             disabled={isSharing || !hasPhone}
           >
             {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5 text-green-600" />}
@@ -299,7 +289,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
+            onClick={(e) => { e.stopPropagation(); isCheckedIn ? handleCheckOut() : handleCheckIn(); }}
             disabled={isAttendanceLoading || !!attendanceRecord?.checkOutTime}
           >
             {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className={`h-5 w-5 ${isCheckedIn ? 'text-orange-600' : 'text-foreground'}`} />}
@@ -309,19 +299,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => setPaymentOpen(true)}
+            onClick={(e) => { e.stopPropagation(); setPaymentOpen(true); }}
           >
             <CreditCard className="h-5 w-5 text-foreground" />
             <span className="text-[9px] font-bold uppercase tracking-tighter">Payment</span>
           </Button>
 
-          <div className="h-full">
+          <div className="h-full" onClick={(e) => e.stopPropagation()}>
             <DeleteMemberDialog memberId={member.id} memberName={member.name} />
           </div>
         </div>
       </Card>
 
-      {/* Hidden Payment Dialogs & Capture Areas */}
+      {/* Modals & Dialogs */}
+      <MemberDetailsDialog 
+        member={member} 
+        plan={plan} 
+        isOpen={isDetailsOpen} 
+        onOpenChange={setDetailsOpen} 
+      />
+
       <Dialog open={isPaymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>

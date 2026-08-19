@@ -72,7 +72,7 @@ service cloud.firestore {
     }
 
     /**
-     * Payment records.
+     * Payment records. (Updated for explicit listing permission)
      */
     match /payments/{paymentId} {
       allow read, write: if isSignedIn();

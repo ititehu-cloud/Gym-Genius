@@ -31,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Separator } from '../ui/separator';
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -75,20 +76,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   const status = getStatus();
   const planName = plan?.name || 'N/A';
-
-  const getStatusBadgeVariant = (status: Member['status']) => {
-    switch (status) {
-      case 'active':
-        return 'default';
-      case 'expired':
-        return 'destructive';
-      case 'due':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
   const handleShare = async (type: 'id' | 'notice') => {
@@ -203,131 +190,129 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   return (
     <TooltipProvider>
-      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden relative">
-        <div className="flex justify-between pr-14">
-          <CardContent className="p-4 flex-grow space-y-2">
-             <div className="grid grid-cols-[max-content,1fr] gap-x-4 gap-y-1 text-sm items-center">
-                <span className="font-bold">Member Id :</span>
-                <span>{member.memberId}</span>
+      <Card className="w-full max-w-lg mx-auto shadow-lg rounded-lg overflow-hidden flex flex-col bg-white border border-muted/50">
+        <div className="relative p-6 pb-4">
+          {/* Top Right Edit Action */}
+          <div className="absolute top-4 right-4">
+            <EditMemberDialog member={member} />
+          </div>
 
-                <span className="font-bold">Name :</span>
-                <span className="font-semibold text-lg">{member.name}</span>
-                
-                <span className="font-bold">Plan Type :</span>
-                <span>{planName}</span>
-                
-                <span className="font-bold">Joined :</span>
-                <span className="text-chart-2 font-bold">{format(parseISO(member.joinDate), 'dd-MM-yyyy')}</span>
-                
-                <span className="font-bold">Expiry :</span>
-                <span className="text-destructive font-bold">{format(parseISO(member.expiryDate), 'dd-MM-yyyy')}</span>
-                
-                <span className="font-bold">Mobile :</span>
-                <span>{member.mobileNumber || "N/A"}</span>
+          <div className="flex gap-6 items-start">
+            {/* Left: Avatar */}
+            <div className="flex-shrink-0">
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Avatar className="h-24 w-24 rounded-full border-4 border-primary/10 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                            <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
+                            <AvatarFallback className="bg-primary text-white text-3xl font-bold">{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    </DialogTrigger>
+                    <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
+                        <div className="relative w-full aspect-square">
+                            <Image src={member.imageUrl} alt={member.name} fill className="object-contain rounded-md" />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
 
-                <span className="font-bold">Status :</span>
-                <div>
-                  <Badge variant={getStatusBadgeVariant(status)} className="capitalize">{status}</Badge>
+            {/* Right: Details */}
+            <div className="flex-grow space-y-4 pt-1">
+                <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-muted-foreground leading-none">Name:</p>
+                    <h3 className="text-2xl font-bold tracking-tight text-foreground">{member.name}</h3>
                 </div>
-             </div>
 
-             <div className="flex gap-2 mt-3 pt-2 border-t border-primary/5">
-               <Tooltip>
-                 <TooltipTrigger asChild>
-                    <div className="flex-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleShare('notice')}
-                        disabled={isSharing || !hasPhone}
-                        className="w-full gap-2 text-xs"
-                      >
-                        {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <WhatsAppIcon className="h-4 w-4" />}
-                        Due Notice
-                      </Button>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">M ID</p>
+                        <p className="text-base font-semibold">{member.memberId}</p>
                     </div>
-                 </TooltipTrigger>
-                 {!hasPhone && <TooltipContent>N/A</TooltipContent>}
-               </Tooltip>
-             </div>
-          </CardContent>
-
-          <div className="p-4 flex-shrink-0 flex items-start">
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Avatar className="h-16 w-16 rounded-md border-2 border-primary cursor-pointer hover:opacity-90">
-                        <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                </DialogTrigger>
-                <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
-                    <div className="relative w-full aspect-square">
-                        <Image src={member.imageUrl} alt={member.name} fill className="object-contain rounded-md" />
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Mobile:</p>
+                        <p className="text-base font-semibold">{member.mobileNumber || "N/A"}</p>
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Plan Expiry:</p>
+                        <p className="text-base font-bold text-green-600">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
+                        <p className="text-base font-bold text-destructive">₹{status === 'active' ? '0' : (plan?.price || 'N/A')}</p>
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
 
-        <div data-buttons="actions" className="absolute right-0 top-0 bottom-0 flex flex-col w-14 rounded-r-lg overflow-hidden border-l">
-          <div className="flex-1">
-            <EditMemberDialog member={member} />
-          </div>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button asChild variant="ghost" className="flex-1 w-full rounded-none bg-sky-500 hover:bg-sky-600 text-white p-0" disabled={!hasPhone}>
-                {hasPhone ? (
-                  <a href={`tel:${member.mobileNumber}`} className="flex items-center justify-center w-full h-full">
-                    <PhoneCall className="h-5 w-5" />
-                  </a>
-                ) : (
-                  <div className="opacity-30 flex items-center justify-center h-full">
-                    <PhoneCall className="h-5 w-5" />
-                  </div>
-                )}
-              </Button>
-            </TooltipTrigger>
-            {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
-          </Tooltip>
+        <Separator className="mx-6 w-auto bg-muted/40" />
+
+        {/* Bottom Toolbar */}
+        <div className="grid grid-cols-6 h-16 divide-x divide-muted/30">
+          <Button 
+            variant="ghost" 
+            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
+            onClick={() => handleShare('id')}
+            disabled={isSharing || !hasPhone}
+          >
+            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5 text-foreground" />}
+            <span className="text-[9px] font-bold uppercase tracking-tighter">ID Card</span>
+          </Button>
+
+          <Button 
+            asChild 
+            variant="ghost" 
+            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
+            disabled={!hasPhone}
+          >
+            {hasPhone ? (
+              <a href={`tel:${member.mobileNumber}`} className="flex flex-col items-center justify-center gap-1">
+                <PhoneCall className="h-5 w-5 text-foreground" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter">Call</span>
+              </a>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1 opacity-40">
+                <PhoneCall className="h-5 w-5" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter">Call</span>
+              </div>
+            )}
+          </Button>
 
           <Button 
             variant="ghost" 
-            className="flex-1 w-full rounded-none bg-green-500 hover:bg-green-600 text-white p-0"
+            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
+            onClick={() => handleShare('notice')}
+            disabled={isSharing || !hasPhone}
+          >
+            {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5 text-green-600" />}
+            <span className="text-[9px] font-bold uppercase tracking-tighter">Whatsapp</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
+            onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
+            disabled={isAttendanceLoading || !!attendanceRecord?.checkOutTime}
+          >
+            {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className={`h-5 w-5 ${isCheckedIn ? 'text-orange-600' : 'text-foreground'}`} />}
+            <span className="text-[9px] font-bold uppercase tracking-tighter">Attendance</span>
+          </Button>
+
+          <Button 
+            variant="ghost" 
+            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
             onClick={() => setPaymentOpen(true)}
           >
-            <CreditCard className="h-5 w-5" />
+            <CreditCard className="h-5 w-5 text-foreground" />
+            <span className="text-[9px] font-bold uppercase tracking-tighter">Payment</span>
           </Button>
 
-          <Button
-              variant="ghost"
-              className={`flex-1 w-full rounded-none p-0 ${isCheckedIn ? 'bg-orange-600 text-white' : 'bg-orange-400 hover:bg-orange-500 text-white'}`}
-              onClick={isCheckedIn ? handleCheckOut : handleCheckIn}
-              disabled={isAttendanceLoading || (!!attendanceRecord?.checkOutTime)}
-          >
-              {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className="h-5 w-5" />}
-          </Button>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="flex-1 w-full rounded-none bg-[#25D366] hover:bg-[#128C7E] text-white p-0" 
-                onClick={() => handleShare('id')} 
-                disabled={isSharing || !hasPhone}
-              >
-                {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            {!hasPhone && <TooltipContent side="left">N/A</TooltipContent>}
-          </Tooltip>
-          
-          <div className="flex-1">
+          <div className="h-full">
             <DeleteMemberDialog memberId={member.id} memberName={member.name} />
           </div>
         </div>
       </Card>
 
+      {/* Hidden Payment Dialogs & Capture Areas */}
       <Dialog open={isPaymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -338,6 +323,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
+      {/* Hidden capture area for ID generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">

@@ -9,7 +9,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useFirestore } from "@/firebase";
@@ -69,43 +68,49 @@ export default function DeleteMemberPaymentDialog({ payments, memberName }: Dele
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogTrigger asChild>
-        <Button className="h-full w-full rounded-none bg-yellow-500 hover:bg-yellow-600 text-white p-0">
-          <Trash2 className="h-5 w-5" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete a payment for {memberName}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete the selected payment record. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {sortedPayments.length > 0 ? (
-            <Select onValueChange={setSelectedPaymentId} value={selectedPaymentId}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select a payment to delete" />
-                </SelectTrigger>
-                <SelectContent>
-                    {sortedPayments.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                            {`₹${p.amount} (${p.paymentType}) on ${format(parseISO(p.paymentDate), 'PPP')}`}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No payments found for this member.</p>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={isDeleting || !selectedPaymentId} className="bg-destructive hover:bg-destructive/90">
-            {isDeleting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      <Button 
+        variant="ghost" 
+        className="flex flex-col gap-1 w-full h-full rounded-none hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+        onClick={() => setIsOpen(true)}
+      >
+        <Trash2 className="h-5 w-5" />
+        <span className="text-[9px] font-bold uppercase tracking-tighter">Delete</span>
+      </Button>
+
+      <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete a payment for {memberName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected payment record. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {sortedPayments.length > 0 ? (
+              <Select onValueChange={setSelectedPaymentId} value={selectedPaymentId}>
+                  <SelectTrigger>
+                      <SelectValue placeholder="Select a payment to delete" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {sortedPayments.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                              {`₹${p.amount} (${p.paymentType}) on ${format(parseISO(p.paymentDate), 'dd MMM yyyy')}`}
+                          </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+          ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No payments found for this member.</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting || !selectedPaymentId} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -178,7 +178,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                                             <TableCell className="capitalize font-medium text-xs">{p.paymentMethod}</TableCell>
                                                             <TableCell className="text-right font-black font-mono text-primary text-base">₹{p.amount}</TableCell>
                                                             <TableCell className="text-center">
-                                                                <Badge variant={p.status === 'paid' ? 'default' : 'destructive'} className={`${p.status === 'paid' ? 'bg-green-600' : ''} text-[9px] h-5`}>
+                                                                <Badge variant={p.status === 'paid' ? 'default' : 'destructive'} className={`${p.status === 'paid' ? 'bg-green-600 text-white' : ''} text-[9px] h-5`}>
                                                                     {p.status.toUpperCase()}
                                                                 </Badge>
                                                             </TableCell>
@@ -202,7 +202,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                          )}
                     </TabsContent>
                 </div>
-            </div>
+            </Tabs>
         </div>
       </DialogContent>
     </Dialog>

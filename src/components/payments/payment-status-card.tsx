@@ -129,7 +129,12 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
     return (
-        <Card className="w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
+        <Card className="relative w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
+            {/* Top Right Decorative Accent */}
+            <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-primary/30 rounded-tr-2xl pointer-events-none" />
+            {/* Bottom Left Decorative Accent */}
+            <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
+
             <div className="relative p-6 pb-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Avatar */}
@@ -170,7 +175,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             </div>
 
             {showHistory && (
-                <div className="px-6 pb-4 border-t pt-4">
+                <div className="px-6 pb-4 border-t pt-4 bg-white">
                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Transaction History</h4>
                     {payments.length > 0 ? (
                         <ul className="space-y-2">
@@ -196,7 +201,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             <Separator className="mx-6 w-auto bg-muted/40" />
 
             {/* Bottom Toolbar */}
-            <div className="grid grid-cols-5 h-16 divide-x divide-muted/30">
+            <div className="grid grid-cols-5 h-16 divide-x divide-muted/30 relative z-10 bg-white">
                 <Button 
                     variant="ghost" 
                     className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"

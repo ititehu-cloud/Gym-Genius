@@ -76,8 +76,12 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
             <Tabs defaultValue="profile" className="h-full flex flex-col">
                 <div className="px-6 pt-4 bg-muted/30 border-b shrink-0">
                     <TabsList className="grid w-full grid-cols-2 h-12 bg-muted p-1">
-                        <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><User className="h-4 w-4"/> Profile</TabsTrigger>
-                        <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest"><CreditCard className="h-4 w-4"/> Payments</TabsTrigger>
+                        <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
+                            <User className="h-4 w-4"/> Profile
+                        </TabsTrigger>
+                        <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
+                            <CreditCard className="h-4 w-4"/> Payments
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 

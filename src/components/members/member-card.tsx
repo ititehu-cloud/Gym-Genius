@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -208,6 +209,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         </Avatar>
                     </DialogTrigger>
                     <DialogContent className="p-0 border-0 max-w-md bg-transparent shadow-none">
+                        <DialogHeader className="sr-only">
+                          <DialogTitle>View Profile Picture</DialogTitle>
+                          <DialogDescription>{member.name}'s profile photo.</DialogDescription>
+                        </DialogHeader>
                         <div className="relative w-full aspect-square">
                             <Image src={member.imageUrl} alt={member.name} fill className="object-contain rounded-md" />
                         </div>

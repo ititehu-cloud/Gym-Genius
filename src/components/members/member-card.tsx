@@ -6,7 +6,7 @@ import type { Member, Plan, Attendance } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO } from 'date-fns';
-import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, FilePenLine, Trash2, IdCard } from 'lucide-react';
+import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, IdCard } from 'lucide-react';
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
@@ -21,28 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import RecordPaymentForm from '../payments/record-payment-form';
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from '../ui/separator';
-
-const WhatsAppIcon = ({ className }: { className?: string }) => (
-  <svg 
-    viewBox="-1 -1 26 26" 
-    fill="currentColor" 
-    className={className} 
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .015 5.394 0 12.03c0 2.12.551 4.189 1.595 6.04L0 24l4.062-1.065a11.85 11.85 0 005.733 1.488h.005c6.632 0 12.032-5.396 12.033-12.034a11.83 11.83 0 00-3.353-8.697"/>
-  </svg>
-)
+import { WhatsAppIcon } from '../icons/whatsapp-icon';
+import WhatsAppMessageDialog from './whatsapp-message-dialog';
 
 type MemberCardProps = {
   member: Member;
@@ -57,9 +43,9 @@ type MemberCardProps = {
 export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord, allMembers }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const [isShareType, setIsShareType] = useState<'id' | 'notice'>('id');
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isPaymentOpen, setPaymentOpen] = useState(false);
+  const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   
@@ -77,7 +63,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
-  const handleShare = async (type: 'id' | 'notice') => {
+  const handleShareId = async () => {
     if (isSharing) return;
 
     if (!hasPhone) {
@@ -90,47 +76,40 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
 
     setIsSharing(true);
-    setIsShareType(type);
 
     try {
       const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
       const joinStr = format(parseISO(member.joinDate), 'dd MMM yyyy');
-      let message = "";
+      let sharedUrl = member.idCardUrl || null;
 
-      if (type === 'id') {
-        let sharedUrl = member.idCardUrl || null;
+      if (!sharedUrl) {
+        toast({ title: "Sharing...", description: "Generating digital ID link..." });
+        
+        const elementToCapture = cardRef.current;
+        if (!elementToCapture) throw new Error("Capture target missing");
 
-        if (!sharedUrl) {
-          toast({ title: "Sharing...", description: "Generating digital ID link..." });
-          
-          const elementToCapture = cardRef.current;
-          if (!elementToCapture) throw new Error("Capture target missing");
+        const canvas = await html2canvas(elementToCapture, {
+          useCORS: true,
+          scale: 1.2,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
 
-          const canvas = await html2canvas(elementToCapture, {
-            useCORS: true,
-            scale: 1.2,
-            backgroundColor: '#ffffff',
-            logging: false,
-          });
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+        if (!blob) throw new Error("Image creation failed");
 
-          const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
-          if (!blob) throw new Error("Image creation failed");
-
-          const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
-          const formData = new FormData();
-          formData.append('image', file);
-          
-          const uploadResult = await uploadImage(formData);
-          if (!uploadResult.url) throw new Error("Upload failed");
-          
-          sharedUrl = uploadResult.url;
-          updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
-        }
-
-        message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
-      } else {
-        message = `🔔 RENEWAL NOTICE\n\nHello ${member.name.toUpperCase()},\n\nThis is a friendly reminder from ${gymName || 'your gym'} that your membership is expiring on ${expiryStr}.\n\n💰 Renewal Amount: ₹${plan?.price || 'N/A'}\n\nPlease renew your membership to continue your fitness journey!\n\nThank you,\n${gymName || 'Management'}`;
+        const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const uploadResult = await uploadImage(formData);
+        if (!uploadResult.url) throw new Error("Upload failed");
+        
+        sharedUrl = uploadResult.url;
+        updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
       }
+
+      const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
 
       let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
@@ -196,21 +175,17 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
         <div className="relative p-6 pb-4">
-          {/* Top Right Edit Action */}
           <div className="absolute top-4 right-4 z-10">
             <EditMemberDialog member={member} />
           </div>
 
           <div className="flex gap-6 items-start">
-            {/* Left: Avatar */}
             <div className="flex-shrink-0">
-                <Avatar className="h-24 w-24 rounded-full border-4 border-primary/10 transition-all hover:ring-2 hover:ring-primary">
-                    <AvatarImage src={member.imageUrl} alt={member.name} className="object-cover" />
-                    <AvatarFallback className="bg-primary text-white text-3xl font-bold">{member.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+              <div className="h-24 w-24 rounded-full border-4 border-primary/10 overflow-hidden bg-muted relative">
+                <Image src={member.imageUrl} alt={member.name} fill className="object-cover" />
+              </div>
             </div>
 
-            {/* Right: Details */}
             <div className="flex-grow space-y-4 pt-1">
                 <div className="space-y-0.5">
                     <p className="text-sm font-medium text-muted-foreground leading-none">Name:</p>
@@ -241,15 +216,14 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
         <Separator className="mx-6 w-auto bg-muted/40" />
 
-        {/* Bottom Toolbar */}
         <div className="grid grid-cols-6 h-16 divide-x divide-muted/30 relative z-10 bg-white">
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => handleShare('id')}
+            onClick={handleShareId}
             disabled={isSharing || !hasPhone}
           >
-            {isSharing && isShareType === 'id' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5 text-foreground" />}
+            {isSharing ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <IdCard className="h-5 w-5 text-foreground" />}
             <span className="text-[9px] font-bold uppercase tracking-tighter">ID Card</span>
           </Button>
 
@@ -275,10 +249,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           <Button 
             variant="ghost" 
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => handleShare('notice')}
-            disabled={isSharing || !hasPhone}
+            onClick={() => setWhatsAppDialogOpen(true)}
+            disabled={!hasPhone}
           >
-            {isSharing && isShareType === 'notice' ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <WhatsAppIcon className="h-5 w-5 text-green-600" />}
+            <WhatsAppIcon className="h-5 w-5 text-green-600" />
             <span className="text-[9px] font-bold uppercase tracking-tighter">Whatsapp</span>
           </Button>
 
@@ -307,6 +281,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </div>
       </Card>
 
+      <WhatsAppMessageDialog 
+        member={member} 
+        gymName={gymName} 
+        isOpen={isWhatsAppDialogOpen} 
+        onOpenChange={setWhatsAppDialogOpen} 
+      />
+
       <Dialog open={isPaymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
@@ -317,7 +298,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* Hidden capture area for ID generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
             <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">

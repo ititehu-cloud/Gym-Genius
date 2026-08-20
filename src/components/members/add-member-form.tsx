@@ -89,12 +89,12 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       
       const canvas = await html2canvas(cardCaptureRef.current, {
         useCORS: true,
-        scale: 1.2,
+        scale: 1.5,
         backgroundColor: '#ffffff',
         logging: false,
       });
       
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
       if (!blob) return null;
 
       const file = new File([blob], `${memberData.name}_ID.png`, { type: 'image/png' });
@@ -343,35 +343,56 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden capture area - Replicating MemberCard layout */}
+        {/* Hidden capture area - MATCHING USER IMAGE REFERENCE */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <div ref={cardCaptureRef} className="p-4 bg-white pb-12 w-[400px] text-black">
-              <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
-                  <div className="flex items-center gap-3 w-full">
-                    {userProfile?.icon && (
-                      <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-white flex items-center justify-center">
-                          <img src={userProfile.icon} alt="Logo" className="h-full w-full object-contain" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <h2 className="text-xl font-bold uppercase">{userProfile?.displayName || 'Gym Genius'}</h2>
-                      <p className="text-[10px] opacity-80 uppercase">{userProfile?.displayAddress || ''}</p>
+          <div ref={cardCaptureRef} className="p-0 bg-[#f8f9fa] w-[600px] text-[#2d3436] font-sans rounded-[24px] overflow-hidden border border-gray-200">
+            {/* Header Section */}
+            <div className="bg-[#467c6d] p-8 pb-10 rounded-b-[24px] flex justify-between items-start">
+                <div className="space-y-1">
+                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none">{userProfile?.displayName || 'Sardar fitness'}</h2>
+                    <p className="text-xl text-white/80 font-medium">Masood Sardar (+919270057647)</p>
+                </div>
+                {userProfile?.icon && (
+                  <div className="h-16 w-16 rounded-full bg-white/20 p-2 flex items-center justify-center">
+                      <img src={userProfile.icon} alt="Logo" className="h-full w-full object-contain" />
+                  </div>
+                )}
+            </div>
+
+            {/* Profile Section */}
+            <div className="px-8 pt-8 flex items-center gap-6">
+                <div className="relative h-24 w-24 rounded-full border-[3px] border-[#467c6d] overflow-hidden flex-shrink-0">
+                    <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
+                </div>
+                <div className="space-y-1">
+                    <h3 className="text-3xl font-bold text-[#2d3436] tracking-tight">{form.watch('name') || 'NAME'}</h3>
+                    <p className="text-xl text-gray-500 font-medium">ID: {form.watch('memberId') || 'ID'}</p>
+                </div>
+            </div>
+
+            {/* Separator */}
+            <div className="px-8 mt-8">
+                <div className="h-[1px] bg-gray-200 w-full" />
+            </div>
+
+            {/* Info Section */}
+            <div className="p-8 space-y-8">
+                <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">PLAN</span>
+                    <span className="text-2xl font-bold text-[#2d3436]">{selectedPlan?.name || 'N/A'}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-12">
+                    <div className="space-y-2">
+                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">START</span>
+                        <p className="text-2xl font-bold text-[#2d3436]">{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
                     </div>
-                  </div>
-              </div>
-              <div className="flex flex-col items-center">
-                  <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-6 bg-muted">
-                      <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
-                  </div>
-                  <h3 className="text-4xl font-black mb-6 uppercase tracking-tight text-center px-2">{form.watch('name') || 'NAME'}</h3>
-                  <p className="text-xl font-black tracking-widest font-mono mb-6">ID: {form.watch('memberId') || 'ID'}</p>
-                  <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
-                      <div className="flex justify-between uppercase"><span>Plan</span> <span>{selectedPlan?.name || 'N/A'}</span></div>
-                      <div className="flex justify-between uppercase"><span>Mobile</span> <span>{form.watch('mobileNumber') || 'N/A'}</span></div>
-                      <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</span></div>
-                      <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</span></div>
-                  </div>
-              </div>
+                    <div className="space-y-2">
+                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">EXPIRY</span>
+                        <p className="text-2xl font-bold text-[#2d3436]">{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
       </form>

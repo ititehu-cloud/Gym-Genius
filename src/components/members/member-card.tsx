@@ -90,12 +90,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
         const canvas = await html2canvas(elementToCapture, {
           useCORS: true,
-          scale: 1.2,
+          scale: 1.5,
           backgroundColor: '#ffffff',
           logging: false,
         });
 
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.8));
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
         if (!blob) throw new Error("Image creation failed");
 
         const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
@@ -169,9 +169,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   return (
     <TooltipProvider>
       <Card className="relative w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
-        {/* Top Right Decorative Accent */}
         <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-primary/30 rounded-tr-2xl pointer-events-none" />
-        {/* Bottom Left Decorative Accent */}
         <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
         <div className="relative p-6 pb-4">
@@ -298,32 +296,54 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
+      {/* NEW TEMPLATE AS PER USER IMAGE REFERENCE */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <div ref={cardRef} className="p-4 bg-white pb-12 w-[400px] text-black">
-            <div className="flex items-center bg-primary text-primary-foreground -m-4 mb-4 p-4">
-                <div className="flex items-center gap-3 w-full">
-                  {gymIconUrl && (
-                    <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
-                        <img src={gymIconUrl} alt="Logo" className="h-full w-full object-contain" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold uppercase">{gymName || 'Your Gym'}</h2>
-                    <p className="text-[10px] opacity-80 uppercase">{gymAddress || ''}</p>
+          <div ref={cardRef} className="p-0 bg-[#f8f9fa] w-[600px] text-[#2d3436] font-sans rounded-[24px] overflow-hidden border border-gray-200">
+            {/* Header Section */}
+            <div className="bg-[#467c6d] p-8 pb-10 rounded-b-[24px] flex justify-between items-start">
+                <div className="space-y-1">
+                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none">{gymName || 'Sardar fitness'}</h2>
+                    <p className="text-xl text-white/80 font-medium">Masood Sardar (+919270057647)</p>
+                </div>
+                {gymIconUrl && (
+                  <div className="h-16 w-16 rounded-full bg-white/20 p-2 flex items-center justify-center">
+                      <img src={gymIconUrl} alt="Logo" className="h-full w-full object-contain" crossOrigin="anonymous" />
                   </div>
+                )}
+            </div>
+
+            {/* Profile Section */}
+            <div className="px-8 pt-8 flex items-center gap-6">
+                <div className="relative h-24 w-24 rounded-full border-[3px] border-[#467c6d] overflow-hidden flex-shrink-0">
+                    <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" crossOrigin="anonymous" />
+                </div>
+                <div className="space-y-1">
+                    <h3 className="text-3xl font-bold text-[#2d3436] tracking-tight">{member.name}</h3>
+                    <p className="text-xl text-gray-500 font-medium">ID: {member.memberId}</p>
                 </div>
             </div>
-            <div className="flex flex-col items-center">
-                <div className="relative h-40 w-40 rounded-md overflow-hidden border-4 border-primary mb-4 bg-muted">
-                    <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" />
+
+            {/* Separator */}
+            <div className="px-8 mt-8">
+                <div className="h-[1px] bg-gray-200 w-full" />
+            </div>
+
+            {/* Info Section */}
+            <div className="p-8 space-y-8">
+                <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">PLAN</span>
+                    <span className="text-2xl font-bold text-[#2d3436]">{planName}</span>
                 </div>
-                <h3 className="text-4xl font-black mb-4 uppercase tracking-tight text-center px-2">{member.name}</h3>
-                <p className="text-xl font-bold mb-6">Member Id: {member.memberId}</p>
-                <div className="w-full space-y-2 text-lg text-left border-t-2 border-black pt-4 font-bold">
-                    <div className="flex justify-between uppercase"><span>Plan Type</span> <span>{planName}</span></div>
-                    <div className="flex justify-between uppercase"><span>Mobile</span> <span>{member.mobileNumber || 'N/A'}</span></div>
-                    <div className="flex justify-between uppercase text-chart-2"><span>Joined</span> <span>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</span></div>
-                    <div className="flex justify-between uppercase text-destructive"><span>Expires</span> <span>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</span></div>
+                
+                <div className="grid grid-cols-2 gap-12">
+                    <div className="space-y-2">
+                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">START</span>
+                        <p className="text-2xl font-bold text-[#2d3436]">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">EXPIRY</span>
+                        <p className="text-2xl font-bold text-[#2d3436]">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
+                    </div>
                 </div>
             </div>
           </div>

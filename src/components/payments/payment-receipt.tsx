@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -24,7 +23,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
     return (
       <div ref={ref} className="p-1 bg-white text-black font-sans w-full max-w-[450px] mx-auto border-0 shadow-none relative overflow-hidden print:p-0">
         <header className="flex justify-between items-start mb-0.5 border-b-[4px] border-black pb-0.5">
-          <div className="flex items-center gap-1.5 flex-1">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
             {gymIconUrl ? (
                 <div className="relative h-20 w-20 rounded-md bg-white overflow-hidden flex-shrink-0 p-1 border-2 border-black flex items-center justify-center">
                     <img
@@ -35,21 +34,23 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                     />
                 </div>
             ) : (
-                <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center flex-shrink-0">
                     <Dumbbell className="h-6 w-6 text-white" />
                 </div>
             )}
-            <div className="flex flex-col flex-1 ml-2">
-              <h1 className="text-4xl font-bold tracking-tighter text-black leading-none uppercase">{gymName || 'Sardar Fitness'}</h1>
+            <div className="flex flex-col flex-1 ml-2 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tighter text-black leading-none uppercase truncate whitespace-nowrap">
+                {gymName || 'Sardar Fitness'}
+              </h1>
               <div className="text-black font-bold mt-1">
                 {gymPhone && <p className="text-[12px]">MOB: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[200px] leading-tight uppercase text-[10px] opacity-80">{gymAddress}</p>}
+                {gymAddress && <p className="max-w-[200px] leading-tight uppercase text-[10px] opacity-80 truncate">{gymAddress}</p>}
               </div>
             </div>
           </div>
-          <div className="text-right flex flex-col items-end">
+          <div className="text-right flex flex-col items-end flex-shrink-0 ml-2">
             {isPaid && (
-              <div className="text-2xl font-black text-black uppercase tracking-tighter border-[3px] border-black px-2 py-0.5 inline-block bg-white">PAID</div>
+              <div className="text-xl font-black text-black uppercase tracking-tighter border-[3px] border-black px-2 py-0.5 inline-block bg-white">PAID</div>
             )}
           </div>
         </header>

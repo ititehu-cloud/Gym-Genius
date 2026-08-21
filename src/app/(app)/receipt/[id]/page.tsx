@@ -89,21 +89,28 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const element = receiptRef.current;
       if (!element) throw new Error("Receipt element not found");
 
-      // Give browser a moment to ensure fonts and layout are ready
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Ensure everything is rendered
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capture the receipt as an image with higher scale for sharp text and alignment
+      // Capture the receipt with specific constraints to prevent "distributed" layout
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 2, 
+        scale: 3, // Higher scale for extreme sharpness
         backgroundColor: '#ffffff',
         logging: false,
-        width: 500, // Explicit width for consistent capture
-        windowWidth: 500,
+        width: 500, // Lock the capture width to component's expected width
+        windowWidth: 500, // Lock window width to ensure flex/media queries don't shift
+        onclone: (clonedDoc) => {
+           // Ensure images are fully loaded in the clone
+           const images = clonedDoc.getElementsByTagName('img');
+           images.forEach(img => {
+             if (img.src) img.crossOrigin = 'anonymous';
+           });
+        }
       });
 
-      // Convert to base64 JPEG
-      const base64Data = canvas.toDataURL('image/jpeg', 0.9);
+      // Convert to high-quality base64 JPEG
+      const base64Data = canvas.toDataURL('image/jpeg', 0.95);
       const base64Image = base64Data.split(',')[1]; 
 
       // Upload the image to get a link
@@ -173,7 +180,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container">
+      <div className="bg-white shadow-2xl rounded-none overflow-visible mb-10 print-container">
         <PaymentReceipt
           ref={receiptRef}
           payment={payment}

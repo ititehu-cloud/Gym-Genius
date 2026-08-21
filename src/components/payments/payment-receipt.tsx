@@ -21,9 +21,13 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
     const isPaid = payment.status === 'paid';
 
     return (
-      <div ref={ref} className="p-6 bg-white text-black font-sans w-[500px] mx-auto border-0 shadow-none relative overflow-hidden print:p-0">
+      <div 
+        ref={ref} 
+        className="p-8 bg-white text-black font-sans w-[500px] mx-auto border-0 shadow-none relative overflow-visible print:p-0"
+        style={{ width: '500px' }} // Fixed width for consistent capture
+      >
         {/* Header Section */}
-        <header className="flex justify-between items-start mb-6 border-b-[6px] border-black pb-4">
+        <header className="flex justify-between items-start mb-8 border-b-[6px] border-black pb-6">
           <div className="flex items-center gap-4 flex-1">
             {gymIconUrl ? (
                 <div className="h-20 w-20 rounded-xl bg-white overflow-hidden flex-shrink-0 p-1 border-[3px] border-black flex items-center justify-center">
@@ -39,78 +43,78 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                     <Dumbbell className="h-8 w-8 text-white" />
                 </div>
             )}
-            <div className="flex flex-col flex-1 ml-1 overflow-hidden">
-              <h1 className="text-2xl font-black tracking-tighter text-black leading-none uppercase whitespace-nowrap">
+            <div className="flex flex-col flex-1 ml-1">
+              <h1 className="text-2xl font-black tracking-tighter text-black leading-tight uppercase">
                 {gymName || 'Gym Name'}
               </h1>
-              <div className="text-black font-bold mt-2 space-y-0.5">
-                {gymPhone && <p className="text-[12px] uppercase">MOB: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[240px] leading-tight uppercase text-[10px] opacity-90">{gymAddress}</p>}
+              <div className="text-black font-bold mt-2 space-y-1">
+                {gymPhone && <p className="text-[13px] uppercase">MOB: {gymPhone}</p>}
+                {gymAddress && <p className="max-w-[280px] leading-tight uppercase text-[11px] opacity-90">{gymAddress}</p>}
               </div>
             </div>
           </div>
           
           {isPaid && (
-            <div className="ml-4 flex-shrink-0">
-              <div className="text-2xl font-black text-black uppercase tracking-tighter border-[5px] border-black px-3 py-1 bg-white rotate-[-5deg] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                PAID
+            <div className="ml-4 flex-shrink-0 pt-2">
+              <div className="w-20 h-20 rounded-full border-[6px] border-black flex items-center justify-center rotate-[-15deg] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                <span className="text-xl font-black text-black uppercase tracking-tighter">PAID</span>
               </div>
             </div>
           )}
         </header>
 
         {/* Billed To Section */}
-        <section className="space-y-1 mb-8">
-          <h2 className="text-[10px] font-black text-black uppercase tracking-widest border-b-[2px] border-black inline-block mb-2">BILLED TO</h2>
-          <div className="text-black font-black text-4xl leading-tight uppercase">{member.name}</div>
-          <div className="text-black text-xs font-bold uppercase opacity-80">{member.address}</div>
-          <div className="text-black text-lg font-black pt-1">CONTACT: {member.mobileNumber || 'N/A'}</div>
+        <section className="space-y-1 mb-8 overflow-visible">
+          <h2 className="text-[11px] font-black text-black uppercase tracking-widest border-b-[2px] border-black inline-block mb-3">BILLED TO</h2>
+          <div className="text-black font-black text-4xl leading-none uppercase mb-1">{member.name}</div>
+          <div className="text-black text-[13px] font-bold uppercase opacity-80 mb-2">{member.address}</div>
+          <div className="text-black text-lg font-black">CONTACT: {member.mobileNumber || 'N/A'}</div>
           
           {/* Boxed ID Section */}
-          <div className="mt-4 block">
-            <div className="border-[5px] border-black px-6 py-2 inline-flex items-baseline gap-4 bg-white">
-                <span className="text-3xl font-black tracking-tighter">ID:</span>
+          <div className="mt-6 block">
+            <div className="border-[4px] border-black px-8 py-3 inline-flex items-baseline gap-6 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-3xl font-black tracking-tighter uppercase">ID:</span>
                 <span className="text-6xl font-black font-mono leading-none">{member.memberId}</span>
             </div>
           </div>
         </section>
 
         {/* Date and Method */}
-        <section className="flex justify-between items-end border-t-[4px] border-black pt-3 mb-6">
+        <section className="flex justify-between items-end border-t-[4px] border-black pt-4 mb-8">
           <div>
-            <h2 className="text-[10px] font-black text-black uppercase tracking-widest opacity-70">RECEIPT DATE</h2>
-            <div className="text-black font-black text-2xl">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
+            <h2 className="text-[11px] font-black text-black uppercase tracking-widest opacity-70 mb-1">RECEIPT DATE</h2>
+            <div className="text-black font-black text-2xl uppercase">{format(parseISO(payment.paymentDate), 'MMM dd, yyyy')}</div>
           </div>
           <div className="text-right">
-            <h2 className="text-[10px] font-black text-black uppercase tracking-widest opacity-70">PAYMENT METHOD</h2>
+            <h2 className="text-[11px] font-black text-black uppercase tracking-widest opacity-70 mb-1">PAYMENT METHOD</h2>
             <div className="text-black font-black text-2xl capitalize">{payment.paymentMethod}</div>
           </div>
         </section>
 
         {/* Table Section */}
-        <section className="mb-4">
+        <section className="mb-6">
           <table className="w-full text-left border-collapse border-[4px] border-black">
             <thead>
               <tr className="bg-black text-white">
-                <th className="py-2 px-4 text-xs font-black uppercase tracking-widest border-r border-white/20">DESCRIPTION</th>
-                <th className="py-2 px-4 text-right text-xs font-black uppercase tracking-widest">AMOUNT</th>
+                <th className="py-2.5 px-4 text-xs font-black uppercase tracking-widest border-r border-white/20">DESCRIPTION</th>
+                <th className="py-2.5 px-4 text-right text-xs font-black uppercase tracking-widest">AMOUNT</th>
               </tr>
             </thead>
             <tbody>
               {allPayments.length > 0 ? (
                 allPayments.map(p => (
                   <tr key={p.id} className="border-b-[3px] border-black last:border-b-0">
-                    <td className="py-4 px-4 border-r-[3px] border-black">
+                    <td className="py-5 px-4 border-r-[3px] border-black">
                       <div className="text-black font-black text-2xl capitalize">{p.paymentType}</div>
                     </td>
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-5 px-4 text-right">
                       <div className="text-black font-black text-4xl font-mono">₹{p.amount.toLocaleString()}</div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={2} className="py-8 text-center text-black font-black text-xl uppercase italic">No Transactions Found</td>
+                  <td colSpan={2} className="py-10 text-center text-black font-black text-xl uppercase italic">No Transactions Found</td>
                 </tr>
               )}
             </tbody>
@@ -118,8 +122,8 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         </section>
 
         {/* Grand Total Block */}
-        <section className="mb-8">
-          <div className="bg-black p-5 flex justify-between items-center text-white border-[4px] border-black">
+        <section className="mb-10">
+          <div className="bg-black p-6 flex justify-between items-center text-white border-[4px] border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
             <span className="font-black text-2xl uppercase tracking-tighter">GRAND TOTAL</span>
             <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black">₹</span>
@@ -129,12 +133,12 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         </section>
 
         {/* Footer Section */}
-        <footer className="mt-8 pt-6 text-center border-t-[5px] border-black">
+        <footer className="mt-8 pt-8 text-center border-t-[5px] border-black">
           <p className="text-black font-black italic text-3xl mb-1 uppercase leading-none tracking-tighter">STAY STRONG, STAY FIT!</p>
-          <p className="text-lg text-black uppercase font-black tracking-widest leading-none mt-2">
+          <p className="text-xl text-black uppercase font-black tracking-widest leading-none mt-2">
             {gymName || 'Gym Genius'}
           </p>
-          <p className="text-[9px] text-black font-bold mt-6 uppercase opacity-60 tracking-tight">COMPUTER GENERATED RECEIPT - VALID WITHOUT SIGNATURE</p>
+          <p className="text-[10px] text-black font-bold mt-8 uppercase opacity-60 tracking-tight">COMPUTER GENERATED RECEIPT - VALID WITHOUT SIGNATURE</p>
         </footer>
       </div>
     );

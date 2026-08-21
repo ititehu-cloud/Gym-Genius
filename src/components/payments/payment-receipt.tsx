@@ -39,7 +39,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                 </div>
             )}
             <div className="flex flex-col flex-1 ml-2 min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tighter text-black leading-none uppercase truncate whitespace-nowrap">
+              <h1 className="text-xl md:text-2xl font-black tracking-tighter text-black leading-tight uppercase truncate whitespace-nowrap overflow-hidden">
                 {gymName || 'Sardar Fitness'}
               </h1>
               <div className="text-black font-bold mt-1">
@@ -117,7 +117,7 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
 
         <footer className="mt-4 pt-2 text-center border-t-[3px] border-black">
           <p className="text-black font-black italic text-2xl mb-1 uppercase leading-none tracking-tighter">Stay Strong, Stay Fit!</p>
-          <p className="text-sm text-black uppercase font-black tracking-widest leading-tight">
+          <p className="text-sm text-black uppercase font-black tracking-widest leading-tight truncate">
             {gymName} {gymPhone && `| MOB: ${gymPhone}`}
           </p>
           <p className="text-[9px] text-black font-bold mt-1 uppercase opacity-60">Computer Generated Receipt - No Signature Required</p>

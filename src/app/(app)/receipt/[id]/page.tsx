@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import type { Payment, Member, UserProfile } from "@/lib/types";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
   const [isPrinting, setIsPrinting] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -57,16 +59,46 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
   const handlePrint = () => {
     setIsPrinting(true);
-    // Standard delay for print dialog to initialize correctly on mobile
     setTimeout(() => {
         window.print();
         setIsPrinting(false);
     }, 500);
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Gym Receipt',
+      text: `Receipt for ${member.name}`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        throw new Error('Web Share not supported');
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          toast({
+            title: "Link Copied",
+            description: "Sharing not allowed in this browser, link copied to clipboard instead.",
+          });
+        } catch (copyError) {
+          toast({
+            variant: "destructive",
+            title: "Sharing Failed",
+            description: "Could not share or copy link to clipboard.",
+          });
+        }
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4 receipt-wrapper">
-      {/* Action Bar - Hidden during print */}
       <div className="w-full max-w-2xl px-4 py-6 flex items-center justify-between no-print">
         <Link href="/payments">
           <Button variant="ghost" size="sm" className="text-gray-500">
@@ -79,22 +111,13 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
                 {isPrinting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 Print
             </Button>
-            <Button size="sm" onClick={() => {
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'Gym Receipt',
-                        text: `Receipt for ${member.name}`,
-                        url: window.location.href
-                    });
-                }
-            }}>
+            <Button size="sm" onClick={handleShare}>
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
             </Button>
         </div>
       </div>
 
-      {/* Main Receipt Content */}
       <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container">
         <PaymentReceipt
           payment={payment}
@@ -109,7 +132,6 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <style jsx global>{`
         @media print {
-          /* Aggressive reset to isolate the receipt container and force it to the top */
           body > *:not(.receipt-wrapper) {
             display: none !important;
           }
@@ -141,7 +163,6 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             background: white !important;
           }
 
-          /* Reset all parent containers to avoid layout issues */
           html, body {
             overflow: visible !important;
             height: auto !important;

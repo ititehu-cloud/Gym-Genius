@@ -89,18 +89,22 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const element = receiptRef.current;
       if (!element) throw new Error("Receipt element not found");
 
-      // Capture the receipt as an image
-      // scale: 1.5 is sufficient for clarity while keeping request size low
+      // Give browser a moment to ensure fonts and layout are ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Capture the receipt as an image with higher scale for sharp text and alignment
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 1.5,
+        scale: 2, 
         backgroundColor: '#ffffff',
         logging: false,
+        width: 500, // Explicit width for consistent capture
+        windowWidth: 500,
       });
 
-      // Convert to base64 JPEG (more reliable for transmission than PNG binary blobs)
-      const base64Data = canvas.toDataURL('image/jpeg', 0.8);
-      const base64Image = base64Data.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+      // Convert to base64 JPEG
+      const base64Data = canvas.toDataURL('image/jpeg', 0.9);
+      const base64Image = base64Data.split(',')[1]; 
 
       // Upload the image to get a link
       const uploadResult = await uploadImage(base64Image);
@@ -150,7 +154,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4 receipt-wrapper">
-      <div className="w-full max-w-2xl px-4 py-6 flex items-center justify-between no-print">
+      <div className="w-full max-w-[500px] px-4 py-6 flex items-center justify-between no-print">
         <Link href="/payments">
           <Button variant="ghost" size="sm" className="text-gray-500">
             <ArrowLeft className="mr-2 h-4 w-4" />

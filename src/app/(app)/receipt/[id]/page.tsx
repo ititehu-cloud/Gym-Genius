@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, use, useState } from "react";
+import { useMemo, use, useState, useRef } from "react";
 import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { LoaderCircle, ArrowLeft, Printer, Share2 } from "lucide-react";
@@ -9,6 +9,8 @@ import { PaymentReceipt } from "@/components/payments/payment-receipt";
 import type { Payment, Member, UserProfile } from "@/lib/types";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { uploadImage } from "@/app/actions";
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,6 +18,9 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   const { user } = useUser();
   const { toast } = useToast();
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -66,34 +71,78 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   };
 
   const handleShare = async () => {
-    const shareData = {
-      title: 'Gym Receipt',
-      text: `Receipt for ${member.name}`,
-      url: window.location.href
-    };
+    if (isSharing) return;
+
+    if (!member.mobileNumber || member.mobileNumber === 'N/A') {
+      toast({
+        variant: "destructive",
+        title: "No Mobile Number",
+        description: "Please update the member's profile with a valid mobile number to share via WhatsApp.",
+      });
+      return;
+    }
+
+    setIsSharing(true);
+    toast({ title: "Sharing...", description: "Generating digital receipt image..." });
 
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        throw new Error('Web Share not supported');
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-          toast({
-            title: "Link Copied",
-            description: "Sharing not allowed in this browser, link copied to clipboard instead.",
-          });
-        } catch (copyError) {
-          toast({
-            variant: "destructive",
-            title: "Sharing Failed",
-            description: "Could not share or copy link to clipboard.",
-          });
+      const element = receiptRef.current;
+      if (!element) throw new Error("Receipt element not found");
+
+      // Capture the receipt as an image
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        scale: 2, // High resolution
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+      if (!blob) throw new Error("Failed to generate image blob");
+
+      const file = new File([blob], `receipt_${payment.memberId}.png`, { type: 'image/png' });
+      const formData = new FormData();
+      formData.append('image', file);
+
+      // Upload the image to get a link
+      const uploadResult = await uploadImage(formData);
+      if (!uploadResult.url) throw new Error(uploadResult.error || "Failed to host receipt image");
+
+      const imageUrl = uploadResult.url;
+      const gymName = userProfile?.displayName || "Sardar Fitness";
+      const message = `Hello ${member.name},\n\nThank you for your payment at ${gymName}.\n\nYou can view and download your digital receipt here:\n${imageUrl}\n\nStay Strong, Stay Fit!`;
+
+      // Sanitize phone number
+      let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
+      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      
+      // Attempt to open WhatsApp
+      window.location.href = whatsappUrl;
+      
+      // Fallback for desktop/web
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
-      }
+      }, 1000);
+
+      toast({
+        title: "Ready to Send",
+        description: "WhatsApp has been opened with your receipt link.",
+      });
+
+    } catch (error: any) {
+      console.error("Share error:", error);
+      toast({
+        variant: "destructive",
+        title: "Share Failed",
+        description: error.message || "Could not generate or share the receipt image.",
+      });
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -107,12 +156,12 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           </Button>
         </Link>
         <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white" disabled={isPrinting}>
+            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white" disabled={isPrinting || isSharing}>
                 {isPrinting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 Print
             </Button>
-            <Button size="sm" onClick={handleShare}>
-                <Share2 className="mr-2 h-4 w-4" />
+            <Button size="sm" onClick={handleShare} disabled={isSharing || isPrinting}>
+                {isSharing ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
                 Share
             </Button>
         </div>
@@ -120,6 +169,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
       <div className="bg-white shadow-2xl rounded-none overflow-hidden mb-10 print-container">
         <PaymentReceipt
+          ref={receiptRef}
           payment={payment}
           member={member}
           allPayments={currentPaymentList}

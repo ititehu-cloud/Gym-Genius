@@ -27,11 +27,13 @@ export default function WhatsAppMessageDialog({ member, gymName, isOpen, onOpenC
   const [selectedTemplate, setSelectedTemplate] = useState('payment_reminder');
   const [message, setMessage] = useState('');
 
+  const nameOfGym = gymName || 'Your Gym';
+
   const getTemplates = () => ({
-    payment_reminder: `Assalam walikum\nyour membership is expire today so renew it\n${gymName || 'Sardar Fitness'}`,
-    eid_mubarak: `Assalam walikum,\nEid Mubarak to you and your family! Wishing you a blessed and joyful Eid.\n${gymName || 'Sardar Fitness'}`,
-    thanks: `Assalam walikum,\nThank you for choosing ${gymName || 'Sardar Fitness'}. We appreciate your commitment to your fitness journey!`,
-    happy_new_year: `Assalam walikum,\nHappy New Year! Let's make this year your strongest and healthiest yet.\n${gymName || 'Sardar Fitness'}`,
+    payment_reminder: `Assalam walikum,\nyour membership expires today so please renew it.\nRegards, ${nameOfGym}`,
+    eid_mubarak: `Assalam walikum,\nEid Mubarak to you and your family! Wishing you a blessed and joyful Eid.\nBest regards, ${nameOfGym}`,
+    thanks: `Assalam walikum,\nThank you for choosing ${nameOfGym}. We appreciate your commitment to your fitness journey!`,
+    happy_new_year: `Assalam walikum,\nHappy New Year! Let's make this year your strongest and healthiest yet.\nRegards, ${nameOfGym}`,
     custom: `Assalam walikum,\n`
   });
 
@@ -77,7 +79,7 @@ export default function WhatsAppMessageDialog({ member, gymName, isOpen, onOpenC
         <DialogHeader>
           <DialogTitle className="text-xl font-bold leading-tight">
             Send Whatsapp message:<br />
-            {member.mobileNumber}
+            <span className="text-primary">{member.mobileNumber}</span>
           </DialogTitle>
         </DialogHeader>
         

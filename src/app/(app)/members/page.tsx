@@ -5,7 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@
 import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
-import type { Member, Plan, Attendance } from "@/lib/types";
+import type { Member, Plan, Attendance, UserProfile } from "@/lib/types";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ function MemberList() {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(
     useMemoFirebase(() => {
@@ -101,6 +101,7 @@ function MemberList() {
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
+  const gymPhone = userProfile?.phoneNumber;
 
   if (isLoading) {
     return (
@@ -148,6 +149,7 @@ function MemberList() {
               gymName={gymName} 
               gymAddress={gymAddress} 
               gymIconUrl={gymIconUrl}
+              gymPhone={gymPhone}
               attendanceRecord={attendanceMap.get(member.id)}
               allMembers={members || []}
             />

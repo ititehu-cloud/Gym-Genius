@@ -36,11 +36,12 @@ type MemberCardProps = {
   gymName?: string | null;
   gymAddress?: string;
   gymIconUrl?: string | null;
+  gymPhone?: string | null;
   attendanceRecord?: Attendance;
   allMembers: Member[];
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, attendanceRecord, allMembers }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, gymPhone, attendanceRecord, allMembers }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
@@ -296,14 +297,14 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* NEW TEMPLATE AS PER USER IMAGE REFERENCE */}
+      {/* DYNAMIC TEMPLATE BASED ON GYM PROFILE */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} className="p-0 bg-[#f8f9fa] w-[600px] text-[#2d3436] font-sans rounded-[24px] overflow-hidden border border-gray-200">
             {/* Header Section */}
             <div className="bg-[#467c6d] p-8 pb-10 rounded-b-[24px] flex justify-between items-start">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none">{gymName || 'Sardar fitness'}</h2>
-                    <p className="text-xl text-white/80 font-medium">Masood Sardar (+919270057647)</p>
+                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none uppercase">{gymName || 'Gym Name'}</h2>
+                    {gymPhone && <p className="text-xl text-white/80 font-medium">Contact: {gymPhone}</p>}
                 </div>
                 {gymIconUrl && (
                   <div className="h-16 w-16 rounded-full bg-white/20 p-2 flex items-center justify-center">

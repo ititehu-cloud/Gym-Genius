@@ -343,14 +343,14 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden capture area - MATCHING USER IMAGE REFERENCE */}
+        {/* Hidden capture area - MATCHING GYM PROFILE */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardCaptureRef} className="p-0 bg-[#f8f9fa] w-[600px] text-[#2d3436] font-sans rounded-[24px] overflow-hidden border border-gray-200">
             {/* Header Section */}
             <div className="bg-[#467c6d] p-8 pb-10 rounded-b-[24px] flex justify-between items-start">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none">{userProfile?.displayName || 'Sardar fitness'}</h2>
-                    <p className="text-xl text-white/80 font-medium">Masood Sardar (+919270057647)</p>
+                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none uppercase">{userProfile?.displayName || 'Gym Name'}</h2>
+                    {userProfile?.phoneNumber && <p className="text-xl text-white/80 font-medium">Contact: {userProfile.phoneNumber}</p>}
                 </div>
                 {userProfile?.icon && (
                   <div className="h-16 w-16 rounded-full bg-white/20 p-2 flex items-center justify-center">

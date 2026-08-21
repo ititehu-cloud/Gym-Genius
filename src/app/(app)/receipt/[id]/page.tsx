@@ -90,22 +90,23 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       if (!element) throw new Error("Receipt element not found");
 
       // Ensure everything is rendered
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       // Capture the receipt with specific constraints to prevent "distributed" layout
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 3, // Higher scale for extreme sharpness
+        scale: 3, 
         backgroundColor: '#ffffff',
         logging: false,
-        width: 500, // Lock the capture width to component's expected width
-        windowWidth: 500, // Lock window width to ensure flex/media queries don't shift
+        width: 500, 
+        windowWidth: 500, 
         onclone: (clonedDoc) => {
-           // Ensure images are fully loaded in the clone
+           // Fixed: Use a standard for loop to iterate over HTMLCollection (images.forEach is not a function)
            const images = clonedDoc.getElementsByTagName('img');
-           images.forEach(img => {
+           for (let i = 0; i < images.length; i++) {
+             const img = images[i];
              if (img.src) img.crossOrigin = 'anonymous';
-           });
+           }
         }
       });
 

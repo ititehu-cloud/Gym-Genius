@@ -24,11 +24,11 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
       <div 
         ref={ref} 
         className="p-8 bg-white text-black font-sans w-[500px] mx-auto border-0 shadow-none relative overflow-visible print:p-0"
-        style={{ width: '500px' }} // Fixed width for consistent capture
+        style={{ width: '500px' }}
       >
         {/* Header Section */}
         <header className="flex justify-between items-start mb-8 border-b-[6px] border-black pb-6">
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-4 flex-1 overflow-hidden">
             {gymIconUrl ? (
                 <div className="h-20 w-20 rounded-xl bg-white overflow-hidden flex-shrink-0 p-1 border-[3px] border-black flex items-center justify-center">
                     <img
@@ -43,13 +43,13 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
                     <Dumbbell className="h-8 w-8 text-white" />
                 </div>
             )}
-            <div className="flex flex-col flex-1 ml-1">
-              <h1 className="text-2xl font-black tracking-tighter text-black leading-tight uppercase">
+            <div className="flex flex-col flex-1 ml-1 overflow-hidden">
+              <h1 className="text-2xl font-black tracking-tighter text-black leading-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
                 {gymName || 'Gym Name'}
               </h1>
               <div className="text-black font-bold mt-2 space-y-1">
                 {gymPhone && <p className="text-[13px] uppercase">MOB: {gymPhone}</p>}
-                {gymAddress && <p className="max-w-[280px] leading-tight uppercase text-[11px] opacity-90">{gymAddress}</p>}
+                {gymAddress && <p className="leading-tight uppercase text-[11px] opacity-90 break-words">{gymAddress}</p>}
               </div>
             </div>
           </div>
@@ -70,11 +70,11 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <div className="text-black text-[13px] font-bold uppercase opacity-80 mb-2">{member.address}</div>
           <div className="text-black text-lg font-black">CONTACT: {member.mobileNumber || 'N/A'}</div>
           
-          {/* Boxed ID Section */}
-          <div className="mt-6 block">
-            <div className="border-[4px] border-black px-8 py-3 inline-flex items-baseline gap-6 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-                <span className="text-3xl font-black tracking-tighter uppercase">ID:</span>
-                <span className="text-6xl font-black font-mono leading-none">{member.memberId}</span>
+          {/* Boxed ID Section - Optimized for html2canvas */}
+          <div className="mt-6 flex">
+            <div className="border-[3px] border-black px-6 py-4 flex items-center gap-6 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-w-[300px]">
+                <span className="text-3xl font-black tracking-tighter uppercase leading-none">ID:</span>
+                <span className="text-6xl font-black font-mono leading-none tracking-tighter">{member.memberId}</span>
             </div>
           </div>
         </section>

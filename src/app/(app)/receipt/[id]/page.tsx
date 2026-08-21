@@ -90,32 +90,34 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       if (!element) throw new Error("Receipt element not found");
 
       // Capture the receipt as an image
+      // scale: 1.5 is sufficient for clarity while keeping request size low
       const canvas = await html2canvas(element, {
         useCORS: true,
-        scale: 2, // High resolution
+        scale: 1.5,
         backgroundColor: '#ffffff',
         logging: false,
       });
 
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-      if (!blob) throw new Error("Failed to generate image blob");
-
-      const file = new File([blob], `receipt_${payment.memberId}.png`, { type: 'image/png' });
-      const formData = new FormData();
-      formData.append('image', file);
+      // Convert to base64 JPEG (more reliable for transmission than PNG binary blobs)
+      const base64Data = canvas.toDataURL('image/jpeg', 0.8);
+      const base64Image = base64Data.split(',')[1]; // Remove data:image/jpeg;base64, prefix
 
       // Upload the image to get a link
-      const uploadResult = await uploadImage(formData);
+      const uploadResult = await uploadImage(base64Image);
       if (!uploadResult.url) throw new Error(uploadResult.error || "Failed to host receipt image");
 
       const imageUrl = uploadResult.url;
-      const gymName = userProfile?.displayName || "Sardar Fitness";
+      const gymName = userProfile?.displayName || "Gym Genius";
       const message = `Hello ${member.name},\n\nThank you for your payment at ${gymName}.\n\nYou can view and download your digital receipt here:\n${imageUrl}\n\nStay Strong, Stay Fit!`;
 
       // Sanitize phone number
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+      if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
+        sanitizedPhone = sanitizedPhone.substring(1);
+      }
+      if (sanitizedPhone.length === 10) {
+        sanitizedPhone = `91${sanitizedPhone}`;
+      }
 
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
       
@@ -173,7 +175,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           payment={payment}
           member={member}
           allPayments={currentPaymentList}
-          gymName={userProfile?.displayName || "Sardar Fitness"}
+          gymName={userProfile?.displayName}
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}
           gymPhone={userProfile?.phoneNumber} 

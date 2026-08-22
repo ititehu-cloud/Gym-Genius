@@ -345,17 +345,18 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         {/* Hidden capture area - MATCHING THE PROVIDED IMAGE TEMPLATE */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardCaptureRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
-            {/* Teal Header */}
-            <div style={{ backgroundColor: '#1e8177', padding: '40px 48px', position: 'relative', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
-                <div style={{ paddingRight: '100px' }}>
-                    <h2 style={{ fontSize: '42px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '8px', textTransform: 'capitalize' }}>{userProfile?.displayName || 'Gym Name'}</h2>
-                    <p style={{ fontSize: '24px', fontWeight: '500', color: 'rgba(255,255,255,0.85)', margin: '0' }}>{userProfile?.phoneNumber || 'Contact Information'}</p>
-                </div>
+            {/* Header with Logo on Left, Name & Address on Right */}
+            <div style={{ backgroundColor: '#1e8177', padding: '40px 48px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {userProfile?.icon && (
-                  <div style={{ position: 'absolute', top: '40px', right: '48px', width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '50%', padding: '10px', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>
+                  <div style={{ width: '100px', height: '100px', backgroundColor: '#ffffff', borderRadius: '20px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <img src={userProfile.icon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 )}
+                <div style={{ flexGrow: 1 }}>
+                    <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '4px', textTransform: 'uppercase' }}>{userProfile?.displayName || 'Gym Name'}</h2>
+                    <p style={{ fontSize: '18px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', maxWidth: '350px', lineHeight: '1.2' }}>{userProfile?.displayAddress || ''}</p>
+                    <p style={{ fontSize: '18px', fontWeight: '600', color: '#ffffff', margin: '4px 0 0' }}>{userProfile?.phoneNumber || ''}</p>
+                </div>
             </div>
 
             {/* Profile Section */}
@@ -375,27 +376,27 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 
                 {/* Plan Row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>PLAN</span>
+                    <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>PLAN</span>
                     <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436' }}>{selectedPlan?.name || 'N/A'}</span>
                 </div>
 
                 {/* Date Labels Row */}
                 <div style={{ display: 'flex', marginBottom: '12px' }}>
                     <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>START</span>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>START</span>
                     </div>
                     <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>EXPIRY</span>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>EXPIRY</span>
                     </div>
                 </div>
 
                 {/* Date Values Row */}
                 <div style={{ display: 'flex' }}>
                     <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436', margin: '0' }}>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
                     </div>
                     <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436', margin: '0' }}>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
                     </div>
                 </div>
             </div>

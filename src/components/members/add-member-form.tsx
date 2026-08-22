@@ -84,7 +84,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     if (!cardCaptureRef.current) return null;
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const canvas = await html2canvas(cardCaptureRef.current, {
         useCORS: true,
@@ -342,62 +342,53 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden capture area - MATCHING THE PROVIDED IMAGE TEMPLATE */}
+        {/* Hidden LANDSCAPE capture area */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardCaptureRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
             {/* Header with Logo on Left, Name & Address on Right */}
-            <div style={{ backgroundColor: '#1e8177', padding: '40px 48px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
+            <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {userProfile?.icon && (
-                  <div style={{ width: '100px', height: '100px', backgroundColor: '#ffffff', borderRadius: '20px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <img src={userProfile.icon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 )}
                 <div style={{ flexGrow: 1 }}>
-                    <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '4px', textTransform: 'uppercase' }}>{userProfile?.displayName || 'Gym Name'}</h2>
-                    <p style={{ fontSize: '18px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', maxWidth: '350px', lineHeight: '1.2' }}>{userProfile?.displayAddress || ''}</p>
-                    <p style={{ fontSize: '18px', fontWeight: '600', color: '#ffffff', margin: '4px 0 0' }}>{userProfile?.phoneNumber || ''}</p>
+                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase' }}>{userProfile?.displayName || 'Gym Name'}</h2>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.2' }}>{userProfile?.displayAddress || ''}</p>
+                    <p style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff', margin: '2px 0 0' }}>{userProfile?.phoneNumber || ''}</p>
                 </div>
             </div>
 
-            {/* Profile Section */}
-            <div style={{ padding: '48px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
+            {/* Profile Section - Landscape */}
+            <div style={{ padding: '32px 40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+                <div style={{ width: '110px', height: '110px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
                     <img src={captureImageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flexGrow: 1 }}>
-                    <h3 style={{ fontSize: '36px', fontWeight: 'bold', color: '#2d3436', margin: '0', marginBottom: '4px' }}>{form.watch('name') || 'NAME'}</h3>
-                    <p style={{ fontSize: '24px', color: '#636e72', fontWeight: '500', margin: '0' }}>ID: {form.watch('memberId') || 'ID'}</p>
+                    <h3 style={{ fontSize: '34px', fontWeight: 'bold', color: '#2d3436', margin: '0', marginBottom: '4px' }}>{(form.watch('name') || 'NAME').toUpperCase()}</h3>
+                    <p style={{ fontSize: '22px', color: '#636e72', fontWeight: '700', margin: '0' }}>ID: {form.watch('memberId') || 'ID'}</p>
                 </div>
             </div>
 
             {/* Content Body */}
-            <div style={{ padding: '0 48px 48px' }}>
-                <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '40px' }} />
+            <div style={{ padding: '0 40px 32px' }}>
+                <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '24px' }} />
                 
-                {/* Plan Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>PLAN</span>
-                    <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436' }}>{selectedPlan?.name || 'N/A'}</span>
-                </div>
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>PLAN</span>
+                      <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3436' }}>{selectedPlan?.name || 'N/A'}</span>
+                  </div>
 
-                {/* Date Labels Row */}
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                    <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>START</span>
-                    </div>
-                    <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>EXPIRY</span>
-                    </div>
-                </div>
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>START</span>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
+                  </div>
 
-                {/* Date Values Row */}
-                <div style={{ display: 'flex' }}>
-                    <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
-                    </div>
-                    <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
-                    </div>
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>EXPIRY</span>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
+                  </div>
                 </div>
             </div>
           </div>

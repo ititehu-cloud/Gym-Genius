@@ -88,6 +88,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const elementToCapture = cardRef.current;
       if (!elementToCapture) throw new Error("Capture target missing");
 
+      // Ensure fonts and images are ready
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       const canvas = await html2canvas(elementToCapture, {
         useCORS: true,
         scale: 2,
@@ -115,15 +118,21 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
+      // Direct protocol usually bypasses the landing page on devices with WhatsApp installed
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      const webWhatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      window.location.href = whatsappUrl;
+      try {
+        window.location.href = whatsappUrl;
+      } catch (e) {
+        window.open(webWhatsappUrl, '_blank');
+      }
       
       setTimeout(() => { 
         if (document.hasFocus()) {
-          window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+          window.open(webWhatsappUrl, '_blank');
         } 
-      }, 1000);
+      }, 1500);
 
     } catch (error) {
       console.error("Share error:", error);
@@ -296,62 +305,56 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* DYNAMIC TEMPLATE MATCHING THE PROVIDED IMAGE */}
+      {/* DYNAMIC LANDSCAPE TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
             {/* Header with Logo on Left, Name & Address on Right */}
-            <div style={{ backgroundColor: '#1e8177', padding: '40px 48px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
+            <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {gymIconUrl && (
-                  <div style={{ width: '100px', height: '100px', backgroundColor: '#ffffff', borderRadius: '20px', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <img src={gymIconUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
                   </div>
                 )}
                 <div style={{ flexGrow: 1 }}>
-                    <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '4px', textTransform: 'uppercase' }}>{gymName || 'Gym Name'}</h2>
-                    <p style={{ fontSize: '18px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', maxWidth: '350px', lineHeight: '1.2' }}>{gymAddress || ''}</p>
-                    <p style={{ fontSize: '18px', fontWeight: '600', color: '#ffffff', margin: '4px 0 0' }}>{gymPhone || ''}</p>
+                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase' }}>{gymName || 'Gym Name'}</h2>
+                    <p style={{ fontSize: '16px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.2' }}>{gymAddress || ''}</p>
+                    <p style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff', margin: '2px 0 0' }}>{gymPhone || ''}</p>
                 </div>
             </div>
 
-            {/* Profile Section */}
-            <div style={{ padding: '48px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
+            {/* Profile Section - Landscape Row */}
+            <div style={{ padding: '32px 40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+                <div style={{ width: '110px', height: '110px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
                     <img src={member.imageUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
                 </div>
                 <div style={{ flexGrow: 1 }}>
-                    <h3 style={{ fontSize: '36px', fontWeight: 'bold', color: '#2d3436', margin: '0', marginBottom: '4px' }}>{member.name}</h3>
-                    <p style={{ fontSize: '24px', color: '#636e72', fontWeight: '500', margin: '0' }}>ID: {member.memberId}</p>
+                    <h3 style={{ fontSize: '34px', fontWeight: 'bold', color: '#2d3436', margin: '0', marginBottom: '4px' }}>{member.name.toUpperCase()}</h3>
+                    <p style={{ fontSize: '22px', color: '#636e72', fontWeight: '700', margin: '0' }}>ID: {member.memberId}</p>
                 </div>
             </div>
 
             {/* Content Body */}
-            <div style={{ padding: '0 48px 48px' }}>
-                <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '40px' }} />
+            <div style={{ padding: '0 40px 32px' }}>
+                <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '24px' }} />
                 
-                {/* Plan Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>PLAN</span>
-                    <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436' }}>{planName}</span>
-                </div>
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  {/* Plan Block */}
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>PLAN</span>
+                      <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3436' }}>{planName}</span>
+                  </div>
 
-                {/* Date Labels Row */}
-                <div style={{ display: 'flex', marginBottom: '12px' }}>
-                    <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>START</span>
-                    </div>
-                    <div style={{ flex: '1' }}>
-                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px' }}>EXPIRY</span>
-                    </div>
-                </div>
+                  {/* Start Block */}
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>START</span>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                  </div>
 
-                {/* Date Values Row */}
-                <div style={{ display: 'flex' }}>
-                    <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
-                    </div>
-                    <div style={{ flex: '1' }}>
-                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
-                    </div>
+                  {/* Expiry Block */}
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>EXPIRY</span>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
+                  </div>
                 </div>
             </div>
           </div>

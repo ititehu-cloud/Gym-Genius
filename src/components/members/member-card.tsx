@@ -88,7 +88,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const elementToCapture = cardRef.current;
       if (!elementToCapture) throw new Error("Capture target missing");
 
-      // Ensure fonts and images are ready
       await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(elementToCapture, {
@@ -123,18 +122,19 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       }
 
       // DIRECT PROTOCOL: Attempts to bypass the landing page by opening the app directly
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      const webWhatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+      const encodedMsg = encodeURIComponent(message);
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       
-      // Force direct application open
-      window.location.replace(whatsappUrl);
+      // Trigger deep link directly
+      window.location.href = whatsappUrl;
       
-      // Secondary attempt for desktops or if direct replace fails
+      // Fallback for systems that don't auto-trigger the protocol
       setTimeout(() => { 
         if (document.hasFocus()) {
           window.open(webWhatsappUrl, '_blank');
         } 
-      }, 1000);
+      }, 600);
 
     } catch (error) {
       console.error("Share error:", error);
@@ -310,7 +310,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       {/* DYNAMIC LANDSCAPE TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
-            {/* Header with Logo on Left, Name & Address on Right */}
             <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {gymIconUrl && (
                   <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifySelf: 'center', flexShrink: 0 }}>
@@ -324,7 +323,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
 
-            {/* Profile Section - Landscape Row */}
             <div style={{ padding: '32px 40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
                 <div style={{ width: '110px', height: '110px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
                     <img src={member.imageUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
@@ -335,24 +333,20 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
 
-            {/* Content Body */}
             <div style={{ padding: '0 40px 32px' }}>
                 <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '24px' }} />
                 
                 <div style={{ display: 'flex', gap: '20px' }}>
-                  {/* Plan Block */}
                   <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>PLAN</span>
                       <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d3436' }}>{planName}</span>
                   </div>
 
-                  {/* Start Block */}
                   <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>START</span>
                       <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a', margin: '0' }}>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
                   </div>
 
-                  {/* Expiry Block */}
                   <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#000000', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>EXPIRY</span>
                       <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626', margin: '0' }}>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>

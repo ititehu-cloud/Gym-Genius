@@ -89,10 +89,8 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const element = receiptRef.current;
       if (!element) throw new Error("Receipt element not found");
 
-      // Ensure everything is rendered
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Capture with user-specified settings
       const canvas = await html2canvas(element, {
         width: 400,               
         height: element.offsetHeight,           
@@ -111,11 +109,9 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         }
       });
 
-      // Convert to high-quality base64 JPEG
       const base64Data = canvas.toDataURL('image/jpeg', 0.95);
       const base64Image = base64Data.split(',')[1]; 
 
-      // Upload the image to get a link
       const uploadResult = await uploadImage(base64Image);
       if (!uploadResult.url) throw new Error(uploadResult.error || "Failed to host receipt image");
 
@@ -123,7 +119,6 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const gymName = userProfile?.displayName || "Gym Genius";
       const message = `Hello ${member.name},\n\nThank you for your payment at ${gymName}.\n\nYou can view and download your digital receipt here:\n${imageUrl}\n\nStay Strong, Stay Fit!`;
 
-      // Sanitize phone number
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
         sanitizedPhone = sanitizedPhone.substring(1);
@@ -132,18 +127,19 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         sanitizedPhone = `91${sanitizedPhone}`;
       }
 
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
-      const webWhatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+      const encodedMsg = encodeURIComponent(message);
+      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       
-      // Force direct application open
-      window.location.replace(whatsappUrl);
+      // Trigger deep link
+      window.location.href = whatsappUrl;
       
-      // Secondary attempt for desktops or if direct replace fails
+      // Fallback redirection
       setTimeout(() => { 
         if (document.hasFocus()) {
           window.open(webWhatsappUrl, '_blank');
         } 
-      }, 1000);
+      }, 600);
 
       toast({
         title: "Ready to Send",

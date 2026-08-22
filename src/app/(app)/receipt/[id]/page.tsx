@@ -103,7 +103,6 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         logging: false,
         windowWidth: 400,         
         onclone: (clonedDoc) => {
-           // Standard for loop to iterate over HTMLCollection for maximum compatibility
            const images = clonedDoc.getElementsByTagName('img');
            for (let i = 0; i < images.length; i++) {
              const img = images[i];
@@ -134,15 +133,16 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       }
 
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+      const webWhatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      // Attempt to open WhatsApp
-      window.location.href = whatsappUrl;
+      // Force direct application open
+      window.location.replace(whatsappUrl);
       
-      // Fallback for desktop/web
-      setTimeout(() => {
+      // Secondary attempt for desktops or if direct replace fails
+      setTimeout(() => { 
         if (document.hasFocus()) {
-          window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
-        }
+          window.open(webWhatsappUrl, '_blank');
+        } 
       }, 1000);
 
       toast({

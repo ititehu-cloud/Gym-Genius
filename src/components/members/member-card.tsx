@@ -115,24 +115,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
 
       let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
-      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
-      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+      if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
+        sanitizedPhone = sanitizedPhone.substring(1);
+      }
+      if (sanitizedPhone.length === 10) {
+        sanitizedPhone = `91${sanitizedPhone}`;
+      }
 
-      // Direct protocol usually bypasses the landing page on devices with WhatsApp installed
+      // DIRECT PROTOCOL: Attempts to bypass the landing page by opening the app directly
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
       const webWhatsappUrl = `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
       
-      try {
-        window.location.href = whatsappUrl;
-      } catch (e) {
-        window.open(webWhatsappUrl, '_blank');
-      }
+      // Force direct application open
+      window.location.replace(whatsappUrl);
       
+      // Secondary attempt for desktops or if direct replace fails
       setTimeout(() => { 
         if (document.hasFocus()) {
           window.open(webWhatsappUrl, '_blank');
         } 
-      }, 1500);
+      }, 1000);
 
     } catch (error) {
       console.error("Share error:", error);
@@ -311,7 +313,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             {/* Header with Logo on Left, Name & Address on Right */}
             <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {gymIconUrl && (
-                  <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifySelf: 'center', flexShrink: 0 }}>
                       <img src={gymIconUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
                   </div>
                 )}

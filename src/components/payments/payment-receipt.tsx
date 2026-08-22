@@ -49,7 +49,9 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
               </h1>
               <div className="text-black font-bold mt-2 space-y-1">
                 {gymPhone && <p className="text-[13px] uppercase">MOB: {gymPhone}</p>}
-                {gymAddress && <p className="leading-tight uppercase text-[11px] opacity-90 break-words">{gymAddress}</p>}
+                <div className="leading-tight uppercase text-[11px] opacity-90 break-words max-w-[280px]">
+                  {gymAddress || ''}
+                </div>
               </div>
             </div>
           </div>
@@ -70,11 +72,11 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <div className="text-black text-[13px] font-bold uppercase opacity-80 mb-2">{member.address}</div>
           <div className="text-black text-lg font-black">CONTACT: {member.mobileNumber || 'N/A'}</div>
           
-          {/* Boxed ID Section - Optimized for html2canvas */}
-          <div className="mt-6 flex">
-            <div className="border-[3px] border-black px-6 py-4 flex items-center gap-6 bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-w-[300px]">
-                <span className="text-3xl font-black tracking-tighter uppercase leading-none">ID:</span>
-                <span className="text-6xl font-black font-mono leading-none tracking-tighter">{member.memberId}</span>
+          {/* Boxed ID Section - Optimized Size and Font matching date */}
+          <div className="mt-4 flex">
+            <div className="border-[2px] border-black px-4 py-2 flex items-center gap-3 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-sm font-black tracking-tighter uppercase leading-none opacity-70">ID:</span>
+                <span className="text-2xl font-black font-mono leading-none tracking-tighter">{member.memberId}</span>
             </div>
           </div>
         </section>

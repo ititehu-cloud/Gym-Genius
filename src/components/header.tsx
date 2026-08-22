@@ -1,9 +1,8 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut } from "lucide-react";
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -39,17 +38,6 @@ export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
         </div>
         
         <div className="flex items-center gap-2">
-            <Link href="/settings">
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2"
-                >
-                    <Settings className="h-5 w-5" />
-                    <span className="hidden md:inline">Settings</span>
-                </Button>
-            </Link>
-
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button 

@@ -84,14 +84,14 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     if (!cardCaptureRef.current) return null;
     
     try {
-      // Delay slightly for React to render the hidden capture area with real data
       await new Promise(resolve => setTimeout(resolve, 800));
       
       const canvas = await html2canvas(cardCaptureRef.current, {
         useCORS: true,
-        scale: 1.5,
+        scale: 2,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 600,
       });
       
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
@@ -165,7 +165,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
       toast({ title: "Member Created", description: "Finalizing digital ID card..." });
       
-      // Use the final imageUrl for generation
       const idCardUrl = await generateAndUploadIdCard({
         ...values,
         imageUrl,
@@ -343,53 +342,60 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </Button>
         </div>
 
-        {/* Hidden capture area - MATCHING GYM PROFILE */}
+        {/* Hidden capture area - MATCHING THE PROVIDED IMAGE TEMPLATE */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <div ref={cardCaptureRef} className="p-0 bg-[#f8f9fa] w-[600px] text-[#2d3436] font-sans rounded-[24px] overflow-hidden border border-gray-200">
-            {/* Header Section */}
-            <div className="bg-[#467c6d] p-8 pb-10 rounded-b-[24px] flex justify-between items-start">
-                <div className="space-y-1">
-                    <h2 className="text-3xl font-bold text-white tracking-tight leading-none uppercase">{userProfile?.displayName || 'Gym Name'}</h2>
-                    {userProfile?.phoneNumber && <p className="text-xl text-white/80 font-medium">Contact: {userProfile.phoneNumber}</p>}
+          <div ref={cardCaptureRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
+            {/* Teal Header */}
+            <div style={{ backgroundColor: '#1e8177', padding: '40px 48px', position: 'relative', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
+                <div style={{ paddingRight: '100px' }}>
+                    <h2 style={{ fontSize: '42px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '8px', textTransform: 'capitalize' }}>{userProfile?.displayName || 'Gym Name'}</h2>
+                    <p style={{ fontSize: '24px', fontWeight: '500', color: 'rgba(255,255,255,0.85)', margin: '0' }}>{userProfile?.phoneNumber || 'Contact Information'}</p>
                 </div>
                 {userProfile?.icon && (
-                  <div className="h-16 w-16 rounded-full bg-white/20 p-2 flex items-center justify-center">
-                      <img src={userProfile.icon} alt="Logo" className="h-full w-full object-contain" />
+                  <div style={{ position: 'absolute', top: '40px', right: '48px', width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '50%', padding: '10px', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>
+                      <img src={userProfile.icon} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 )}
             </div>
 
             {/* Profile Section */}
-            <div className="px-8 pt-8 flex items-center gap-6">
-                <div className="relative h-24 w-24 rounded-full border-[3px] border-[#467c6d] overflow-hidden flex-shrink-0">
-                    <img src={captureImageUrl} alt="Preview" className="h-full w-full object-cover" />
+            <div style={{ padding: '48px', paddingTop: '40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+                <div style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src={captureImageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <div className="space-y-1">
-                    <h3 className="text-3xl font-bold text-[#2d3436] tracking-tight">{form.watch('name') || 'NAME'}</h3>
-                    <p className="text-xl text-gray-500 font-medium">ID: {form.watch('memberId') || 'ID'}</p>
+                <div style={{ flexGrow: 1 }}>
+                    <h3 style={{ fontSize: '36px', fontWeight: 'bold', color: '#2d3436', margin: '0', marginBottom: '4px' }}>{form.watch('name') || 'NAME'}</h3>
+                    <p style={{ fontSize: '24px', color: '#636e72', fontWeight: '500', margin: '0' }}>ID: {form.watch('memberId') || 'ID'}</p>
                 </div>
             </div>
 
-            {/* Separator */}
-            <div className="px-8 mt-8">
-                <div className="h-[1px] bg-gray-200 w-full" />
-            </div>
-
-            {/* Info Section */}
-            <div className="p-8 space-y-8">
-                <div className="flex justify-between items-center">
-                    <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">PLAN</span>
-                    <span className="text-2xl font-bold text-[#2d3436]">{selectedPlan?.name || 'N/A'}</span>
-                </div>
+            {/* Content Body */}
+            <div style={{ padding: '0 48px 48px' }}>
+                <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '40px' }} />
                 
-                <div className="grid grid-cols-2 gap-12">
-                    <div className="space-y-2">
-                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">START</span>
-                        <p className="text-2xl font-bold text-[#2d3436]">{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
+                {/* Plan Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>PLAN</span>
+                    <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436' }}>{selectedPlan?.name || 'N/A'}</span>
+                </div>
+
+                {/* Date Labels Row */}
+                <div style={{ display: 'flex', marginBottom: '12px' }}>
+                    <div style={{ flex: '1' }}>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>START</span>
                     </div>
-                    <div className="space-y-2">
-                        <span className="text-xl font-bold text-gray-400 tracking-widest uppercase">EXPIRY</span>
-                        <p className="text-2xl font-bold text-[#2d3436]">{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
+                    <div style={{ flex: '1' }}>
+                        <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#b2bec3', textTransform: 'uppercase', letterSpacing: '1px' }}>EXPIRY</span>
+                    </div>
+                </div>
+
+                {/* Date Values Row */}
+                <div style={{ display: 'flex' }}>
+                    <div style={{ flex: '1' }}>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436', margin: '0' }}>{form.watch('joinDate') ? format(parseISO(form.watch('joinDate')), 'dd MMM yyyy') : 'N/A'}</p>
+                    </div>
+                    <div style={{ flex: '1' }}>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#2d3436', margin: '0' }}>{form.watch('joinDate') && selectedPlan ? format(addMonths(parseISO(form.watch('joinDate')), selectedPlan.duration), 'dd MMM yyyy') : 'N/A'}</p>
                     </div>
                 </div>
             </div>

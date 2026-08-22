@@ -92,16 +92,18 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       // Ensure everything is rendered
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Capture the receipt with specific constraints to prevent "distributed" layout
+      // Capture with user-specified settings
       const canvas = await html2canvas(element, {
+        width: 400,               
+        height: element.offsetHeight,           
+        scale: 2,                 
         useCORS: true,
-        scale: 3, 
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 500, 
-        windowWidth: 500, 
+        windowWidth: 400,         
         onclone: (clonedDoc) => {
-           // Fixed: Use a standard for loop to iterate over HTMLCollection (images.forEach is not a function)
+           // Standard for loop to iterate over HTMLCollection for maximum compatibility
            const images = clonedDoc.getElementsByTagName('img');
            for (let i = 0; i < images.length; i++) {
              const img = images[i];
@@ -162,7 +164,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-0 sm:p-4 receipt-wrapper">
-      <div className="w-full max-w-[500px] px-4 py-6 flex items-center justify-between no-print">
+      <div className="w-full max-w-[400px] px-4 py-6 flex items-center justify-between no-print">
         <Link href="/payments">
           <Button variant="ghost" size="sm" className="text-gray-500">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -181,7 +183,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      <div className="bg-white shadow-2xl rounded-none overflow-visible mb-10 print-container">
+      <div className="bg-white shadow-xl rounded-none overflow-hidden mb-10 print-container">
         <PaymentReceipt
           ref={receiptRef}
           payment={payment}
@@ -217,8 +219,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
-            width: 100% !important;
-            max-width: none !important;
+            width: 400px !important;
             margin: 0 !important;
             padding: 0 !important;
             border: none !important;

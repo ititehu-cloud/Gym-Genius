@@ -65,14 +65,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
-  // Calculate current cycle due amount
   const dueAmount = useMemo(() => {
     if (!plan) return 0;
     
     const joinDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
     
-    // Cycle payments logic matching PaymentStatusCard
     const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
     const leadDate = new Date(joinDate.getTime() - leadTimeMs);
 
@@ -137,24 +135,22 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
 
       let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
-      if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
-        sanitizedPhone = sanitizedPhone.substring(1);
-      }
-      if (sanitizedPhone.length === 10) {
-        sanitizedPhone = `91${sanitizedPhone}`;
-      }
+      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
       const encodedMsg = encodeURIComponent(message);
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-      const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      const waMeUrl = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
       
+      // Direct deep link trigger
       window.location.href = whatsappUrl;
       
+      // Fallback to wa.me (better auto-open than api.whatsapp.com)
       setTimeout(() => { 
         if (document.hasFocus()) {
-          window.open(webWhatsappUrl, '_blank');
+          window.open(waMeUrl, '_blank');
         } 
-      }, 600);
+      }, 1200); // Longer timeout to allow device to transition to app
 
     } catch (error) {
       console.error("Share error:", error);

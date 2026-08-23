@@ -109,10 +109,14 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
         }
       });
 
-      const base64Data = canvas.toDataURL('image/jpeg', 0.95);
-      const base64Image = base64Data.split(',')[1]; 
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (!blob) throw new Error("Image creation failed");
 
-      const uploadResult = await uploadImage(base64Image);
+      const file = new File([blob], `receipt_${payment.id}.jpg`, { type: 'image/jpeg' });
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const uploadResult = await uploadImage(formData);
       if (!uploadResult.url) throw new Error(uploadResult.error || "Failed to host receipt image");
 
       const imageUrl = uploadResult.url;
@@ -120,26 +124,22 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const message = `Hello ${member.name},\n\nThank you for your payment at ${gymName}.\n\nYou can view and download your digital receipt here:\n${imageUrl}\n\nStay Strong, Stay Fit!`;
 
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-      if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
-        sanitizedPhone = sanitizedPhone.substring(1);
-      }
-      if (sanitizedPhone.length === 10) {
-        sanitizedPhone = `91${sanitizedPhone}`;
-      }
+      if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+      if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
       const encodedMsg = encodeURIComponent(message);
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-      const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      const waMeUrl = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
       
-      // Trigger deep link
+      // Attempt direct deep link
       window.location.href = whatsappUrl;
       
-      // Fallback redirection
+      // Fallback to wa.me with longer timeout
       setTimeout(() => { 
         if (document.hasFocus()) {
-          window.open(webWhatsappUrl, '_blank');
+          window.open(waMeUrl, '_blank');
         } 
-      }, 600);
+      }, 1200);
 
       toast({
         title: "Ready to Send",

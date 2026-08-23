@@ -55,26 +55,22 @@ export default function WhatsAppMessageDialog({ member, gymName, isOpen, onOpenC
     }
 
     let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-    if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
-        sanitizedPhone = sanitizedPhone.substring(1);
-    }
-    if (sanitizedPhone.length === 10) {
-        sanitizedPhone = `91${sanitizedPhone}`;
-    }
+    if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
+    if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
     const encodedMsg = encodeURIComponent(message);
     const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-    const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+    const waMeUrl = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
     
-    // Attempt to open in app directly
+    // Direct trigger
     window.location.href = whatsappUrl;
     
-    // Fallback to API if app redirection doesn't trigger immediately
+    // Fallback to wa.me (better auto-open than api.whatsapp.com)
     setTimeout(() => {
       if (document.hasFocus()) {
-        window.open(webWhatsappUrl, '_blank');
+        window.open(waMeUrl, '_blank');
       }
-    }, 600);
+    }, 1000);
 
     onOpenChange(false);
   };

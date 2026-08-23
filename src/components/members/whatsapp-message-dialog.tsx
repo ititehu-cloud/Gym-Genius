@@ -74,14 +74,13 @@ export default function WhatsAppMessageDialog({ member, gymName, isOpen, onOpenC
       whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
     }
 
-    // Attempt direct open
     if (isIOS) {
       window.location.href = whatsappUrl;
       setTimeout(() => {
         if (document.hasFocus()) {
           window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
         }
-      }, 1200);
+      }, 500);
     } else {
       const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       if (!newWindow || newWindow.closed) {

@@ -70,10 +70,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     
     const joinDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
-    
-    // Payments are usually counted if they fall within the current membership cycle window.
-    // A membership cycle starts on joinDate and ends on expiryDate.
-    // We also give a 30 day grace window before joinDate for early renewals.
     const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
     const leadDate = new Date(joinDate.getTime() - leadTimeMs);
 
@@ -105,35 +101,38 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     try {
       const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
       const joinStr = format(parseISO(member.joinDate), 'dd MMM yyyy');
-      let sharedUrl = null;
+      let sharedUrl = member.idCardUrl;
 
-      toast({ title: "Sharing...", description: "Generating digital ID link..." });
-      
-      const elementToCapture = cardRef.current;
-      if (!elementToCapture) throw new Error("Capture target missing");
+      // Only generate if no existing link is found
+      if (!sharedUrl) {
+        toast({ title: "Sharing...", description: "Generating digital ID link..." });
+        
+        const elementToCapture = cardRef.current;
+        if (!elementToCapture) throw new Error("Capture target missing");
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-      const canvas = await html2canvas(elementToCapture, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 600,
-      });
+        const canvas = await html2canvas(elementToCapture, {
+          useCORS: true,
+          scale: 2,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: 600,
+        });
 
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
-      if (!blob) throw new Error("Image creation failed");
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 0.9));
+        if (!blob) throw new Error("Image creation failed");
 
-      const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      const uploadResult = await uploadImage(formData);
-      if (!uploadResult.url) throw new Error("Upload failed");
-      
-      sharedUrl = uploadResult.url;
-      updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
+        const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const uploadResult = await uploadImage(formData);
+        if (!uploadResult.url) throw new Error("Upload failed");
+        
+        sharedUrl = uploadResult.url;
+        updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
+      }
 
       const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
       const encodedMsg = encodeURIComponent(message);
@@ -150,30 +149,23 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       let whatsappUrl;
       
       if (isIOS) {
-        // iOS uses the whatsapp:// scheme for direct app opening
         whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       } else if (isMobile) {
-        // Android - try direct app first via api.whatsapp.com
         whatsappUrl = `https://api.whatsapp.com/send/?phone=${sanitizedPhone}&text=${encodedMsg}&app_absent=0&type=phone_number`;
       } else {
-        // Desktop - use web.whatsapp.com
         whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       }
 
       // Open WhatsApp
       if (isIOS) {
         window.location.href = whatsappUrl;
-        // iOS fallback - if app doesn't open, use web
         setTimeout(() => {
           if (document.hasFocus()) {
             window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
           }
-        }, 1200);
+        }, 500);
       } else {
-        // For Android and Desktop, use window.open for better control
         const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-        
-        // Fallback if popup blocked or app not installed
         if (!newWindow || newWindow.closed) {
           window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
         }
@@ -228,9 +220,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   return (
     <TooltipProvider>
       <Card className="relative w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
-        {/* Top Right Decorative Accent */}
         <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-primary/30 rounded-tr-2xl pointer-events-none" />
-        {/* Bottom Left Decorative Accent */}
         <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
         <div className="relative p-6 pb-4">
@@ -359,10 +349,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* Hidden LANDSCAPE capture area for ID card generation */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
-            {/* Header with Logo on Left, Name & Address on Right */}
             <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
                 {gymIconUrl && (
                   <div style={{ width: '80px', height: '80px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '8px', display: 'flex', alignItems: 'center', justifySelf: 'center', flexShrink: 0 }}>
@@ -376,7 +364,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
 
-            {/* Profile Section - Landscape */}
             <div style={{ padding: '32px 40px', display: 'flex', alignItems: 'center', gap: '32px' }}>
                 <div style={{ width: '110px', height: '110px', borderRadius: '50%', border: '4px solid #1e8177', overflow: 'hidden', flexShrink: 0 }}>
                     <img src={member.imageUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} crossOrigin="anonymous" />
@@ -387,7 +374,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 </div>
             </div>
 
-            {/* Content Body */}
             <div style={{ padding: '0 40px 32px' }}>
                 <div style={{ height: '1px', backgroundColor: '#dfe6e9', width: '100%', marginBottom: '24px' }} />
                 

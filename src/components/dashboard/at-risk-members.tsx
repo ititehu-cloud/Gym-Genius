@@ -95,20 +95,38 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         if (!member || !member.mobileNumber) return;
 
         const message = `Hello ${member.name}, we missed you at the gym! ${riskReason}.\n\nSuggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you back soon!`;
+        const encodedMsg = encodeURIComponent(message);
         
         let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
         if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
         if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-        const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodeURIComponent(message)}`;
+        // Determine platform
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         
-        window.location.href = whatsappUrl;
-        
-        setTimeout(() => {
+        let whatsappUrl;
+        if (isIOS) {
+          whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+        } else if (isMobile) {
+          whatsappUrl = `https://api.whatsapp.com/send/?phone=${sanitizedPhone}&text=${encodedMsg}&app_absent=0&type=phone_number`;
+        } else {
+          whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+        }
+
+        if (isIOS) {
+          window.location.href = whatsappUrl;
+          setTimeout(() => {
             if (document.hasFocus()) {
-              window.open(`https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+              window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
             }
-        }, 1000);
+          }, 500);
+        } else {
+          const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+          if (!newWindow || newWindow.closed) {
+            window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
+          }
+        }
 
         toast({ title: "Opening WhatsApp", description: "Launching application..." });
     };

@@ -2,11 +2,11 @@
 
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-import { LoaderCircle, ArrowLeft, Printer } from "lucide-react";
+import { LoaderCircle, ArrowLeft } from "lucide-react";
 import type { Member, Payment } from "@/lib/types";
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -71,10 +71,6 @@ export default function TransactionsPage() {
         return filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
     }, [filteredPayments]);
     
-    const handlePrint = () => {
-        window.print();
-    }
-
     const isLoading = isLoadingPayments || isLoadingMembers;
 
     if (isLoading) {
@@ -97,10 +93,6 @@ export default function TransactionsPage() {
                     </Link>
                     <h1 className="text-2xl font-headline font-semibold uppercase tracking-tight">Transaction Passbook</h1>
                 </div>
-                <Button variant="outline" size="sm" onClick={handlePrint}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Passbook
-                </Button>
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-4 no-print">
@@ -273,4 +265,3 @@ export default function TransactionsPage() {
         </main>
     );
 }
-

@@ -8,7 +8,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { parseISO, format, isSameMonth } from "date-fns";
+import { parseISO, format, isSameMonth, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function PaymentsList() {
@@ -25,7 +25,10 @@ function PaymentsList() {
   const statusParam = searchParams.get('status');
 
   useEffect(() => {
-    if (filterParam === 'due_this_month') {
+    if (dateFilter === 'today') {
+      setSelectedMonth('');
+      setStatusFilter('paid');
+    } else if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
         setStatusFilter('unpaid');
     } else if (statusParam) {
@@ -102,6 +105,14 @@ function PaymentsList() {
                 return true;
             });
         }
+    } else if (dateFilter === 'today') {
+        const today = new Date();
+        tempMembers = tempMembers.filter(member => {
+            const memberPayments = paymentsByMember.get(member.id) || [];
+            return memberPayments.some(p => 
+                p.status === 'paid' && isSameDay(parseISO(p.paymentDate), today)
+            );
+        });
     }
 
     if (searchQuery) {
@@ -113,11 +124,12 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, selectedMonth]);
+  }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, selectedMonth, dateFilter]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
   
   const pageTitle = useMemo(() => {
+    if (dateFilter === 'today') return "Today's Collection";
     if (statusFilter === 'unpaid') return "Unpaid Members";
     if (statusFilter === 'paid') return "Paid Members";
     if (statusFilter === 'part_paid') return "Partially Paid Members";
@@ -168,7 +180,7 @@ function PaymentsList() {
               />
               <Select value={statusFilter} onValueChange={(val) => {
                   setStatusFilter(val);
-                  if (statusParam) window.history.replaceState(null, '', '/payments');
+                  if (statusParam || dateFilter || filterParam) window.history.replaceState(null, '', '/payments');
               }}>
                   <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Status" />

@@ -86,6 +86,21 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price, plan.duration]);
 
+    const filteredHistory = useMemo(() => {
+        let history = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());
+        
+        if (filterHistoryByDate === 'today') {
+            const today = new Date();
+            history = history.filter(p => isSameDay(parseISO(p.paymentDate), today));
+        } else if (filterHistoryByMonth) {
+            const monthDate = new Date(filterHistoryByMonth + "-01T00:00:00");
+            if (!isNaN(monthDate.getTime())) {
+                history = history.filter(p => isSameMonth(parseISO(p.paymentDate), monthDate));
+            }
+        }
+        return history;
+    }, [payments, filterHistoryByDate, filterHistoryByMonth]);
+
     const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
     return (
@@ -134,10 +149,12 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
             {showHistory && (
                 <div className="px-6 pb-4 border-t pt-4 bg-white">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Transaction History</h4>
-                    {payments.length > 0 ? (
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                        {filterHistoryByDate === 'today' ? "Today's Transaction" : "Transaction History"}
+                    </h4>
+                    {filteredHistory.length > 0 ? (
                         <ul className="space-y-2">
-                            {payments.slice(0, 3).map(payment => (
+                            {filteredHistory.slice(0, 5).map(payment => (
                                 <li key={payment.id} className="flex justify-between items-center text-sm p-3 bg-muted/30 rounded-lg border border-muted/50">
                                     <div className="space-y-0.5">
                                         <p className='font-bold'>{format(parseISO(payment.paymentDate), 'dd MMM yyyy')}</p>
@@ -151,7 +168,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-sm text-muted-foreground italic">No transactions found.</p>
+                        <p className="text-sm text-muted-foreground italic">No transactions found for this period.</p>
                     )}
                 </div>
             )}
@@ -162,7 +179,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                 <Button 
                     variant="ghost" 
                     className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-                    onClick={() => router.push(`/receipt/${payments[0]?.id || ''}`)}
+                    onClick={() => router.push(`/receipt/${filteredHistory[0]?.id || payments[0]?.id || ''}`)}
                     disabled={!payments.length}
                 >
                     <Printer className="h-5 w-5 text-foreground" />

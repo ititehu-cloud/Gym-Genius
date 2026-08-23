@@ -189,6 +189,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const selectedPlanId = form.watch('planId');
   const selectedPlan = plans?.find(p => p.id === selectedPlanId);
   const captureImageUrl = imagePreview || `https://picsum.photos/seed/${form.watch('memberId') || 'temp'}/400/400`;
+  const gymName = (userProfile?.displayName || 'Gym Name').replace(/ /g, '\u00a0');
 
   return (
     <Form {...form}>
@@ -353,7 +354,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                   </div>
                 )}
                 <div style={{ flexGrow: 1 }}>
-                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase' }}>{userProfile?.displayName || 'Gym Name'}</h2>
+                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase', whiteSpace: 'pre-wrap' }}>{gymName}</h2>
                     <p style={{ fontSize: '16px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.2' }}>{userProfile?.displayAddress || ''}</p>
                     <p style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff', margin: '2px 0 0' }}>{userProfile?.phoneNumber || ''}</p>
                 </div>

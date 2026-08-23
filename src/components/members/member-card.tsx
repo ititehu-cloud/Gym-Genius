@@ -103,7 +103,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const joinStr = format(parseISO(member.joinDate), 'dd MMM yyyy');
       let sharedUrl = member.idCardUrl;
 
-      // Only generate if no existing link is found
+      // If missing, generate it now
       if (!sharedUrl) {
         toast({ title: "Sharing...", description: "Generating digital ID link..." });
         
@@ -134,6 +134,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
       }
 
+      // Build WhatsApp message
       const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
       const encodedMsg = encodeURIComponent(message);
 
@@ -147,7 +148,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       
       let whatsappUrl;
-      
       if (isIOS) {
         whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       } else if (isMobile) {
@@ -156,7 +156,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       }
 
-      // Open WhatsApp
+      // Open WhatsApp directly
       if (isIOS) {
         window.location.href = whatsappUrl;
         setTimeout(() => {
@@ -216,6 +216,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   };
 
   const isCheckedIn = attendanceRecord && !attendanceRecord.checkOutTime;
+  const displayGymName = (gymName || 'Gym Name').replace(/ /g, '\u00a0');
 
   return (
     <TooltipProvider>
@@ -349,6 +350,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
+      {/* HIDDEN LANDSCAPE capture area */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
             <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>
@@ -358,7 +360,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                   </div>
                 )}
                 <div style={{ flexGrow: 1 }}>
-                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase' }}>{gymName || 'Gym Name'}</h2>
+                    <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '2px', textTransform: 'uppercase', whiteSpace: 'pre-wrap' }}>{displayGymName}</h2>
                     <p style={{ fontSize: '16px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.2' }}>{gymAddress || ''}</p>
                     <p style={{ fontSize: '16px', fontWeight: '600', color: '#ffffff', margin: '2px 0 0' }}>{gymPhone || ''}</p>
                 </div>

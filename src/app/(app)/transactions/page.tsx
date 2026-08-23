@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DeletePaymentDialog from "@/components/payments/delete-payment-dialog";
 
 export default function TransactionsPage() {
     const firestore = useFirestore();
@@ -132,7 +133,7 @@ export default function TransactionsPage() {
                 </CardHeader>
                 <CardContent>
                     {filteredPayments && filteredPayments.length > 0 ? (
-                        <div className="border rounded-md">
+                        <div className="border rounded-md overflow-hidden">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -141,6 +142,7 @@ export default function TransactionsPage() {
                                         <TableHead>Type</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -148,7 +150,7 @@ export default function TransactionsPage() {
                                         const member = memberMap.get(payment.memberId);
                                         return (
                                             <TableRow key={payment.id}>
-                                                <TableCell className="font-medium">
+                                                <TableCell className="font-medium whitespace-nowrap">
                                                     {format(parseISO(payment.paymentDate), 'PPP')}
                                                 </TableCell>
                                                 <TableCell>
@@ -162,6 +164,12 @@ export default function TransactionsPage() {
                                                 <TableCell className="text-right font-mono">₹{payment.amount.toLocaleString()}</TableCell>
                                                 <TableCell>
                                                     <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize`}>{payment.status}</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <DeletePaymentDialog 
+                                                        paymentId={payment.id} 
+                                                        memberName={member?.name || 'Unknown Member'} 
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         )

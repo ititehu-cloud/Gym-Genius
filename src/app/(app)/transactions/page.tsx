@@ -91,18 +91,18 @@ export default function TransactionsPage() {
                             <span className="sr-only">Back</span>
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-headline font-semibold uppercase tracking-tight">Transaction Passbook</h1>
+                    <h1 className="text-2xl font-headline font-semibold uppercase tracking-tight">Passbook</h1>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-4 no-print">
+            <div className="flex flex-col gap-4 no-print">
                 <Input
-                    placeholder="Search by name, ID, or phone..."
+                    placeholder="Search name, ID, or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full md:max-w-sm"
+                    className="w-full"
                 />
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="grid grid-cols-2 gap-2">
                     <div className="grid w-full items-center gap-1.5">
                         <label htmlFor="from-date" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">From Date</label>
                         <Input
@@ -120,7 +120,7 @@ export default function TransactionsPage() {
                             type="date"
                             value={toDate}
                             onChange={(e) => setToDate(e.target.value)}
-                            className="full"
+                            className="w-full"
                         />
                     </div>
                 </div>
@@ -128,14 +128,14 @@ export default function TransactionsPage() {
 
             <Card className="border-2 shadow-xl rounded-xl overflow-hidden bg-white">
                 <CardHeader className="bg-primary/5 border-b py-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <CardTitle className="text-lg font-black uppercase tracking-tighter text-primary">Financial Ledger</CardTitle>
                             <CardDescription className="text-xs font-medium">
-                                Showing {filteredPayments.length} transactions {fromDate && `from ${format(parseISO(fromDate), 'PP')}`} {toDate && `to ${format(parseISO(toDate), 'PP')}`}.
+                                {filteredPayments.length} transactions recorded.
                             </CardDescription>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right bg-primary/10 p-3 rounded-lg border border-primary/20 w-full sm:w-auto">
                              <p className="text-[10px] font-black text-muted-foreground uppercase">Ledger Total</p>
                              <p className="text-2xl font-black text-primary">₹{totalAmount.toLocaleString()}</p>
                         </div>
@@ -144,13 +144,11 @@ export default function TransactionsPage() {
                 <CardContent className="p-0">
                     {filteredPayments && filteredPayments.length > 0 ? (
                         <div className="overflow-x-auto scrollbar-thin">
-                            <Table className="min-w-[800px]">
+                            <Table>
                                 <TableHeader className="bg-muted/30">
                                     <TableRow>
                                         <TableHead className="text-[10px] font-black uppercase tracking-widest py-4">Date</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Member Details</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Payment Type</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Method</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Details</TableHead>
                                         <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Amount</TableHead>
                                         <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">Status</TableHead>
                                         <TableHead className="text-right text-[10px] font-black uppercase tracking-widest no-print">Action</TableHead>
@@ -161,29 +159,22 @@ export default function TransactionsPage() {
                                         const member = memberMap.get(payment.memberId);
                                         return (
                                             <TableRow key={payment.id} className="hover:bg-primary/5 transition-colors border-b">
-                                                <TableCell className="font-bold text-xs whitespace-nowrap">
-                                                    {format(parseISO(payment.paymentDate), 'dd MMM yyyy')}
+                                                <TableCell className="font-bold text-[11px] whitespace-nowrap">
+                                                    {format(parseISO(payment.paymentDate), 'dd MMM')}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="font-black uppercase text-sm tracking-tight">{member?.name || 'N/A'}</div>
-                                                    <div className="text-[10px] font-bold text-muted-foreground font-mono">ID: {member?.memberId || 'N/A'}</div>
+                                                    <div className="font-black uppercase text-[12px] tracking-tight truncate max-w-[120px]">{member?.name || 'N/A'}</div>
+                                                    <div className="text-[9px] font-bold text-muted-foreground font-mono flex gap-2">
+                                                        <span className="capitalize">{payment.paymentType}</span>
+                                                        <span>•</span>
+                                                        <span className="uppercase">{payment.paymentMethod}</span>
+                                                    </div>
                                                 </TableCell>
-                                                 <TableCell className="capitalize">
-                                                     <div className="text-xs font-bold">{payment.paymentType}</div>
-                                                 </TableCell>
-                                                 <TableCell className="capitalize">
-                                                     <div className="text-[10px] font-black text-muted-foreground uppercase">{payment.paymentMethod}</div>
-                                                 </TableCell>
-                                                <TableCell className="text-right font-black font-mono text-base text-primary whitespace-nowrap">
+                                                <TableCell className="text-right font-black font-mono text-sm text-primary whitespace-nowrap">
                                                     ₹{payment.amount.toLocaleString()}
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    <Badge 
-                                                        variant={payment.status === 'paid' ? 'default' : 'destructive'} 
-                                                        className={`${payment.status === 'paid' ? 'bg-green-600' : ''} capitalize text-[9px] font-black h-5 px-3`}
-                                                    >
-                                                        {payment.status}
-                                                    </Badge>
+                                                    <div className={`h-2 w-2 rounded-full mx-auto ${payment.status === 'paid' ? 'bg-green-600' : 'bg-destructive'}`} />
                                                 </TableCell>
                                                 <TableCell className="text-right no-print">
                                                     <DeletePaymentDialog 
@@ -198,12 +189,12 @@ export default function TransactionsPage() {
                             </Table>
                         </div>
                     ) : (
-                         <div className="flex flex-col items-center justify-center text-center py-24">
+                         <div className="flex flex-col items-center justify-center text-center py-24 px-4">
                             <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
                                 <LoaderCircle className="h-8 w-8 text-muted-foreground/30" />
                             </div>
-                            <h3 className="text-xl font-bold tracking-tight uppercase">No Transactions Found</h3>
-                            <p className="text-sm text-muted-foreground max-w-xs">Your search or filter returned no results for the selected period.</p>
+                            <h3 className="text-lg font-bold tracking-tight uppercase">No Transactions</h3>
+                            <p className="text-sm text-muted-foreground max-w-xs">Your filter returned no results for the selected period.</p>
                         </div>
                     )}
                 </CardContent>
@@ -211,11 +202,6 @@ export default function TransactionsPage() {
 
             <style jsx global>{`
                 @media print {
-                    @page {
-                        size: landscape;
-                        margin: 1cm;
-                    }
-                    
                     body {
                         background: white !important;
                         padding: 0 !important;
@@ -249,15 +235,10 @@ export default function TransactionsPage() {
                     th, td {
                         border-bottom: 1px solid #eee !important;
                         color: black !important;
+                        font-size: 10px !important;
                     }
 
                     .text-primary {
-                        color: #000 !important;
-                    }
-
-                    .bg-green-600 {
-                        background-color: transparent !important;
-                        border: 1px solid #000 !important;
                         color: #000 !important;
                     }
                 }

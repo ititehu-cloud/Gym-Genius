@@ -122,24 +122,39 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
       const imageUrl = uploadResult.url;
       const gymName = userProfile?.displayName || "Gym Genius";
       const message = `Hello ${member.name},\n\nThank you for your payment at ${gymName}.\n\nYou can view and download your digital receipt here:\n${imageUrl}\n\nStay Strong, Stay Fit!`;
+      const encodedMsg = encodeURIComponent(message);
 
+      // Clean phone number
       let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      const encodedMsg = encodeURIComponent(message);
-      const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-      const waMeUrl = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
+      // Platform specific deep-linking
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       
-      // Attempt direct deep link
-      window.location.href = whatsappUrl;
-      
-      // Fallback to wa.me with longer timeout
-      setTimeout(() => { 
-        if (document.hasFocus()) {
-          window.open(waMeUrl, '_blank');
-        } 
-      }, 1200);
+      let whatsappUrl;
+      if (isIOS) {
+        whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      } else if (isMobile) {
+        whatsappUrl = `https://api.whatsapp.com/send/?phone=${sanitizedPhone}&text=${encodedMsg}&app_absent=0&type=phone_number`;
+      } else {
+        whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+      }
+
+      if (isIOS) {
+        window.location.href = whatsappUrl;
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
+          }
+        }, 1200);
+      } else {
+        const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow || newWindow.closed) {
+          window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
+        }
+      }
 
       toast({
         title: "Ready to Send",

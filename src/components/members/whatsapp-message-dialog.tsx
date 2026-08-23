@@ -54,23 +54,40 @@ export default function WhatsAppMessageDialog({ member, gymName, isOpen, onOpenC
       return;
     }
 
+    // Clean phone number
     let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
     if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
     if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
     const encodedMsg = encodeURIComponent(message);
-    const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-    const waMeUrl = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
     
-    // Direct trigger
-    window.location.href = whatsappUrl;
+    // Determine platform
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     
-    // Fallback to wa.me (better auto-open than api.whatsapp.com)
-    setTimeout(() => {
-      if (document.hasFocus()) {
-        window.open(waMeUrl, '_blank');
+    let whatsappUrl;
+    if (isIOS) {
+      whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+    } else if (isMobile) {
+      whatsappUrl = `https://api.whatsapp.com/send/?phone=${sanitizedPhone}&text=${encodedMsg}&app_absent=0&type=phone_number`;
+    } else {
+      whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
+    }
+
+    // Attempt direct open
+    if (isIOS) {
+      window.location.href = whatsappUrl;
+      setTimeout(() => {
+        if (document.hasFocus()) {
+          window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
+        }
+      }, 1200);
+    } else {
+      const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      if (!newWindow || newWindow.closed) {
+        window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
       }
-    }, 1000);
+    }
 
     onOpenChange(false);
   };

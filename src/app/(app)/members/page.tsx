@@ -5,7 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@
 import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { LoaderCircle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
-import type { Member, Plan, Attendance, UserProfile } from "@/lib/types";
+import type { Member, Plan, Attendance, UserProfile, Payment } from "@/lib/types";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,9 @@ function MemberList() {
 
   const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+
+  const paymentsRef = useMemoFirebase(() => collection(firestore, "payments"), [firestore]);
+  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsRef);
   
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -45,6 +48,17 @@ function MemberList() {
       if (!todaysAttendance) return new Map<string, Attendance>();
       return new Map(todaysAttendance.map(att => [att.memberId, att]));
   }, [todaysAttendance]);
+
+  const paymentsByMember = useMemo(() => {
+    if (!payments) return new Map<string, Payment[]>();
+    const map = new Map<string, Payment[]>();
+    payments.forEach(p => {
+        const memberPayments = map.get(p.memberId) || [];
+        memberPayments.push(p);
+        map.set(p.memberId, memberPayments);
+    });
+    return map;
+  }, [payments]);
   
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status') as Member['status'] | null;
@@ -96,7 +110,7 @@ function MemberList() {
     return tempMembers;
   }, [members, searchQuery, statusFilter, expiryParam]);
 
-  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading) || isLoadingAttendance;
+  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading) || isLoadingAttendance || isLoadingPayments;
 
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
@@ -152,6 +166,7 @@ function MemberList() {
               gymPhone={gymPhone}
               attendanceRecord={attendanceMap.get(member.id)}
               allMembers={members || []}
+              payments={paymentsByMember.get(member.id) || []}
             />
           ))}
         </div>

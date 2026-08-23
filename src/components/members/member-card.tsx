@@ -2,12 +2,12 @@
 
 import Image from 'next/image';
 import { Card, CardContent } from "@/components/ui/card";
-import type { Member, Plan, Attendance } from "@/lib/types";
+import type { Member, Plan, Attendance, Payment } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, IdCard } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
@@ -39,9 +39,10 @@ type MemberCardProps = {
   gymPhone?: string | null;
   attendanceRecord?: Attendance;
   allMembers: Member[];
+  payments: Payment[];
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, gymPhone, attendanceRecord, allMembers }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, gymPhone, attendanceRecord, allMembers, payments }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
@@ -63,6 +64,28 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const status = getStatus();
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
+
+  // Calculate current cycle due amount
+  const dueAmount = useMemo(() => {
+    if (!plan) return 0;
+    
+    const joinDate = parseISO(member.joinDate);
+    const expiryDate = parseISO(member.expiryDate);
+    
+    // Cycle payments logic matching PaymentStatusCard
+    const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
+    const leadDate = new Date(joinDate.getTime() - leadTimeMs);
+
+    const cyclePayments = payments.filter(p => {
+        const pDate = parseISO(p.paymentDate);
+        return pDate >= startOfDay(leadDate) && 
+               pDate <= endOfDay(expiryDate) && 
+               p.status === 'paid';
+    });
+
+    const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+    return Math.max(0, plan.price - totalPaid);
+  }, [member, plan, payments]);
 
   const handleShareId = async () => {
     if (isSharing) return;
@@ -121,15 +144,12 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         sanitizedPhone = `91${sanitizedPhone}`;
       }
 
-      // DIRECT PROTOCOL: Attempts to bypass the landing page by opening the app directly
       const encodedMsg = encodeURIComponent(message);
       const whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       const webWhatsappUrl = `https://api.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       
-      // Trigger deep link directly
       window.location.href = whatsappUrl;
       
-      // Fallback for systems that don't auto-trigger the protocol
       setTimeout(() => { 
         if (document.hasFocus()) {
           window.open(webWhatsappUrl, '_blank');
@@ -216,7 +236,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     </div>
                     <div className="space-y-0.5">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
-                        <p className="text-base font-bold text-destructive">₹{status === 'active' ? '0' : (plan?.price || 'N/A')}</p>
+                        <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount}</p>
                     </div>
                 </div>
             </div>
@@ -280,8 +300,10 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
             onClick={() => setPaymentOpen(true)}
           >
-            <CreditCard className="h-5 w-5 text-foreground" />
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Payment</span>
+            <CardContent className="p-0 flex flex-col items-center justify-center">
+                <CreditCard className="h-5 w-5 text-foreground" />
+                <span className="text-[9px] font-bold uppercase tracking-tighter">Payment</span>
+            </CardContent>
           </Button>
 
           <div className="h-full">
@@ -307,7 +329,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* DYNAMIC LANDSCAPE TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ width: '600px', backgroundColor: '#f5f6f7', padding: '0', borderRadius: '32px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' }}>
             <div style={{ backgroundColor: '#1e8177', padding: '30px 40px', display: 'flex', alignItems: 'center', gap: '24px', borderTopLeftRadius: '32px', borderTopRightRadius: '32px' }}>

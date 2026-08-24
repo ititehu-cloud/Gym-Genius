@@ -1,42 +1,50 @@
 
 export type Member = {
   id: string;
+  userId: string;
   memberId: string;
   name: string;
-  mobileNumber?: string; // Optional field
+  mobileNumber?: string;
   address: string;
   imageUrl: string;
-  idCardUrl?: string; // Permanent link to the generated ID card image
+  idCardUrl?: string;
   planId: string;
-  joinDate: string; // Should be ISO string
-  expiryDate: string; // Should be ISO string
+  joinDate: string;
+  expiryDate: string;
   status: 'active' | 'expired' | 'due';
+  createdAt?: any;
 };
 
 export type Plan = {
   id: string;
+  userId: string;
   name: string;
   description?: string;
-  duration: number; // in months
+  duration: number;
   price: number;
+  createdAt?: any;
 };
 
 export type Payment = {
   id: string;
+  userId: string;
   memberId: string;
   amount: number;
-  paymentDate: string; // Should be ISO string
+  paymentDate: string;
   status: 'paid' | 'pending';
   paymentMethod: string;
   paymentType: 'monthly' | 'renewal' | 'advance';
   invoiceNumber?: string;
+  createdAt?: any;
 };
 
 export type Attendance = {
   id: string;
+  userId: string;
   memberId: string;
-  checkInTime: string; // ISO string
-  checkOutTime?: string; // ISO string
+  checkInTime: string;
+  checkOutTime?: string;
+  createdAt?: any;
 };
 
 export type UserProfile = {

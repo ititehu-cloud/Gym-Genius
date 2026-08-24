@@ -1,3 +1,4 @@
+
 'use client';
 
 import MemberCard from "@/components/members/member-card";
@@ -14,15 +15,28 @@ import { isSameDay, parseISO, startOfDay, isThisMonth, endOfDay } from "date-fns
 
 function MemberList() {
   const firestore = useFirestore();
-  const { user, isUserLoading: isAuthLoading } = useUser();
+  const { user } = useUser();
 
-  const membersRef = useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore]);
+  const membersRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, "members"), 
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc")
+    );
+  }, [firestore, user]);
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
-  const paymentsRef = useMemoFirebase(() => collection(firestore, "payments"), [firestore]);
+  const paymentsRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "payments"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsRef);
   
   const userDocRef = useMemoFirebase(() => {
@@ -33,15 +47,16 @@ function MemberList() {
 
   const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(
     useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         const start = startOfDay(new Date());
         const end = endOfDay(new Date());
         return query(
             collection(firestore, "attendance"),
+            where("userId", "==", user.uid),
             where("checkInTime", ">=", start.toISOString()),
             where("checkInTime", "<=", end.toISOString())
         );
-    }, [firestore])
+    }, [firestore, user])
   );
 
   const attendanceMap = useMemo(() => {
@@ -102,7 +117,7 @@ function MemberList() {
         const lowercasedQuery = searchQuery.toLowerCase();
         tempMembers = tempMembers.filter(m => 
             m.name.toLowerCase().includes(lowercasedQuery) ||
-            m.mobileNumber.includes(searchQuery) ||
+            m.mobileNumber?.includes(searchQuery) ||
             m.memberId.toLowerCase().includes(lowercasedQuery)
         );
     }
@@ -110,7 +125,7 @@ function MemberList() {
     return tempMembers;
   }, [members, searchQuery, statusFilter, expiryParam]);
 
-  const isLoading = isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading) || isLoadingAttendance || isLoadingPayments;
+  const isLoading = isLoadingMembers || isLoadingPlans || isProfileLoading || isLoadingAttendance || isLoadingPayments;
 
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
@@ -119,7 +134,7 @@ function MemberList() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center h-[60vh]">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     )

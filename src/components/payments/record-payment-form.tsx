@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,11 +23,13 @@ import {
 } from "@/components/ui/select";
 import { LoaderCircle } from "lucide-react";
 import { format, addMonths, parseISO } from "date-fns";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where, doc, updateDoc } from "firebase/firestore";
 import type { Member, Plan, Payment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
   memberId: z.string({ required_error: "Please select a member." }),
@@ -47,6 +50,7 @@ type RecordPaymentFormProps = {
 export default function RecordPaymentForm({ members, setDialogOpen, defaultMemberId }: RecordPaymentFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,19 +66,21 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
 
   const selectedMemberId = form.watch('memberId');
 
-  // Fetch plans to check prices and durations
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: plans } = useCollection<Plan>(plansRef);
 
-  // Fetch existing payments for the selected member to calculate total paid
   const memberPaymentsQuery = useMemoFirebase(() => {
-      if (!firestore || !selectedMemberId) return null;
+      if (!firestore || !selectedMemberId || !user) return null;
       return query(
           collection(firestore, "payments"), 
+          where("userId", "==", user.uid),
           where("memberId", "==", selectedMemberId),
           where("status", "==", "paid")
       );
-  }, [firestore, selectedMemberId]);
+  }, [firestore, selectedMemberId, user]);
   const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
 
   const selectedMember = useMemo(() => 
@@ -83,6 +89,7 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
   );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) return;
     setIsSubmitting(true);
     
     try {
@@ -93,58 +100,62 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
 
       const dataToSave = {
         ...rest,
+        userId: user.uid,
         paymentDate: paymentDateISO,
         createdAt: serverTimestamp(),
         ...(invoiceNumber && { invoiceNumber }),
       };
 
-      // 1. Save the payment
-      await addDoc(paymentsCollection, dataToSave);
+      addDoc(paymentsCollection, dataToSave)
+        .then(async () => {
+            if (selectedMember && plans && values.status === 'paid') {
+                const plan = plans.find(p => p.id === selectedMember.planId);
+                if (plan) {
+                    const EPSILON = 0.01;
+                    const existingPaid = memberPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+                    const totalAfterNewPayment = existingPaid + values.amount;
 
-      // 2. Logic to update member if payment is complete
-      if (selectedMember && plans && values.status === 'paid') {
-          const plan = plans.find(p => p.id === selectedMember.planId);
-          if (plan) {
-              const EPSILON = 0.01;
-              const existingPaid = memberPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-              const totalAfterNewPayment = existingPaid + values.amount;
+                    if (totalAfterNewPayment >= plan.price - EPSILON) {
+                        const memberRef = doc(firestore, "members", selectedMember.id);
+                        const newJoinDate = paymentDateISO;
+                        const newExpiryDate = addMonths(new Date(paymentDateISO), plan.duration).toISOString();
 
-              // Check if the total paid meets or exceeds the plan price
-              if (totalAfterNewPayment >= plan.price - EPSILON) {
-                  const memberRef = doc(firestore, "members", selectedMember.id);
-                  const newJoinDate = paymentDateISO;
-                  const newExpiryDate = addMonths(new Date(paymentDateISO), plan.duration).toISOString();
+                        updateDoc(memberRef, {
+                            joinDate: newJoinDate,
+                            expiryDate: newExpiryDate,
+                            status: 'active',
+                            updatedAt: serverTimestamp()
+                        });
 
-                  await updateDoc(memberRef, {
-                      joinDate: newJoinDate,
-                      expiryDate: newExpiryDate,
-                      status: 'active',
-                      updatedAt: serverTimestamp()
-                  });
+                        toast({
+                          title: "Membership Cycle Renewed!",
+                          description: `Full payment received. ${selectedMember.name}'s membership has been renewed.`,
+                        });
+                    }
+                }
+            }
+            toast({
+                title: "Payment Recorded!",
+                description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
+            });
+            form.reset();
+            setDialogOpen(false);
+        })
+        .catch(async (error) => {
+            const permissionError = new FirestorePermissionError({
+                path: paymentsCollection.path,
+                operation: 'create',
+                requestResourceData: dataToSave,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
 
-                  toast({
-                    title: "Membership Cycle Renewed!",
-                    description: `Full payment received. ${selectedMember.name}'s membership has been renewed starting from ${format(parseISO(newJoinDate), 'PPP')}.`,
-                  });
-              }
-          }
-      }
-
-      toast({
-        title: "Payment Recorded!",
-        description: `Payment for ${selectedMember?.name || 'member'} has been successfully recorded.`,
-      });
-      form.reset();
-      setDialogOpen(false);
     } catch (error) {
       console.error("Error recording payment:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem recording the payment.",
-      });
-    } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   }
 

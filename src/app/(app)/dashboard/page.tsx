@@ -1,35 +1,46 @@
+
 'use client';
 
 import { format, isSameDay, isThisMonth, parseISO, startOfDay } from "date-fns";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(
-      useMemoFirebase(() => collection(firestore, "members"), [firestore])
-  );
-  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(
-      useMemoFirebase(() => collection(firestore, "payments"), [firestore])
-  );
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(
-    useMemoFirebase(() => collection(firestore, "plans"), [firestore])
-  );
+  const membersRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "members"), where("userId", "==", user.uid));
+  }, [firestore, user]);
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
+
+  const paymentsRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "payments"), where("userId", "==", user.uid));
+  }, [firestore, user]);
+  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsRef);
+
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
   const todayStart = useMemo(() => startOfDay(new Date()).toISOString(), []);
 
   const attendanceQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !user) return null;
       return query(
           collection(firestore, 'attendance'),
+          where('userId', '==', user.uid),
           where('checkInTime', '>=', todayStart)
       )
-  }, [firestore, todayStart]);
+  }, [firestore, user, todayStart]);
 
   const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
@@ -121,7 +132,6 @@ export default function DashboardPage() {
                     <Skeleton className="h-28 w-full rounded-xl" />
                 </div>
             </div>
-            <Skeleton className="h-[400px] w-full rounded-xl" />
         </div>
       </main>
     );

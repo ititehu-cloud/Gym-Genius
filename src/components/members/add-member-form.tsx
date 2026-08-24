@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,8 +23,8 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
 import { addMonths, format } from "date-fns";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 import type { Plan, Member } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -31,6 +32,8 @@ import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { compressImage } from "@/lib/utils";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -49,14 +52,21 @@ type AddMemberFormProps = {
 export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: plans } = useCollection<Plan>(plansRef);
 
-  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const membersRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "members"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: members } = useCollection<Member>(membersRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -71,6 +81,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) return;
     setIsSubmitting(true);
     setFormError(null);
     
@@ -109,9 +120,9 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     
     const expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
     
-    try {
-      const membersCollection = collection(firestore, "members");
-      await addDoc(membersCollection, {
+    const membersCollection = collection(firestore, "members");
+    const data = {
+        userId: user.uid,
         memberId: values.memberId,
         name: values.name,
         address: values.address,
@@ -122,17 +133,26 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         status: 'active',
         imageUrl: imageUrl,
         createdAt: serverTimestamp()
-      });
+    };
 
-      toast({ title: "Success!", description: `${values.name} added successfully.` });
-      form.reset();
-      setDialogOpen(false);
-    } catch (error) {
-      console.error("Add member error:", error);
-      setFormError("Failed to add member.");
-    } finally {
-        setIsSubmitting(false);
-    }
+    addDoc(membersCollection, data)
+        .then(() => {
+            toast({ title: "Success!", description: `${values.name} added successfully.` });
+            form.reset();
+            setDialogOpen(false);
+        })
+        .catch(async (error) => {
+            console.error("Add member error:", error);
+            const permissionError = new FirestorePermissionError({
+                path: membersCollection.path,
+                operation: 'create',
+                requestResourceData: data,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   }
 
   return (

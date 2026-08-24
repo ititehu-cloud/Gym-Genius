@@ -1,8 +1,9 @@
+
 'use client';
 
 import { LoaderCircle } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, orderBy, doc } from "firebase/firestore";
+import { collection, query, orderBy, doc, where } from "firebase/firestore";
 import type { Member, Payment, Plan } from "@/lib/types";
 import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ function PaymentsList() {
   
   const searchParams = useSearchParams();
   const firestore = useFirestore();
-  const { user, isUserLoading: isAuthLoading } = useUser();
+  const { user } = useUser();
   
   const dateFilter = searchParams.get('date');
   const filterParam = searchParams.get('filter');
@@ -45,13 +46,30 @@ function PaymentsList() {
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-  const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("createdAt", "desc")), [firestore]);
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, "payments"), 
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc")
+    );
+  }, [firestore, user]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
-  const membersRef = useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore]);
+  const membersRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+        collection(firestore, "members"), 
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc")
+    );
+  }, [firestore, user]);
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
   const planMap = useMemo(() => {
@@ -74,7 +92,6 @@ function PaymentsList() {
 
     let tempMembers = [...members];
     
-    // Status and Month Filtering
     if (selectedMonth) {
         const monthDate = new Date(selectedMonth + "-01T00:00:00");
         if (!isNaN(monthDate.getTime())) {
@@ -92,13 +109,10 @@ function PaymentsList() {
                 const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
                 
                 if (statusFilter === 'unpaid') {
-                    // No payment at all for this month
                     return totalPaidForMonth <= 0.01;
                 } else if (statusFilter === 'paid') {
-                    // Fully paid
                     return dueForMonth <= 0.01;
                 } else if (statusFilter === 'part_paid') {
-                    // Paid something, but not all
                     return totalPaidForMonth > 0.01 && dueForMonth > 0.01;
                 }
                 
@@ -120,13 +134,13 @@ function PaymentsList() {
         tempMembers = tempMembers.filter(m => 
             m.name.toLowerCase().includes(lowercasedQuery) ||
             m.memberId.toLowerCase().includes(lowercasedQuery) ||
-            m.mobileNumber.includes(searchQuery)
+            m.mobileNumber?.includes(searchQuery)
         );
     }
     return tempMembers;
   }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, selectedMonth, dateFilter]);
 
-  const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isAuthLoading || (!!user && isProfileLoading);
+  const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isProfileLoading;
   
   const pageTitle = useMemo(() => {
     if (dateFilter === 'today') return "Today's Collection";
@@ -153,7 +167,7 @@ function PaymentsList() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center h-[60vh]">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,11 +15,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Plan name must be at least 2 characters." }),
@@ -34,6 +37,7 @@ type AddPlanFormProps = {
 export default function AddPlanForm({ setDialogOpen }: AddPlanFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -45,31 +49,36 @@ export default function AddPlanForm({ setDialogOpen }: AddPlanFormProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) return;
     setIsSubmitting(true);
     
-    try {
-      const plansCollection = collection(firestore, "plans");
-      await addDoc(plansCollection, {
+    const plansCollection = collection(firestore, "plans");
+    const data = {
         ...values,
+        userId: user.uid,
         createdAt: serverTimestamp()
-      });
+    };
 
-      toast({
-        title: "Plan Added!",
-        description: `${values.name} has been successfully added.`,
-      });
-      form.reset();
-      setDialogOpen(false);
-    } catch (error) {
-      console.error("Error adding plan:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem adding the plan. Please try again.",
-      });
-    } finally {
-        setIsSubmitting(false);
-    }
+    addDoc(plansCollection, data)
+        .then(() => {
+            toast({
+                title: "Plan Added!",
+                description: `${values.name} has been successfully added.`,
+            });
+            form.reset();
+            setDialogOpen(false);
+        })
+        .catch(async (error) => {
+            const permissionError = new FirestorePermissionError({
+                path: plansCollection.path,
+                operation: 'create',
+                requestResourceData: data,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   }
 
   return (

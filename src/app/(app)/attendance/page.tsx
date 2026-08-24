@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
-import { LoaderCircle, UserCheck, LogOut } from "lucide-react";
+import { LoaderCircle, UserCheck, LogOut, AlertTriangle } from "lucide-react";
 import type { Member, Attendance } from "@/lib/types";
 import { useMemo, useState, Suspense } from "react";
 import { startOfDay, endOfDay, format, parseISO, isSameDay } from "date-fns";
@@ -14,9 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function AttendanceList() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { toast } = useToast();
     const [loadingMemberId, setLoadingMemberId] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -25,7 +28,10 @@ function AttendanceList() {
     const searchParams = useSearchParams();
     const filter = searchParams.get('filter');
 
-    const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+    const membersRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, "members"), where("userId", "==", user.uid));
+    }, [firestore, user]);
     const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
 
     const selectedDateRange = useMemo(() => {
@@ -38,15 +44,16 @@ function AttendanceList() {
     }, [selectedDate]);
 
     const attendanceQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return query(
             collection(firestore, "attendance"),
+            where("userId", "==", user.uid),
             where("checkInTime", ">=", selectedDateRange.start),
             where("checkInTime", "<=", selectedDateRange.end)
         );
-    }, [firestore, selectedDateRange]);
+    }, [firestore, user, selectedDateRange]);
 
-    const { data: selectedDateAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+    const { data: selectedDateAttendance, isLoading: isLoadingAttendance, error: attendanceError } = useCollection<Attendance>(attendanceQuery);
 
     const attendanceMap = useMemo(() => {
         if (!selectedDateAttendance) return new Map<string, Attendance>();
@@ -74,10 +81,12 @@ function AttendanceList() {
     const isToday = isSameDay(selectedDate, new Date());
 
     const handleCheckIn = async (member: Member) => {
+        if (!user) return;
         setLoadingMemberId(member.id);
         const attendanceCollection = collection(firestore, "attendance");
         try {
             await addDoc(attendanceCollection, {
+                userId: user.uid,
                 memberId: member.id,
                 checkInTime: new Date().toISOString(),
                 createdAt: serverTimestamp()
@@ -123,7 +132,7 @@ function AttendanceList() {
     
     if (isLoading) {
         return (
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center h-[60vh]">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
@@ -148,6 +157,17 @@ function AttendanceList() {
                     />
                 </div>
             </div>
+
+            {attendanceError && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Database Index Required</AlertTitle>
+                    <AlertDescription>
+                        This query requires a Firestore index. Please check the browser console for a link to create it.
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle>Member Check-in</CardTitle>
@@ -275,7 +295,6 @@ function AttendanceList() {
         </main>
     );
 }
-
 
 export default function AttendancePage() {
   return (

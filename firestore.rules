@@ -19,43 +19,36 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if false;
+      allow get, create, update: if isOwner(userId);
+      allow list, delete: if false;
     }
     
     match /members/{memberId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && request.query.limit <= 500 && request.query.filters.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, create, update, delete: if isSignedIn() && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      );
     }
 
     match /attendance/{attendanceId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && request.query.filters.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, create, update, delete: if isSignedIn() && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      );
     }
 
     match /payments/{paymentId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && request.query.filters.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, create, update, delete: if isSignedIn() && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      );
     }
 
     match /plans/{planId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && request.query.filters.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, create, update, delete: if isSignedIn() && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      );
     }
   }
 }

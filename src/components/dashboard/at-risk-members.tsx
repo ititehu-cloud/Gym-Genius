@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -8,8 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchInactiveMemberInsights } from '@/app/actions';
 import type { InactiveMemberInsightsOutput, InactiveMemberInsightsInput } from '@/ai/flows/inactive-member-insights';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import type { Member, Payment, Plan, Attendance } from '@/lib/types';
 import { parseISO } from 'date-fns';
 import { Button } from '../ui/button';
@@ -34,12 +35,17 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     const [insights, setInsights] = useState<InactiveMemberInsightsOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { user } = useUser();
     const { toast } = useToast();
 
     const firestore = useFirestore();
-    const { data: attendanceHistory, isLoading: isLoadingAttendance } = useCollection<Attendance>(
-        useMemoFirebase(() => collection(firestore, 'attendance'), [firestore])
-    );
+    
+    const attendanceQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'attendance'), where('userId', '==', user.uid));
+    }, [firestore, user]);
+    
+    const { data: attendanceHistory, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
     const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
 

@@ -4,7 +4,7 @@
 import MemberCard from "@/components/members/member-card";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, doc, query, where, orderBy } from "firebase/firestore";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, AlertTriangle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
 import type { Member, Plan, Attendance, UserProfile, Payment } from "@/lib/types";
 import { useMemo, useState, useEffect, Suspense } from "react";
@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSameDay, parseISO, startOfDay, isThisMonth, endOfDay } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function MemberList() {
   const firestore = useFirestore();
@@ -25,7 +26,7 @@ function MemberList() {
         orderBy("createdAt", "desc")
     );
   }, [firestore, user]);
-  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersRef);
+  const { data: members, isLoading: isLoadingMembers, error: membersError } = useCollection<Member>(membersRef);
 
   const plansRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -45,19 +46,18 @@ function MemberList() {
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(
-    useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        const start = startOfDay(new Date());
-        const end = endOfDay(new Date());
-        return query(
-            collection(firestore, "attendance"),
-            where("userId", "==", user.uid),
-            where("checkInTime", ">=", start.toISOString()),
-            where("checkInTime", "<=", end.toISOString())
-        );
-    }, [firestore, user])
-  );
+  const attendanceQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    const start = startOfDay(new Date());
+    const end = endOfDay(new Date());
+    return query(
+        collection(firestore, "attendance"),
+        where("userId", "==", user.uid),
+        where("checkInTime", ">=", start.toISOString()),
+        where("checkInTime", "<=", end.toISOString())
+    );
+  }, [firestore, user]);
+  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
   const attendanceMap = useMemo(() => {
       if (!todaysAttendance) return new Map<string, Attendance>();
@@ -168,6 +168,17 @@ function MemberList() {
             <AddMemberDialog />
         </div>
       </div>
+
+      {membersError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Database Index Required</AlertTitle>
+          <AlertDescription>
+            This query requires a Firestore index. Please check the browser console for a link to create it.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {filteredMembers && filteredMembers.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 justify-items-center">
           {filteredMembers.map((member) => (
@@ -202,7 +213,7 @@ function MemberList() {
 
 export default function MembersPage() {
   return (
-    <Suspense fallback={<div className="flex flex-1 items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center h-[60vh]"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
       <MemberList />
     </Suspense>
   )

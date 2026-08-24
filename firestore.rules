@@ -11,6 +11,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    // Helper to check if the user owns the data being read or written
     function ownsData() {
       return isSignedIn() && (
         (request.resource != null && request.resource.data.userId == request.auth.uid) ||
@@ -24,30 +25,30 @@ service cloud.firestore {
     }
     
     match /members/{memberId} {
-      allow read, create, update, delete: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) ||
-        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      allow read, write: if isSignedIn() && (
+        (resource == null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
 
     match /attendance/{attendanceId} {
-      allow read, create, update, delete: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) ||
-        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      allow read, write: if isSignedIn() && (
+        (resource == null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
 
     match /payments/{paymentId} {
-      allow read, create, update, delete: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) ||
-        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      allow read, write: if isSignedIn() && (
+        (resource == null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
 
     match /plans/{planId} {
-      allow read, create, update, delete: if isSignedIn() && (
-        (resource != null && resource.data.userId == request.auth.uid) ||
-        (request.resource != null && request.resource.data.userId == request.auth.uid)
+      allow read, write: if isSignedIn() && (
+        (resource == null && request.resource.data.userId == request.auth.uid) ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
     }
   }

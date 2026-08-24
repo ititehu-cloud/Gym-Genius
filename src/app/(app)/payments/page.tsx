@@ -1,7 +1,7 @@
 
 'use client';
 
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, AlertTriangle } from "lucide-react";
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, orderBy, doc, where } from "firebase/firestore";
 import type { Member, Payment, Plan } from "@/lib/types";
@@ -11,6 +11,7 @@ import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
 import { parseISO, format, isSameMonth, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function PaymentsList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,7 +55,7 @@ function PaymentsList() {
         orderBy("createdAt", "desc")
     );
   }, [firestore, user]);
-  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
+  const { data: payments, isLoading: isLoadingPayments, error: paymentsError } = useCollection<Payment>(paymentsQuery);
   
   const membersRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -215,6 +216,16 @@ function PaymentsList() {
           </div>
         </div>
 
+        {paymentsError && (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Database Index Required</AlertTitle>
+                <AlertDescription>
+                    This query requires a Firestore index. Please check the browser console for a link to create it.
+                </AlertDescription>
+            </Alert>
+        )}
+
         {filteredMembers && filteredMembers.length > 0 ? (
             <div className="space-y-6">
                 {filteredMembers.map(member => {
@@ -266,7 +277,7 @@ function PaymentsList() {
 
 export default function PaymentsPage() {
   return (
-    <Suspense fallback={<div className="flex flex-1 items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center h-[60vh]"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}>
       <PaymentsList />
     </Suspense>
   )

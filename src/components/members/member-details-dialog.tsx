@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,7 +11,7 @@ import {
 import type { Member, Plan, Payment } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, orderBy } from "firebase/firestore";
 import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -28,15 +29,17 @@ type MemberDetailsDialogProps = {
 
 export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange }: MemberDetailsDialogProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore || !member.id || !isOpen) return null;
+    if (!firestore || !user || !member.id || !isOpen) return null;
     return query(
       collection(firestore, "payments"),
+      where("userId", "==", user.uid),
       where("memberId", "==", member.id),
       orderBy("paymentDate", "desc")
     );
-  }, [firestore, member.id, isOpen]);
+  }, [firestore, user, member.id, isOpen]);
   
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 

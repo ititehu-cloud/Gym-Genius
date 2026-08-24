@@ -1,21 +1,29 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { LoaderCircle, Tags } from "lucide-react";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { LoaderCircle, Tags, AlertTriangle } from "lucide-react";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
 import AddPlanDialog from "@/components/plans/add-plan-dialog";
 import EditPlanDialog from "@/components/plans/edit-plan-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function PlansPage() {
   const firestore = useFirestore();
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
-  const { data: plans, isLoading } = useCollection<Plan>(plansRef);
+  const { user } = useUser();
+
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
+  
+  const { data: plans, isLoading, error } = useCollection<Plan>(plansRef);
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center h-[60vh]">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -27,6 +35,16 @@ export default function PlansPage() {
         <h1 className="text-2xl font-headline font-semibold">Membership Plans</h1>
         <AddPlanDialog />
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Database Index Required</AlertTitle>
+          <AlertDescription>
+            This query requires a Firestore index. Please check the browser console for a link to create it.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {plans && plans.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-3">

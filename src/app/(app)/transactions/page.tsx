@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import { LoaderCircle, ArrowLeft } from "lucide-react";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, query, orderBy, where } from "firebase/firestore";
+import { LoaderCircle, ArrowLeft, AlertTriangle } from "lucide-react";
 import type { Member, Payment } from "@/lib/types";
 import { useMemo, useState } from "react";
 import { format, parseISO, startOfDay, endOfDay } from "date-fns";
@@ -13,20 +14,35 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import DeletePaymentDialog from "@/components/payments/delete-payment-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function TransactionsPage() {
     const firestore = useFirestore();
+    const { user } = useUser();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [fromDate, setFromDate] = useState<string>("");
     const [toDate, setToDate] = useState<string>("");
 
-    const paymentsQuery = useMemoFirebase(() => query(collection(firestore, "payments"), orderBy("createdAt", "desc")), [firestore]);
-    const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
+    const paymentsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "payments"), 
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+        );
+    }, [firestore, user]);
+    const { data: payments, isLoading: isLoadingPayments, error: paymentsError } = useCollection<Payment>(paymentsQuery);
 
-    const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(
-        useMemoFirebase(() => query(collection(firestore, "members"), orderBy("createdAt", "desc")), [firestore])
-    );
+    const membersQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "members"), 
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+        );
+    }, [firestore, user]);
+    const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
 
     const memberMap = useMemo(() => {
         if (!members) return new Map<string, Member>();
@@ -75,7 +91,7 @@ export default function TransactionsPage() {
 
     if (isLoading) {
         return (
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center h-[60vh]">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
@@ -94,6 +110,16 @@ export default function TransactionsPage() {
                     <h1 className="text-2xl font-headline font-semibold uppercase tracking-tight">Passbook</h1>
                 </div>
             </div>
+
+            {paymentsError && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Database Index Required</AlertTitle>
+                    <AlertDescription>
+                        This query requires a Firestore index. Please check the browser console for a link to create it.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="flex flex-col gap-4 no-print">
                 <Input

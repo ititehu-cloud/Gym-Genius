@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Member, Plan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -28,7 +28,7 @@ type WhatsAppMessageDialogProps = {
 export default function WhatsAppMessageDialog({ member, plan, dueAmount = 0, gymName, isOpen, onOpenChange }: WhatsAppMessageDialogProps) {
   const { toast } = useToast();
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('expiry');
+  const [activeTemplate, setActiveTemplate] = useState('payment_reminder');
 
   const nameOfGym = gymName || 'Your Gym';
 
@@ -38,17 +38,19 @@ export default function WhatsAppMessageDialog({ member, plan, dueAmount = 0, gym
     const planType = plan ? `${plan.duration} month` : 'N/A';
 
     return {
-      welcome: `Welcome to ${nameOfGym}, ${member.name}! We're excited to have you with us. Let's get fit together! 🏋️‍♂️💪`,
-      expiry: `💪 *Due Details* 💪\n\n*From:* ${nameOfGym}\n👤 *Customer:* ${member.name}\n📱 *Mobile:* ${member.mobileNumber || 'N/A'}\n📅 *Date of Joining:* ${joinDate}\n📅 *Date of Expiry:* ${expiryDate}\n💰 *Plan Type:* ${planType}\n💵 *Amount Due:* ₹${dueAmount.toFixed(0)}\n\n🙏 Please clear the due amount as early as possible to continue your membership with the Gym.\n\nThank you!`,
-      general: `Hi ${member.name}, just a friendly reminder from ${nameOfGym} to stay consistent with your workouts! See you at the gym! 🤜🤛`,
+      payment_reminder: `💪 *Due Details* 💪\n\n*From:* ${nameOfGym}\n👤 *Customer:* ${member.name}\n📱 *Mobile:* ${member.mobileNumber || 'N/A'}\n📅 *Date of Joining:* ${joinDate}\n📅 *Date of Expiry:* ${expiryDate}\n💰 *Plan Type:* ${planType}\n💵 *Amount Due:* ₹${dueAmount.toFixed(0)}\n\n🙏 Please clear the due amount as early as possible to continue your membership with the Gym.\n\nThank you!`,
+      eid_mubarak: `Assalamu alaikum ${member.name},\n\nEid Mubarak to you and your family! May this Eid bring joy, peace, and prosperity to your life. From ${nameOfGym} 🌙✨`,
+      thanks: `Thank you ${member.name} for being such a valuable part of ${nameOfGym}! We truly appreciate your commitment to your fitness journey. Keep it up! 🏋️‍♂️💪`,
+      happy_new_year: `Happy New Year ${member.name}! 🎆\n\nLet's make this year your strongest one yet. See you at ${nameOfGym} to crush those resolutions! 🤜🤛`,
+      custom: `Hi ${member.name}, `,
     };
   }, [member, plan, dueAmount, nameOfGym]);
 
   useEffect(() => {
     if (isOpen) {
-      setMessage(templates[activeTab as keyof typeof templates]);
+      setMessage(templates[activeTemplate as keyof typeof templates] || '');
     }
-  }, [isOpen, activeTab, templates]);
+  }, [isOpen, activeTemplate, templates]);
 
   const handleSend = () => {
     if (!member.mobileNumber) {
@@ -93,39 +95,78 @@ export default function WhatsAppMessageDialog({ member, plan, dueAmount = 0, gym
     onOpenChange(false);
   };
 
+  const templateOptions = [
+    { id: 'payment_reminder', label: 'Payment reminder' },
+    { id: 'eid_mubarak', label: 'Eid Mubarak' },
+    { id: 'thanks', label: 'Thanks' },
+    { id: 'happy_new_year', label: 'Happy new year' },
+    { id: 'custom', label: 'Add custom message' },
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold leading-tight">
-            Send Message:<br />
-            <span className="text-primary">{member.mobileNumber}</span>
+      <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden rounded-3xl">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="text-xl font-bold text-gray-700 leading-tight">
+            Send Whatsapp message:<br />
+            <span>{member.mobileNumber}</span>
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6 py-2">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="expiry">Expiry</TabsTrigger>
-              <TabsTrigger value="welcome">Welcome</TabsTrigger>
-              <TabsTrigger value="general">General</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
+        <div className="p-6 pt-4 space-y-6">
           <div className="relative">
-            <Label htmlFor="message" className="absolute -top-2 left-3 px-1 bg-background text-[10px] text-muted-foreground uppercase font-bold tracking-wider z-10">Message Preview</Label>
+            <Label htmlFor="message" className="absolute -top-2 left-3 px-1 bg-white text-[10px] text-gray-400 uppercase font-bold tracking-wider z-10">message....</Label>
             <Textarea
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[220px] bg-muted/5 pt-4 resize-none border-muted-foreground/20 focus-visible:ring-primary font-mono text-xs"
+              className="min-h-[140px] bg-gray-50/50 pt-4 resize-none border-gray-200 focus-visible:ring-primary rounded-xl text-gray-600"
             />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-500">Select Template</h3>
+            <RadioGroup 
+                value={activeTemplate} 
+                onValueChange={setActiveTemplate}
+                className="space-y-0"
+            >
+              {templateOptions.map((option) => (
+                <div 
+                  key={option.id} 
+                  className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 cursor-pointer"
+                  onClick={() => setActiveTemplate(option.id)}
+                >
+                  <Label 
+                    htmlFor={option.id} 
+                    className="text-base font-medium text-gray-500 flex-1 cursor-pointer"
+                  >
+                    {option.label}
+                  </Label>
+                  <RadioGroupItem 
+                    value={option.id} 
+                    id={option.id} 
+                    className="h-5 w-5 border-2 border-gray-300 text-primary"
+                  />
+                </div>
+              ))}
+            </RadioGroup>
           </div>
         </div>
 
-        <DialogFooter className="flex flex-row justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-semibold text-muted-foreground">Cancel</Button>
-          <Button onClick={handleSend} className="bg-[#467c6d] hover:bg-[#3a6358] text-white font-bold px-10 rounded-xl h-11">Send</Button>
+        <DialogFooter className="p-6 pt-2 flex flex-row items-center justify-end gap-6">
+          <button 
+            onClick={() => onOpenChange(false)} 
+            className="text-gray-500 font-semibold text-base"
+          >
+            Cancel
+          </button>
+          <Button 
+            onClick={handleSend} 
+            className="bg-[#467c6d] hover:bg-[#3a6358] text-white font-bold px-10 rounded-xl h-11 text-base"
+          >
+            Send
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

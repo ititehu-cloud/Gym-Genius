@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -67,6 +66,8 @@ function AttendanceList() {
         
         if (filter === 'present') {
             tempMembers = tempMembers.filter(member => attendanceMap.has(member.id));
+        } else if (filter === 'absent') {
+            tempMembers = tempMembers.filter(member => !attendanceMap.has(member.id));
         }
 
         if (searchQuery) {
@@ -138,6 +139,8 @@ function AttendanceList() {
         )
     }
 
+    const absentCount = (members?.length || 0) - (selectedDateAttendance?.length || 0);
+
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -170,12 +173,17 @@ function AttendanceList() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Member Check-in</CardTitle>
+                    <CardTitle>
+                        {filter === 'absent' ? 'Absent Members' : filter === 'present' ? 'Present Members' : 'Member Attendance'}
+                    </CardTitle>
                     <CardDescription>
-                        {filter === 'present' ? 'Showing members who are present today.' 
+                        {filter === 'present' 
+                            ? `Showing ${selectedDateAttendance?.length || 0} members who are present today.` 
+                            : filter === 'absent'
+                            ? `Showing ${absentCount} members who have yet to check in for today.`
                             : isToday ? 'Mark members as present for today. ' 
                             : `Viewing attendance for ${format(selectedDate, 'MMMM do, yyyy')}. `}
-                        {filter !== 'present' && `${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
+                        {!filter && `${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -273,6 +281,11 @@ function AttendanceList() {
                                     <>
                                         <h3 className="text-xl font-bold tracking-tight">No Members Present Today</h3>
                                         <p className="text-sm text-muted-foreground">{searchQuery ? `Your search for "${searchQuery}" did not return any results from present members.` : 'No one has checked in yet for today.'}</p>
+                                    </>
+                                ) : filter === 'absent' ? (
+                                    <>
+                                        <h3 className="text-xl font-bold tracking-tight">All Members are Present!</h3>
+                                        <p className="text-sm text-muted-foreground">Great! Every active member has checked in for today.</p>
                                     </>
                                 ) : (
                                     <>

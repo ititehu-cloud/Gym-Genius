@@ -1,4 +1,3 @@
-
 'use client';
 
 import { format, isSameDay, isThisMonth, parseISO, startOfDay } from "date-fns";
@@ -50,10 +49,12 @@ export default function DashboardPage() {
     
     const planMap = new Map(plans?.map(p => [p.id, p]));
 
-    const activeMembers = members?.filter(m => {
+    const activeMembersList = members?.filter(m => {
       const expiryDate = parseISO(m.expiryDate);
       return expiryDate >= startOfToday;
-    }).length ?? 0;
+    }) ?? [];
+    
+    const activeMembers = activeMembersList.length;
     
     const expiredMembers = members?.filter(m => parseISO(m.expiryDate) < startOfToday) ?? [];
 
@@ -149,7 +150,7 @@ export default function DashboardPage() {
                     <StatsCard title="Active Members" value={stats.activeMembers} href="/members?status=active" className="bg-chart-2/10" valueClassName="text-chart-2" />
                     <StatsCard title="Expiring Today" value={stats.expiryToday} href="/members?expiry=today" className="bg-chart-5/10" valueClassName="text-chart-5" />
                     <StatsCard title="Present Today" value={stats.presentToday} href="/attendance?filter=present" className="bg-chart-2/10" valueClassName="text-chart-2" />
-                    <StatsCard title="Absent Today" value={stats.absentToday} href="/attendance" className="bg-destructive/10" valueClassName="text-destructive" />
+                    <StatsCard title="Absent Today" value={stats.absentToday} href="/attendance?filter=absent" className="bg-destructive/10" valueClassName="text-destructive" />
                     <StatsCard title="Collected Today" value={`₹${stats.todaysCollection.toLocaleString()}`} href="/payments?date=today&status=paid" className="bg-primary/10" valueClassName="text-primary" />
                 </div>
             </div>

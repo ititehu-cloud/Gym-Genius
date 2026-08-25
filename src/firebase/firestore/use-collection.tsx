@@ -56,14 +56,14 @@ export function useCollection<T = any>(
       (error: FirestoreError) => {
         console.error('❌ Firestore error:', error.code, error.message);
         
-        // Extract path if possible using public API only
+        // Safely extract path if available (CollectionReferences have path, base Queries do not in Web SDK)
         let path: string = 'unknown';
-        try {
-          if ('path' in memoizedTargetRefOrQuery) {
-            path = memoizedTargetRefOrQuery.path;
+        if ('path' in memoizedTargetRefOrQuery) {
+          try {
+            path = (memoizedTargetRefOrQuery as any).path;
+          } catch (e) {
+            // Path extraction failed
           }
-        } catch (e) {
-          // Path extraction failed
         }
 
         const contextualError = new FirestorePermissionError({
@@ -71,11 +71,10 @@ export function useCollection<T = any>(
           path,
         });
 
-        setError(error); // Keep the original error for debugging (like index links)
+        setError(error);
         setData(null);
         setIsLoading(false);
 
-        // trigger global error propagation if it's a permission issue
         if (error.code === 'permission-denied') {
           errorEmitter.emit('permission-error', contextualError);
         }

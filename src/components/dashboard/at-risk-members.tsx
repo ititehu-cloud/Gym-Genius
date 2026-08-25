@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -9,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchInactiveMemberInsights } from '@/app/actions';
 import type { InactiveMemberInsightsOutput, InactiveMemberInsightsInput } from '@/ai/flows/inactive-member-insights';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Member, Payment, Plan, Attendance } from '@/lib/types';
-import { parseISO } from 'date-fns';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import type { Member, Payment, Plan, Attendance, UserProfile } from '@/lib/types';
+import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WhatsAppIcon } from '../icons/whatsapp-icon';
+import WhatsAppMessageDialog from '../members/whatsapp-message-dialog';
 
 type WithId<T> = T & { id: string };
 
@@ -35,11 +35,18 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     const [insights, setInsights] = useState<InactiveMemberInsightsOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { user } = useUser();
-    const { toast } = useToast();
+    const [selectedMemberForWhatsApp, setSelectedMemberForWhatsApp] = useState<Member | null>(null);
+    const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
 
+    const { user } = useUser();
     const firestore = useFirestore();
     
+    const userDocRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
     const attendanceQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'attendance'), where('userId', '==', user.uid));
@@ -48,6 +55,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     const { data: attendanceHistory, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
     const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
+    const planMap = useMemo(() => new Map(plans.map(p => [p.id, p])), [plans]);
 
     useEffect(() => {
         if (isLoadingAttendance || !members || !payments || !plans || !attendanceHistory) {
@@ -96,45 +104,23 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         return memberMap.get(memberId);
     };
 
-    const handleWhatsAppShare = async (memberId: string, riskReason: string, suggestedInterventions: string[]) => {
-        const member = getMember(memberId);
-        if (!member || !member.mobileNumber) return;
+    const calculateDueAmount = (member: Member, plan: Plan | undefined) => {
+        if (!plan) return 0;
+        const joinDate = parseISO(member.joinDate);
+        const expiryDate = parseISO(member.expiryDate);
+        const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
+        const leadDate = new Date(joinDate.getTime() - leadTimeMs);
 
-        const message = `Hello ${member.name}, we missed you at the gym! ${riskReason}.\n\nSuggestions:\n${suggestedInterventions.map(i => `• ${i}`).join('\n')}\n\nHope to see you back soon!`;
-        const encodedMsg = encodeURIComponent(message);
-        
-        let sanitizedPhone = member.mobileNumber.replace(/\D/g, '');
-        if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
-        if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
+        const memberPayments = payments.filter(p => p.memberId === member.id);
+        const cyclePayments = memberPayments.filter(p => {
+            const pDate = parseISO(p.paymentDate);
+            return pDate >= startOfDay(leadDate) && 
+                   pDate <= endOfDay(expiryDate) && 
+                   p.status === 'paid';
+        });
 
-        // Determine platform
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
-        let whatsappUrl;
-        if (isIOS) {
-          whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-        } else if (isMobile) {
-          whatsappUrl = `https://api.whatsapp.com/send/?phone=${sanitizedPhone}&text=${encodedMsg}&app_absent=0&type=phone_number`;
-        } else {
-          whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
-        }
-
-        if (isIOS) {
-          window.location.href = whatsappUrl;
-          setTimeout(() => {
-            if (document.hasFocus()) {
-              window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
-            }
-          }, 500);
-        } else {
-          const newWindow = window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-          if (!newWindow || newWindow.closed) {
-            window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
-          }
-        }
-
-        toast({ title: "Opening WhatsApp", description: "Launching application..." });
+        const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        return Math.max(0, plan.price - totalPaid);
     };
 
     const renderContent = () => {
@@ -204,7 +190,12 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                                             size="sm" 
                                             className="w-full gap-2"
                                             disabled={!hasPhone}
-                                            onClick={() => handleWhatsAppShare(atRisk.memberId, atRisk.riskReason, atRisk.suggestedInterventions)}
+                                            onClick={() => {
+                                                if (member) {
+                                                    setSelectedMemberForWhatsApp(member);
+                                                    setWhatsAppDialogOpen(true);
+                                                }
+                                            }}
                                         >
                                             <WhatsAppIcon className="h-4 w-4" />
                                             Message via WhatsApp
@@ -222,6 +213,9 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         );
     };
 
+    const selectedMemberPlan = selectedMemberForWhatsApp ? planMap.get(selectedMemberForWhatsApp.planId) : undefined;
+    const selectedMemberDue = selectedMemberForWhatsApp ? calculateDueAmount(selectedMemberForWhatsApp, selectedMemberPlan) : 0;
+
     return (
         <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
@@ -234,6 +228,17 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             <CardContent>
                 {renderContent()}
             </CardContent>
+
+            {selectedMemberForWhatsApp && (
+                <WhatsAppMessageDialog 
+                    member={selectedMemberForWhatsApp}
+                    plan={selectedMemberPlan}
+                    dueAmount={selectedMemberDue}
+                    gymName={userProfile?.displayName}
+                    isOpen={isWhatsAppDialogOpen}
+                    onOpenChange={setWhatsAppDialogOpen}
+                />
+            )}
         </Card>
     );
 }

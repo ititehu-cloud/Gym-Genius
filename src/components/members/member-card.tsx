@@ -338,6 +338,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       <WhatsAppMessageDialog 
         member={member} 
+        plan={plan}
+        dueAmount={dueAmount}
         gymName={gymName} 
         isOpen={isWhatsAppDialogOpen} 
         onOpenChange={setWhatsAppDialogOpen} 

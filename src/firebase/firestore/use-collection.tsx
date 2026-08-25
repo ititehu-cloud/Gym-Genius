@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,15 +18,6 @@ export interface UseCollectionResult<T> {
   data: WithId<T>[] | null;
   isLoading: boolean;
   error: FirestoreError | Error | null;
-}
-
-export interface InternalQuery extends Query<DocumentData> {
-  _query: {
-    path: {
-      canonicalString(): string;
-      toString(): string;
-    }
-  }
 }
 
 /**
@@ -66,13 +56,14 @@ export function useCollection<T = any>(
       (error: FirestoreError) => {
         console.error('❌ Firestore error:', error.code, error.message);
         
+        // Extract path if possible using public API only
         let path: string = 'unknown';
         try {
-          path = memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+          if ('path' in memoizedTargetRefOrQuery) {
+            path = memoizedTargetRefOrQuery.path;
+          }
         } catch (e) {
-          console.warn('Could not extract path for error reporting');
+          // Path extraction failed
         }
 
         const contextualError = new FirestorePermissionError({

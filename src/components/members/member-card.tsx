@@ -12,6 +12,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
+import MemberDetailsDialog from './member-details-dialog';
 import { useFirestore, useUser } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { uploadImage } from '@/app/actions';
@@ -47,6 +48,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const [isSharing, setIsSharing] = useState(false);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isPaymentOpen, setPaymentOpen] = useState(false);
+  const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -227,8 +229,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-primary/30 rounded-tr-2xl pointer-events-none" />
         <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
-        <div className="relative p-6 pb-4">
-          <div className="absolute top-4 right-4 z-10">
+        <div 
+          className="relative p-6 pb-4 cursor-pointer hover:bg-muted/5 transition-colors group/member-card"
+          onClick={() => setDetailsOpen(true)}
+        >
+          <div className="absolute top-4 right-4 z-20" onClick={(e) => e.stopPropagation()}>
             <EditMemberDialog member={member} />
           </div>
 
@@ -242,7 +247,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <div className="flex-grow space-y-4 pt-1">
                 <div className="space-y-0.5">
                     <p className="text-sm font-medium text-muted-foreground leading-none">Name:</p>
-                    <h3 className="text-2xl font-bold tracking-tight text-foreground transition-colors">{member.name}</h3>
+                    <h3 className="text-2xl font-bold tracking-tight text-foreground transition-colors group-hover/member-card:text-primary">{member.name}</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-4 gap-y-4">
@@ -335,6 +340,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           </div>
         </div>
       </Card>
+
+      <MemberDetailsDialog 
+        member={member} 
+        plan={plan} 
+        isOpen={isDetailsOpen} 
+        onOpenChange={setDetailsOpen} 
+      />
 
       <WhatsAppMessageDialog 
         member={member} 

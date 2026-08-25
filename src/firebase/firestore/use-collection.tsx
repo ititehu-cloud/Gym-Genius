@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,8 +10,6 @@ import {
   QuerySnapshot,
   CollectionReference,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 export type WithId<T> = T & { id: string };
 
@@ -62,31 +61,12 @@ export function useCollection<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (err: FirestoreError) => {
         if (!isMounted.current) return;
-        console.error('❌ Firestore error:', error.code, error.message);
-        
-        let path: string = 'unknown';
-        if (memoizedTargetRefOrQuery && 'path' in memoizedTargetRefOrQuery) {
-          try {
-            path = (memoizedTargetRefOrQuery as any).path;
-          } catch (e) {
-            // Path extraction failed
-          }
-        }
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path,
-        });
-
-        setError(error);
+        console.error('❌ Firestore error:', err.code, err.message);
+        setError(err);
         setData(null);
         setIsLoading(false);
-
-        if (error.code === 'permission-denied') {
-          errorEmitter.emit('permission-error', contextualError);
-        }
       }
     );
 

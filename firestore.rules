@@ -10,14 +10,6 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
-    // Helper to check if the user owns the data being read or written
-    function ownsData() {
-      return isSignedIn() && (
-        (request.resource != null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
-    }
 
     match /users/{userId} {
       allow get, create, update: if isOwner(userId);

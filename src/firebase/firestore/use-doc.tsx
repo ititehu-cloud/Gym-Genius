@@ -1,3 +1,4 @@
+
 'use client';
     
 import { useState, useEffect, useRef } from 'react';
@@ -8,8 +9,6 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -66,22 +65,12 @@ export function useDoc<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (err: FirestoreError) => {
         if (!isMounted.current) return;
-        console.error('❌ Firestore error:', error.code, error.message);
-        
-        const contextualError = new FirestorePermissionError({
-          operation: 'get',
-          path: memoizedDocRef.path,
-        })
-
-        setError(error);
+        console.error('❌ Firestore error:', err.code, err.message);
+        setError(err);
         setData(null);
         setIsLoading(false);
-
-        if (error.code === 'permission-denied') {
-          errorEmitter.emit('permission-error', contextualError);
-        }
       }
     );
 

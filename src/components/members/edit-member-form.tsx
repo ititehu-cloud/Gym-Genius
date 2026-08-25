@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
 import { addMonths, format, parseISO } from "date-fns";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, doc, updateDoc, serverTimestamp, query, where } from "firebase/firestore";
 import type { Member, Plan } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -61,16 +61,23 @@ type EditMemberFormProps = {
 export default function EditMemberForm({ member, setDialogOpen }: EditMemberFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(member.imageUrl);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const plansRef = useMemoFirebase(() => collection(firestore, "plans"), [firestore]);
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+  const plansRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "plans"), where("userId", "==", user.uid));
+  }, [firestore, user]);
+  const { data: plans } = useCollection<Plan>(plansRef);
 
-  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const membersRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "members"), where("userId", "==", user.uid));
+  }, [firestore, user]);
   const { data: members } = useCollection<Member>(membersRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -109,6 +116,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   }
 
   async function handleUpdate(values: z.infer<typeof formSchema>, updateExpiry: boolean = false) {
+    if (!user) return;
     setIsSubmitting(true);
     setConfirmationOpen(false);
     setFormError(null);
@@ -133,12 +141,12 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     const { profilePicture, ...dataToSave } = values;
     const updateData: any = {
         ...dataToSave,
+        userId: user.uid,
         joinDate: new Date(values.joinDate).toISOString(),
         imageUrl: imageUrl,
         updatedAt: serverTimestamp()
     };
     
-    // IF critical ID card data changed, clear the pre-generated URL so it regenerates on next share
     if (nameChanged || mobileChanged || planChanged || updateExpiry || imageFile) {
       updateData.idCardUrl = null; 
     }
@@ -251,7 +259,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="expired">Expired</SelectItem><SelectItem value="due">Due</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="expired">Expired</SelectItem><SelectItem value="due">Due</SelectItem></Select><FormMessage /></FormItem>
             )} />
           </div>
 

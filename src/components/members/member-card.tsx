@@ -12,7 +12,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { uploadImage } from '@/app/actions';
 import {
@@ -50,6 +50,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const getStatus = (): Member['status'] => {
     const today = new Date();
@@ -185,9 +186,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   };
 
   const handleCheckIn = async () => {
+    if (!user) return;
     setIsAttendanceLoading(true);
     try {
       await addDoc(collection(firestore, "attendance"), {
+        userId: user.uid,
         memberId: member.id,
         checkInTime: new Date().toISOString(),
         createdAt: serverTimestamp()

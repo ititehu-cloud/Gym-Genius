@@ -24,9 +24,6 @@ export function initializeFirebase() {
       firebaseApp = initializeApp();
     } catch (e) {
       // Fallback for development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
       firebaseApp = initializeApp(firebaseConfig);
     }
   } else {
@@ -48,10 +45,17 @@ export function getSdks(firebaseApp: FirebaseApp) {
     return cachedSdks;
   }
   
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
+
+  if (!cachedSdks) {
+      cachedSdks = { firebaseApp, auth, firestore };
+  }
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    firestore
   };
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -28,8 +28,16 @@ export function useCollection<T = any>(
     memoizedTargetRefOrQuery: (CollectionReference<DocumentData> | Query<DocumentData>) | null | undefined,
 ): UseCollectionResult<T> {
   const [data, setData] = useState<WithId<T>[] | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(!!memoizedTargetRefOrQuery);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -45,6 +53,7 @@ export function useCollection<T = any>(
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
+        if (!isMounted.current) return;
         const results: WithId<T>[] = snapshot.docs.map(doc => ({
             ...(doc.data() as T),
             id: doc.id
@@ -54,11 +63,11 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        if (!isMounted.current) return;
         console.error('❌ Firestore error:', error.code, error.message);
         
-        // Safely extract path if available (CollectionReferences have path, base Queries do not in Web SDK)
         let path: string = 'unknown';
-        if ('path' in memoizedTargetRefOrQuery) {
+        if (memoizedTargetRefOrQuery && 'path' in memoizedTargetRefOrQuery) {
           try {
             path = (memoizedTargetRefOrQuery as any).path;
           } catch (e) {
@@ -81,7 +90,9 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [memoizedTargetRefOrQuery]);
 
   return { data, isLoading, error };

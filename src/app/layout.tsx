@@ -6,6 +6,14 @@ import { FirebaseClientProvider } from '@/firebase';
 export const metadata: Metadata = {
   title: 'Gym Genius',
   description: 'A management dashboard for your gym.',
+  manifest: '/manifest.json',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  themeColor: '#7c3aed',
 };
 
 export default function RootLayout({

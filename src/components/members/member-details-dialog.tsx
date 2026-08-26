@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -50,7 +49,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border-2 border-primary/20">
+      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl border-2 border-primary/20 [&>button]:text-primary-foreground [&>button]:opacity-100 [&>button]:bg-white/10 [&>button]:hover:bg-white/20 [&>button]:z-50 [&>button]:rounded-full [&>button]:p-1">
         <DialogHeader className="p-6 pb-4 bg-primary text-primary-foreground shrink-0">
           <div className="flex items-center gap-6">
              <Avatar className="h-20 w-20 border-4 border-white/20 shadow-xl">

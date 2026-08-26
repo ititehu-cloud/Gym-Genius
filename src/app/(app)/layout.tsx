@@ -7,8 +7,7 @@ import { doc } from "firebase/firestore";
 import { Header } from "@/components/header";
 import { LoaderCircle } from "lucide-react";
 import type { UserProfile as UserProfileType } from "@/lib/types";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { BottomNavigation } from "@/components/bottom-navigation";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -43,20 +42,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const displayName = userProfile?.displayName || user.email;
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-muted/30">
-        <AppSidebar userProfile={userProfile} />
-        <SidebarInset className="flex flex-col flex-1 min-w-0">
-          <Header 
-            displayName={displayName} 
-            iconUrl={userProfile?.icon} 
-            onLogout={handleLogout} 
-          />
-          <main className="flex-1 overflow-y-auto">
-              {children}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+    <div className="flex min-h-screen flex-col bg-muted/30 pb-20">
+      <Header 
+        displayName={displayName} 
+        iconUrl={userProfile?.icon} 
+        onLogout={handleLogout} 
+      />
+      <main className="flex-1 overflow-y-auto">
+          {children}
+      </main>
+      <BottomNavigation user={user} userProfile={userProfile} />
+    </div>
   );
 }

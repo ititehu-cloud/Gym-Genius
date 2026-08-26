@@ -4,10 +4,11 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { redirect } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { doc } from "firebase/firestore";
-import { BottomNavigation } from "@/components/bottom-navigation";
 import { Header } from "@/components/header";
 import { LoaderCircle } from "lucide-react";
 import type { UserProfile as UserProfileType } from "@/lib/types";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -42,19 +43,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const displayName = userProfile?.displayName || user.email;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header 
-        displayName={displayName} 
-        iconUrl={userProfile?.icon} 
-        onLogout={handleLogout} 
-      />
-      <main className="flex-1 overflow-y-auto pb-20">
-          {children}
-      </main>
-      <BottomNavigation 
-          user={user}
-          userProfile={userProfile}
-      />
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-muted/30">
+        <AppSidebar userProfile={userProfile} />
+        <SidebarInset className="flex flex-col flex-1 min-w-0">
+          <Header 
+            displayName={displayName} 
+            iconUrl={userProfile?.icon} 
+            onLogout={handleLogout} 
+          />
+          <main className="flex-1 overflow-y-auto">
+              {children}
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

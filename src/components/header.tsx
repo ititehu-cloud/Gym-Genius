@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import Link from 'next/link';
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,15 +26,18 @@ export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
   const userInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
   
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-md sm:px-6">
+    <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-md sm:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
-            {iconUrl && (
-              <Avatar className="h-12 w-12 border-2 border-white/20">
-                <AvatarImage src={iconUrl} alt={displayName || 'Gym Logo'} className="object-contain p-1 bg-white" />
-                <AvatarFallback>{userInitial}</AvatarFallback>
-              </Avatar>
-            )}
-            <h1 className="text-2xl font-bold tracking-tight">{displayName || 'Dashboard'}</h1>
+            <SidebarTrigger className="text-primary-foreground hover:bg-white/10" />
+            <div className="flex items-center gap-3">
+                {iconUrl && (
+                  <Avatar className="h-10 w-10 border-2 border-white/20 hidden sm:flex">
+                    <AvatarImage src={iconUrl} alt={displayName || 'Gym Logo'} className="object-contain p-1 bg-white" />
+                    <AvatarFallback>{userInitial}</AvatarFallback>
+                  </Avatar>
+                )}
+                <h1 className="text-xl font-bold tracking-tight line-clamp-1">{displayName || 'Dashboard'}</h1>
+            </div>
         </div>
         
         <div className="flex items-center gap-2">

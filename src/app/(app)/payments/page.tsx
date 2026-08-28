@@ -1,3 +1,4 @@
+
 'use client';
 
 import { LoaderCircle, AlertTriangle } from "lucide-react";
@@ -25,23 +26,29 @@ function PaymentsList() {
   const dateFilter = searchParams.get('date');
   const filterParam = searchParams.get('filter');
   const statusParam = searchParams.get('status');
+  const monthParam = searchParams.get('month');
 
   useEffect(() => {
+    // Handle month param first if provided
+    if (monthParam) {
+        setSelectedMonth(monthParam);
+    }
+
     if (dateFilter === 'today') {
       setSelectedMonth('');
       setStatusFilter('paid');
     } else if (filterParam === 'due_this_month') {
-        setSelectedMonth(format(new Date(), 'yyyy-MM'));
+        if (!monthParam) setSelectedMonth(format(new Date(), 'yyyy-MM'));
         // When clicking 'Month Due', show anyone who hasn't fully paid (Unpaid + Part Paid)
         setStatusFilter('due'); 
         setMembershipFilter('active');
     } else if (statusParam) {
         setStatusFilter(statusParam);
-        setSelectedMonth(format(new Date(), 'yyyy-MM'));
+        if (!monthParam) setSelectedMonth(format(new Date(), 'yyyy-MM'));
     } else if (dateFilter) {
       setSelectedMonth('');
     }
-  }, [filterParam, dateFilter, statusParam]);
+  }, [filterParam, dateFilter, statusParam, monthParam]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -175,7 +182,7 @@ function PaymentsList() {
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMonth = e.target.value;
     setSelectedMonth(newMonth);
-    if(dateFilter || filterParam || statusParam) {
+    if(dateFilter || filterParam || statusParam || monthParam) {
       window.history.replaceState(null, '', '/payments');
     }
   };
@@ -220,7 +227,7 @@ function PaymentsList() {
               </Select>
               <Select value={statusFilter} onValueChange={(val) => {
                   setStatusFilter(val);
-                  if (statusParam || dateFilter || filterParam) window.history.replaceState(null, '', '/payments');
+                  if (statusParam || dateFilter || filterParam || monthParam) window.history.replaceState(null, '', '/payments');
               }}>
                   <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Status" />

@@ -20,7 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, LoaderCircle, Camera, CreditCard, User, Upload } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AlertTriangle, LoaderCircle, Camera, CreditCard, User, Image as ImageIcon } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
@@ -214,58 +220,67 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
               <div className="flex flex-col md:flex-row items-center gap-8 bg-muted/20 p-6 rounded-2xl border border-muted-foreground/10">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="relative h-40 w-40 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden border-4 border-white shadow-2xl">
-                      {imagePreview ? (
-                          <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-                      ) : (
-                          <User className="h-16 w-16 opacity-20" />
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                        <Button 
-                            type="button" 
-                            variant="secondary" 
-                            size="sm" 
-                            className="rounded-full gap-2"
-                            onClick={() => setCameraOpen(true)}
-                        >
-                            <Camera className="h-4 w-4" />
-                            Camera
-                        </Button>
-                        <FormField
-                            control={form.control}
-                            name="profilePicture"
-                            render={() => (
-                                <FormItem>
-                                    <FormControl>
-                                        <>
-                                            <label htmlFor="picture-upload-add">
-                                                <Button type="button" variant="outline" size="sm" className="rounded-full gap-2 pointer-events-none">
-                                                    <Upload className="h-4 w-4" />
-                                                    Upload
-                                                </Button>
-                                            </label>
-                                            <Input
-                                                id="picture-upload-add"
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        form.setValue('profilePicture', e.target.files);
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => setImagePreview(reader.result as string);
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
-                                            />
-                                        </>
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button type="button" className="group relative h-40 w-40 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden border-4 border-white shadow-2xl transition-all hover:scale-105 active:scale-95">
+                                {imagePreview ? (
+                                    <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                                ) : (
+                                    <User className="h-16 w-16 opacity-20" />
+                                )}
+                                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Camera className="h-8 w-8 text-white mb-1" />
+                                    <span className="text-[10px] font-bold text-white uppercase">Choose Image</span>
+                                </div>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="center" className="w-64 rounded-xl p-2" sideOffset={10}>
+                            <DropdownMenuItem 
+                                className="gap-3 py-4 cursor-pointer rounded-lg focus:bg-primary/5"
+                                onClick={() => setCameraOpen(true)}
+                            >
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Camera className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold">Take Photo</span>
+                                    <span className="text-[10px] text-muted-foreground">Use device camera</span>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                                className="gap-3 py-4 cursor-pointer rounded-lg focus:bg-primary/5"
+                                onClick={() => document.getElementById('gallery-upload-add')?.click()}
+                            >
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <ImageIcon className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold">Choose from Gallery</span>
+                                    <span className="text-[10px] text-muted-foreground">Upload existing photo</span>
+                                </div>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <input
+                        id="gallery-upload-add"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                form.setValue('profilePicture', e.target.files);
+                                const reader = new FileReader();
+                                reader.onloadend = () => setImagePreview(reader.result as string);
+                                reader.readAsDataURL(file);
+                            }
+                        }}
+                    />
+                    
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
+                        Tap photo to select source
+                    </p>
                 </div>
                 
                 <div className="flex-1 w-full space-y-4">

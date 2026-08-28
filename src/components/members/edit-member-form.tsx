@@ -20,7 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AlertTriangle, LoaderCircle, Camera, Image as ImageIcon } from "lucide-react";
 import { addMonths, format, parseISO } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, updateDoc, serverTimestamp, query, where } from "firebase/firestore";
@@ -40,6 +46,7 @@ import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { compressImage } from "@/lib/utils";
+import CameraCaptureDialog from "./camera-capture-dialog";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -63,6 +70,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
+  const [isCameraOpen, setCameraOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(member.imageUrl);
   const [formError, setFormError] = useState<string | null>(null);
@@ -169,6 +177,13 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     }
   }
 
+  const handleCameraCapture = (file: File) => {
+    form.setValue('profilePicture', [file]);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <>
       <Form {...form}>
@@ -181,7 +196,56 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
               </Alert>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6 p-2">
+            <div className="shrink-0">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button type="button" className="group relative h-20 w-20 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden border-2 border-primary/20 transition-all hover:border-primary">
+                        {imagePreview ? (
+                            <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                        ) : (
+                            <Camera className="h-8 w-8" />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Camera className="h-5 w-5 text-white" />
+                        </div>
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 rounded-xl p-2" sideOffset={5}>
+                        <DropdownMenuItem 
+                            className="gap-3 py-3 cursor-pointer rounded-lg focus:bg-primary/5"
+                            onClick={() => setCameraOpen(true)}
+                        >
+                            <Camera className="h-4 w-4 text-primary" />
+                            <span className="font-bold text-xs">Take Photo</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                            className="gap-3 py-3 cursor-pointer rounded-lg focus:bg-primary/5"
+                            onClick={() => document.getElementById('gallery-upload-edit')?.click()}
+                        >
+                            <ImageIcon className="h-4 w-4 text-primary" />
+                            <span className="font-bold text-xs">From Gallery</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <input
+                    id="gallery-upload-edit"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          form.setValue('profilePicture', e.target.files);
+                          const reader = new FileReader();
+                          reader.onloadend = () => setImagePreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                    }}
+                />
+            </div>
+            
             <div className="flex-grow">
                 <FormField
                     control={form.control}
@@ -194,42 +258,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                         </FormControl>
                         <FormMessage />
                     </FormItem>
-                    )}
-                />
-            </div>
-            <div className="flex flex-col items-center gap-1">
-                <FormField
-                    control={form.control}
-                    name="profilePicture"
-                    render={() => (
-                        <FormItem>
-                            <FormControl>
-                                <label htmlFor="picture-upload-edit" className="cursor-pointer">
-                                    <div className="relative h-16 w-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden hover:bg-muted/80">
-                                    {imagePreview ? (
-                                        <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-                                    ) : (
-                                        <Camera className="h-8 w-8" />
-                                    )}
-                                    </div>
-                                    <Input
-                                    id="picture-upload-edit"
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          form.setValue('profilePicture', e.target.files);
-                                          const reader = new FileReader();
-                                          reader.onloadend = () => setImagePreview(reader.result as string);
-                                          reader.readAsDataURL(file);
-                                        }
-                                    }}
-                                    />
-                                </label>
-                            </FormControl>
-                        </FormItem>
                     )}
                 />
             </div>
@@ -295,6 +323,12 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CameraCaptureDialog 
+          isOpen={isCameraOpen} 
+          onOpenChange={setCameraOpen} 
+          onCapture={handleCameraCapture} 
+      />
     </>
   );
 }

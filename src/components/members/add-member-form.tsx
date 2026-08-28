@@ -43,6 +43,8 @@ const formSchema = z.object({
   planId: z.string({ required_error: "Please select a membership plan." }),
   joinDate: z.string({ required_error: "Please select a joining date." }),
   profilePicture: z.any().optional(),
+  paymentAmount: z.coerce.number().min(0).optional(),
+  paymentDate: z.string().optional(),
 });
 
 type AddMemberFormProps = {
@@ -77,6 +79,8 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       mobileNumber: "",
       address: "",
       joinDate: format(new Date(), 'yyyy-MM-dd'),
+      paymentAmount: 0,
+      paymentDate: format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
@@ -128,7 +132,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         address: values.address,
         planId: values.planId,
         mobileNumber: values.mobileNumber || "",
-        joinDate: new Date(values.joinDate).toISOString(),
+        joinDate: new Date(values.joinDate + 'T00:00:00').toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
         imageUrl: imageUrl,
@@ -136,7 +140,23 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     };
 
     addDoc(membersCollection, data)
-        .then(() => {
+        .then(async (docRef) => {
+            // Record initial payment if amount is specified
+            if (values.paymentAmount && values.paymentAmount > 0) {
+              const paymentsCollection = collection(firestore, "payments");
+              const paymentDate = values.paymentDate || values.joinDate;
+              await addDoc(paymentsCollection, {
+                userId: user.uid,
+                memberId: docRef.id,
+                amount: values.paymentAmount,
+                paymentDate: new Date(paymentDate + 'T00:00:00').toISOString(),
+                paymentMethod: 'cash',
+                paymentType: 'renewal',
+                status: 'paid',
+                createdAt: serverTimestamp()
+              });
+            }
+
             toast({ title: "Success!", description: `${values.name} added successfully.` });
             form.reset();
             setDialogOpen(false);
@@ -157,7 +177,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
         {formError && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -298,8 +318,41 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="bg-muted/30 p-4 rounded-lg space-y-4 border border-dashed border-muted-foreground/20">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Initial Payment Details</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="paymentAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount Paid (₹)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="paymentDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground">Recording this will automatically initialize the member's financial ledger.</p>
+        </div>
         
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-white pb-2">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}

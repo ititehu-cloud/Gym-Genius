@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,13 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, LoaderCircle, Camera } from "lucide-react";
+import { AlertTriangle, LoaderCircle, Camera, CreditCard } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
 import type { Plan, Member } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -45,6 +44,7 @@ const formSchema = z.object({
   profilePicture: z.any().optional(),
   paymentAmount: z.coerce.number().min(0).optional(),
   paymentDate: z.string().optional(),
+  paymentMethod: z.string().optional(),
 });
 
 type AddMemberFormProps = {
@@ -81,8 +81,19 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       joinDate: format(new Date(), 'yyyy-MM-dd'),
       paymentAmount: 0,
       paymentDate: format(new Date(), 'yyyy-MM-dd'),
+      paymentMethod: "cash",
     },
   });
+
+  // Watch for plan and payment changes to calculate due amount
+  const watchedPlanId = form.watch('planId');
+  const watchedPaymentAmount = form.watch('paymentAmount') || 0;
+
+  const { selectedPlan, dueAmount } = useMemo(() => {
+    const plan = plans?.find(p => p.id === watchedPlanId);
+    const due = plan ? Math.max(0, plan.price - watchedPaymentAmount) : 0;
+    return { selectedPlan: plan, dueAmount: due };
+  }, [plans, watchedPlanId, watchedPaymentAmount]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
@@ -115,7 +126,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
       imageUrl = `https://picsum.photos/seed/${values.memberId}/400/400`;
     }
 
-    const selectedPlan = plans?.find(p => p.id === values.planId);
     if (!selectedPlan) {
         setFormError('Plan not found.');
         setIsSubmitting(false);
@@ -150,7 +160,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 memberId: docRef.id,
                 amount: values.paymentAmount,
                 paymentDate: new Date(paymentDate + 'T00:00:00').toISOString(),
-                paymentMethod: 'cash',
+                paymentMethod: values.paymentMethod || 'cash',
                 paymentType: 'renewal',
                 status: 'paid',
                 createdAt: serverTimestamp()
@@ -296,7 +306,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    {plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} (₹{p.price})</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -320,7 +330,11 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         />
 
         <div className="bg-muted/30 p-4 rounded-lg space-y-4 border border-dashed border-muted-foreground/20">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Initial Payment Details</h4>
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Initial Payment Details</h4>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -337,6 +351,33 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
             />
             <FormField
               control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Mode</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mode" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="upi">UPI</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                      <SelectItem value="net_banking">Net Banking</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
               name="paymentDate"
               render={({ field }) => (
                 <FormItem>
@@ -348,8 +389,15 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 </FormItem>
               )}
             />
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">Due Amount</span>
+              <div className={`h-10 px-3 flex items-center rounded-md border bg-muted/50 font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                ₹{dueAmount.toFixed(2)}
+              </div>
+            </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">Recording this will automatically initialize the member's financial ledger.</p>
+          
+          <p className="text-[10px] text-muted-foreground">The due amount is automatically calculated as (Plan Price - Amount Paid).</p>
         </div>
         
         <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-white pb-2">

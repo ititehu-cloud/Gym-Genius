@@ -1,4 +1,3 @@
-
 'use client';
 
 import MemberCard from "@/components/members/member-card";
@@ -11,7 +10,7 @@ import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isSameDay, parseISO, startOfDay, isThisMonth, endOfDay } from "date-fns";
+import { isSameDay, parseISO, startOfDay, isThisMonth, endOfDay, addDays } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function MemberList() {
@@ -100,6 +99,18 @@ function MemberList() {
 
     if (expiryParam === 'today') {
         tempMembers = members.filter(m => isSameDay(parseISO(m.expiryDate), new Date()));
+    } else if (expiryParam === '7days') {
+        const in7Days = endOfDay(addDays(today, 7));
+        tempMembers = members.filter(m => {
+            const expiryDate = parseISO(m.expiryDate);
+            return expiryDate >= today && expiryDate <= in7Days;
+        });
+    } else if (expiryParam === '15days') {
+        const in15Days = endOfDay(addDays(today, 15));
+        tempMembers = members.filter(m => {
+            const expiryDate = parseISO(m.expiryDate);
+            return expiryDate >= today && expiryDate <= in15Days;
+        });
     } else if (expiryParam === 'this_month') {
         tempMembers = members.filter(m => {
             const expiryDate = parseISO(m.expiryDate);
@@ -190,7 +201,7 @@ function MemberList() {
               gymAddress={gymAddress} 
               gymIconUrl={gymIconUrl}
               gymPhone={gymPhone}
-              attendanceRecord={attendanceMap.get(member.id)}
+              attendanceRecord={attendanceRecordMap.get(member.id)}
               allMembers={members || []}
               payments={paymentsByMember.get(member.id) || []}
             />

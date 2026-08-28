@@ -1,6 +1,6 @@
 'use client';
 
-import { format, isSameDay, isThisMonth, parseISO, startOfDay } from "date-fns";
+import { format, isSameDay, isThisMonth, parseISO, startOfDay, addDays, endOfDay } from "date-fns";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -46,6 +46,8 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     const today = new Date();
     const startOfToday = startOfDay(today);
+    const in7Days = endOfDay(addDays(startOfToday, 7));
+    const in15Days = endOfDay(addDays(startOfToday, 15));
     
     const planMap = new Map(plans?.map(p => [p.id, p]));
 
@@ -56,10 +58,21 @@ export default function DashboardPage() {
     
     const activeMembers = activeMembersList.length;
     
-    const expiredMembers = members?.filter(m => parseISO(m.expiryDate) < startOfToday) ?? [];
+    const expiredMembersList = members?.filter(m => parseISO(m.expiryDate) < startOfToday) ?? [];
+    const expiredMembers = expiredMembersList.length;
 
     const expiryToday = members?.filter(m => isSameDay(parseISO(m.expiryDate), today)).length ?? 0;
     
+    const expiry7Days = members?.filter(m => {
+        const expiryDate = parseISO(m.expiryDate);
+        return expiryDate >= startOfToday && expiryDate <= in7Days;
+    }).length ?? 0;
+
+    const expiry15Days = members?.filter(m => {
+        const expiryDate = parseISO(m.expiryDate);
+        return expiryDate >= startOfToday && expiryDate <= in15Days;
+    }).length ?? 0;
+
     const presentToday = todaysAttendance?.length ?? 0;
 
     const absentToday = Math.max(0, activeMembers - presentToday);
@@ -76,7 +89,7 @@ export default function DashboardPage() {
     
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    const totalDues = expiredMembers.reduce((sum, member) => {
+    const totalDues = expiredMembersList.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
         return sum + (plan?.price || 0);
     }, 0);
@@ -99,7 +112,10 @@ export default function DashboardPage() {
 
     return {
         activeMembers,
+        expiredMembers,
         expiryToday,
+        expiry7Days,
+        expiry15Days,
         presentToday,
         absentToday,
         todaysCollection,
@@ -148,7 +164,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid gap-4 grid-cols-2">
                     <StatsCard title="Active Members" value={stats.activeMembers} href="/members?status=active" className="bg-chart-2/10" valueClassName="text-chart-2" />
+                    <StatsCard title="Expired Members" value={stats.expiredMembers} href="/members?status=expired" className="bg-destructive/10" valueClassName="text-destructive" />
                     <StatsCard title="Expiring Today" value={stats.expiryToday} href="/members?expiry=today" className="bg-chart-5/10" valueClassName="text-chart-5" />
+                    <StatsCard title="Expiry (0-7d)" value={stats.expiry7Days} href="/members?expiry=7days" className="bg-amber-500/10" valueClassName="text-amber-600" />
+                    <StatsCard title="Expiry (0-15d)" value={stats.expiry15Days} href="/members?expiry=15days" className="bg-orange-500/10" valueClassName="text-orange-600" />
                     <StatsCard title="Present Today" value={stats.presentToday} href="/attendance?filter=present" className="bg-chart-2/10" valueClassName="text-chart-2" />
                     <StatsCard title="Absent Today" value={stats.absentToday} href="/attendance?filter=absent" className="bg-destructive/10" valueClassName="text-destructive" />
                     <StatsCard title="Collected Today" value={`₹${stats.todaysCollection.toLocaleString()}`} href="/payments?date=today&status=paid" className="bg-primary/10" valueClassName="text-primary" />

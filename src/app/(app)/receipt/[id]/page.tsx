@@ -1,16 +1,17 @@
 'use client';
 
 import { useMemo, use, useState, useRef } from "react";
-import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from "@/firebase";
+import { doc, collection, query, where } from "firebase/firestore";
 import { LoaderCircle, ArrowLeft, Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaymentReceipt } from "@/components/payments/payment-receipt";
-import type { Payment, Member, UserProfile } from "@/lib/types";
+import type { Payment, Member, UserProfile, Plan } from "@/lib/types";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { uploadImage } from "@/app/actions";
+import { parseISO, startOfDay, endOfDay } from "date-fns";
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -36,6 +37,41 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
     return doc(firestore, "members", payment.memberId);
   }, [firestore, payment]);
   const { data: member, isLoading: isLoadingMember } = useDoc<Member>(memberRef);
+
+  const planRef = useMemoFirebase(() => {
+    if (!member) return null;
+    return doc(firestore, "plans", member.planId);
+  }, [firestore, member]);
+  const { data: plan } = useDoc<Plan>(planRef);
+
+  const memberPaymentsQuery = useMemoFirebase(() => {
+    if (!member || !user) return null;
+    return query(
+      collection(firestore, "payments"),
+      where("userId", "==", user.uid),
+      where("memberId", "==", member.id),
+      where("status", "==", "paid")
+    );
+  }, [firestore, member, user]);
+  const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
+
+  const dueAmount = useMemo(() => {
+    if (!member || !plan || !memberPayments) return 0;
+    
+    const joinDate = parseISO(member.joinDate);
+    const expiryDate = parseISO(member.expiryDate);
+    const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
+    const leadDate = new Date(joinDate.getTime() - leadTimeMs);
+
+    const cyclePayments = memberPayments.filter(p => {
+        const pDate = parseISO(p.paymentDate);
+        return pDate >= startOfDay(leadDate) && 
+               pDate <= endOfDay(expiryDate);
+    });
+
+    const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+    return Math.max(0, plan.price - totalPaid);
+  }, [member, plan, memberPayments]);
 
   const currentPaymentList = useMemo(() => {
     return payment ? [payment] : [];
@@ -200,6 +236,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           payment={payment}
           member={member}
           allPayments={currentPaymentList}
+          dueAmount={dueAmount}
           gymName={userProfile?.displayName}
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}

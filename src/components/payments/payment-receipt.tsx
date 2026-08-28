@@ -8,6 +8,7 @@ type PaymentReceiptProps = {
   payment: Payment;
   member: Member;
   allPayments: Payment[];
+  dueAmount?: number;
   gymName?: string | null;
   gymAddress?: string;
   gymIconUrl?: string | null;
@@ -15,7 +16,7 @@ type PaymentReceiptProps = {
 };
 
 export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptProps>(
-  ({ payment, member, allPayments, gymName, gymAddress, gymPhone }, ref) => {
+  ({ payment, member, allPayments, dueAmount, gymName, gymAddress, gymPhone }, ref) => {
     const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
     const displayName = gymName || 'Gym Genius';
 
@@ -76,6 +77,13 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
           <span>GRAND TOTAL</span>
           <span>₹{totalPaid.toLocaleString()}</span>
         </div>
+
+        {dueAmount !== undefined && dueAmount > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#dc2626', marginTop: '4px' }}>
+            <span>TOTAL DUE</span>
+            <span>₹{dueAmount.toLocaleString()}</span>
+          </div>
+        )}
 
         <p style={{ textAlign: 'center', fontWeight: 'bold', margin: '15px 0 0' }}>STAY STRONG, STAY FIT!</p>
         <p style={{ textAlign: 'center', fontWeight: 'bold', margin: '0', textTransform: 'uppercase' }}>{displayName}</p>

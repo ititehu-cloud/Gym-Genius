@@ -24,14 +24,16 @@ export default function AddMemberDialog() {
           Add Member
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add New Member</DialogTitle>
+      <DialogContent className="max-w-none w-full h-screen h-[100dvh] m-0 p-0 rounded-none border-none flex flex-col bg-background">
+        <DialogHeader className="p-6 border-b shrink-0">
+          <DialogTitle className="text-2xl font-bold tracking-tight">Add New Member</DialogTitle>
           <DialogDescription>
-            Fill in the details below to add a new member to the gym.
+            Fill in the details below to register a new member and record their initial payment.
           </DialogDescription>
         </DialogHeader>
-        <AddMemberForm setDialogOpen={setIsOpen} />
+        <div className="flex-1 overflow-hidden">
+            <AddMemberForm setDialogOpen={setIsOpen} />
+        </div>
       </DialogContent>
     </Dialog>
   );

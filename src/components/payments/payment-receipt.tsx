@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Payment, Member } from '@/lib/types';
+import type { Payment, Member, Plan } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 
 type PaymentReceiptProps = {
@@ -13,10 +13,11 @@ type PaymentReceiptProps = {
   gymAddress?: string;
   gymIconUrl?: string | null;
   gymPhone?: string;
+  plan?: Plan;
 };
 
 export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptProps>(
-  ({ payment, member, allPayments, dueAmount, gymName, gymAddress, gymPhone }, ref) => {
+  ({ payment, member, allPayments, dueAmount, gymName, gymAddress, gymPhone, plan }, ref) => {
     const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
     const displayName = gymName || 'Gym Genius';
 
@@ -46,6 +47,17 @@ export const PaymentReceipt = React.forwardRef<HTMLDivElement, PaymentReceiptPro
         <p style={{ margin: '2px 0', textTransform: 'uppercase' }}>{member.address}</p>
         <p style={{ margin: '2px 0' }}>CONTACT: {member.mobileNumber || 'N/A'}</p>
         <p style={{ margin: '2px 0 10px' }}>ID: {member.memberId}</p>
+
+        <div style={{ height: '1px', backgroundColor: '#000', width: '100%', margin: '10px 0' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', margin: '5px 0' }}>
+          <span style={{ fontWeight: 'bold' }}>MEMBERSHIP PLAN</span>
+          <span style={{ fontWeight: 'bold' }}>PLAN PRICE</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ textTransform: 'uppercase' }}>{plan?.name || 'N/A'}</span>
+          <span>₹{plan?.price.toLocaleString() || '0'}</span>
+        </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', margin: '10px 0 5px' }}>
           <span style={{ fontWeight: 'bold' }}>RECEIPT DATE</span>

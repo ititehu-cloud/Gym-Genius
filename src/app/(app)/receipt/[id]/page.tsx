@@ -241,6 +241,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           gymAddress={userProfile?.displayAddress}
           gymIconUrl={userProfile?.icon}
           gymPhone={userProfile?.phoneNumber} 
+          plan={plan || undefined}
         />
       </div>
 

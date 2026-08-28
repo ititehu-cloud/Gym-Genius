@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,7 +47,6 @@ import Image from "next/image";
 import { uploadImage } from "@/app/actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { compressImage } from "@/lib/utils";
-import CameraCaptureDialog from "./camera-capture-dialog";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -70,7 +70,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmationOpen, setConfirmationOpen] = useState(false);
-  const [isCameraOpen, setCameraOpen] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(member.imageUrl);
   const [formError, setFormError] = useState<string | null>(null);
@@ -104,6 +103,16 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
   const mobileChanged = form.watch('mobileNumber') !== member.mobileNumber;
   const planChanged = form.watch('planId') !== member.planId;
   const joinDateChanged = form.watch('joinDate') !== format(parseISO(member.joinDate), 'yyyy-MM-dd');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('profilePicture', e.target.files);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   function onFormSubmit(values: z.infer<typeof formSchema>) {
     setFormError(null);
@@ -177,13 +186,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
     }
   }
 
-  const handleCameraCapture = (file: File) => {
-    form.setValue('profilePicture', [file]);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
   return (
     <>
       <Form {...form}>
@@ -214,7 +216,7 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                     <DropdownMenuContent align="start" className="w-56 rounded-xl p-2" sideOffset={5}>
                         <DropdownMenuItem 
                             className="gap-3 py-3 cursor-pointer rounded-lg focus:bg-primary/5"
-                            onClick={() => setCameraOpen(true)}
+                            onClick={() => document.getElementById('camera-upload-edit')?.click()}
                         >
                             <Camera className="h-4 w-4 text-primary" />
                             <span className="font-bold text-xs">Take Photo</span>
@@ -230,19 +232,19 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
                 </DropdownMenu>
 
                 <input
+                    id="camera-upload-edit"
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    className="hidden"
+                    onChange={handleFileChange}
+                />
+                <input
                     id="gallery-upload-edit"
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          form.setValue('profilePicture', e.target.files);
-                          const reader = new FileReader();
-                          reader.onloadend = () => setImagePreview(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                    }}
+                    onChange={handleFileChange}
                 />
             </div>
             
@@ -323,12 +325,6 @@ export default function EditMemberForm({ member, setDialogOpen }: EditMemberForm
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <CameraCaptureDialog 
-          isOpen={isCameraOpen} 
-          onOpenChange={setCameraOpen} 
-          onCapture={handleCameraCapture} 
-      />
     </>
   );
 }

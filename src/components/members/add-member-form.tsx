@@ -40,7 +40,6 @@ import { compressImage } from "@/lib/utils";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import CameraCaptureDialog from "./camera-capture-dialog";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -64,7 +63,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCameraOpen, setCameraOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   
@@ -102,6 +100,16 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
     const due = plan ? Math.max(0, plan.price - watchedPaymentAmount) : 0;
     return { selectedPlan: plan, dueAmount: due };
   }, [plans, watchedPlanId, watchedPaymentAmount]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      form.setValue('profilePicture', e.target.files);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
@@ -192,13 +200,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         });
   }
 
-  const handleCameraCapture = (file: File) => {
-    form.setValue('profilePicture', [file]);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
@@ -237,7 +238,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                         <DropdownMenuContent align="center" className="w-64 rounded-xl p-2" sideOffset={10}>
                             <DropdownMenuItem 
                                 className="gap-3 py-4 cursor-pointer rounded-lg focus:bg-primary/5"
-                                onClick={() => setCameraOpen(true)}
+                                onClick={() => document.getElementById('camera-upload-add')?.click()}
                             >
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                                     <Camera className="h-5 w-5 text-primary" />
@@ -263,19 +264,19 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                     </DropdownMenu>
 
                     <input
+                        id="camera-upload-add"
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                        onChange={handleFileChange}
+                    />
+                    <input
                         id="gallery-upload-add"
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                form.setValue('profilePicture', e.target.files);
-                                const reader = new FileReader();
-                                reader.onloadend = () => setImagePreview(reader.result as string);
-                                reader.readAsDataURL(file);
-                            }
-                        }}
+                        onChange={handleFileChange}
                     />
                     
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
@@ -478,12 +479,6 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 )}
             </Button>
         </div>
-
-        <CameraCaptureDialog 
-            isOpen={isCameraOpen} 
-            onOpenChange={setCameraOpen} 
-            onCapture={handleCameraCapture} 
-        />
       </form>
     </Form>
   );

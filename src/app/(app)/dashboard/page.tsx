@@ -1,3 +1,4 @@
+
 'use client';
 
 import { format, isSameDay, isThisMonth, parseISO, startOfDay, addDays, endOfDay } from "date-fns";
@@ -89,15 +90,21 @@ export default function DashboardPage() {
     
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    const totalDues = expiredMembersList.reduce((sum, member) => {
+    // Calculate total outstanding balance for all time across all members (active + expired)
+    const totalDues = members?.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
-        return sum + (plan?.price || 0);
-    }, 0);
+        if (!plan) return sum;
+        const memberPayments = paidPayments.filter(p => p.memberId === member.id);
+        const totalPaid = memberPayments.reduce((acc, p) => acc + p.amount, 0);
+        return sum + Math.max(0, plan.price - totalPaid);
+    }, 0) ?? 0;
     
-    const monthlyDues = members?.reduce((sum, member) => {
+    // Calculate Monthly Due: Only for members active this month
+    const monthlyDues = activeMembersList.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
         if (!plan) return sum;
 
+        // Estimate monthly installment target
         const monthlyInstallment = plan.duration > 0 ? plan.price / plan.duration : plan.price;
 
         const paymentsThisMonth = paidPayments.filter(p => 
@@ -108,7 +115,7 @@ export default function DashboardPage() {
         const dueForMonth = Math.max(0, monthlyInstallment - totalPaidThisMonth);
         
         return sum + dueForMonth;
-    }, 0) ?? 0;
+    }, 0);
 
     return {
         activeMembers,

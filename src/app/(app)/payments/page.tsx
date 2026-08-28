@@ -33,6 +33,7 @@ function PaymentsList() {
     } else if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
         setStatusFilter('unpaid');
+        setMembershipFilter('active');
     } else if (statusParam) {
         setStatusFilter(statusParam);
         setSelectedMonth(format(new Date(), 'yyyy-MM'));

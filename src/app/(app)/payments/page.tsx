@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LoaderCircle, AlertTriangle } from "lucide-react";
@@ -9,7 +8,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { parseISO, format, isSameMonth, isSameDay } from "date-fns";
+import { parseISO, format, isSameMonth, isSameDay, startOfDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -17,6 +16,7 @@ function PaymentsList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [membershipFilter, setMembershipFilter] = useState<string>("all");
   
   const searchParams = useSearchParams();
   const firestore = useFirestore();
@@ -92,7 +92,16 @@ function PaymentsList() {
     if (!members || !planMap.size || !payments) return [];
 
     let tempMembers = [...members];
+    const today = startOfDay(new Date());
+
+    // Membership Filter
+    if (membershipFilter === 'active') {
+        tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) >= today);
+    } else if (membershipFilter === 'inactive') {
+        tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
+    }
     
+    // Status Filter (Month Based)
     if (selectedMonth) {
         const monthDate = new Date(selectedMonth + "-01T00:00:00");
         if (!isNaN(monthDate.getTime())) {
@@ -121,11 +130,11 @@ function PaymentsList() {
             });
         }
     } else if (dateFilter === 'today') {
-        const today = new Date();
+        const todayDate = new Date();
         tempMembers = tempMembers.filter(member => {
             const memberPayments = paymentsByMember.get(member.id) || [];
             return memberPayments.some(p => 
-                p.status === 'paid' && isSameDay(parseISO(p.paymentDate), today)
+                p.status === 'paid' && isSameDay(parseISO(p.paymentDate), todayDate)
             );
         });
     }
@@ -139,7 +148,7 @@ function PaymentsList() {
         );
     }
     return tempMembers;
-  }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, selectedMonth, dateFilter]);
+  }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, membershipFilter, selectedMonth, dateFilter]);
 
   const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isProfileLoading;
   
@@ -193,6 +202,16 @@ function PaymentsList() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full sm:w-64"
               />
+              <Select value={membershipFilter} onValueChange={setMembershipFilter}>
+                  <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue placeholder="Membership" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Members</SelectItem>
+                      <SelectItem value="active">Active Members</SelectItem>
+                      <SelectItem value="inactive">Inactive Members</SelectItem>
+                  </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={(val) => {
                   setStatusFilter(val);
                   if (statusParam || dateFilter || filterParam) window.history.replaceState(null, '', '/payments');
@@ -266,7 +285,7 @@ function PaymentsList() {
                         No members found
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        {searchQuery || statusFilter !== 'all' ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
+                        {searchQuery || statusFilter !== 'all' || membershipFilter !== 'all' ? "Your filter returned no results." : "Add members in the 'Members' section to see them here."}
                     </p>
                 </div>
             </div>

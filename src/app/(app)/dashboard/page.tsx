@@ -1,19 +1,16 @@
-
 'use client';
 
-import { format, isSameDay, isThisMonth, parseISO, startOfDay, addDays, endOfDay, startOfMonth, endOfMonth, isSameMonth, parse } from "date-fns";
-import { useMemo, useState } from "react";
+import { format, isSameDay, parseISO, startOfDay, addDays, endOfDay, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import type { Member, Payment, Attendance, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
-import { Input } from "@/components/ui/input";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
 
   const membersRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -52,8 +49,8 @@ export default function DashboardPage() {
     const in7Days = endOfDay(addDays(startOfToday, 7));
     const in15Days = endOfDay(addDays(startOfToday, 15));
     
-    // Monthly Stats Target
-    const targetMonthDate = parse(selectedMonth, 'yyyy-MM', new Date());
+    // Monthly Stats Target (Current Month)
+    const targetMonthDate = today;
     const targetMonthStart = startOfMonth(targetMonthDate);
     const targetMonthEnd = endOfMonth(targetMonthDate);
 
@@ -92,7 +89,7 @@ export default function DashboardPage() {
         .filter(p => isSameDay(parseISO(p.paymentDate), today))
         .reduce((sum, p) => sum + p.amount, 0);
     
-    // Calculate Monthly Stats for selected dashboard month
+    // Calculate Monthly Stats for current month
     const monthlyCollection = paidPayments
         .filter(p => isSameMonth(parseISO(p.paymentDate), targetMonthDate))
         .reduce((sum, p) => sum + p.amount, 0);
@@ -112,7 +109,6 @@ export default function DashboardPage() {
     const membersActiveInMonth = members?.filter(m => {
         const joinDate = parseISO(m.joinDate);
         const expiryDate = parseISO(m.expiryDate);
-        // Overlap logic: Member was active if join was before month end and expiry was after month start
         return joinDate <= targetMonthEnd && expiryDate >= targetMonthStart;
     }) ?? [];
 
@@ -120,7 +116,6 @@ export default function DashboardPage() {
         const plan = planMap.get(member.planId);
         if (!plan) return sum;
 
-        // Estimate monthly installment target
         const monthlyInstallment = plan.duration > 0 ? plan.price / plan.duration : plan.price;
 
         const paymentsThisMonth = paidPayments.filter(p => 
@@ -148,7 +143,7 @@ export default function DashboardPage() {
         totalDues,
         targetMonthDate
     };
-  }, [members, payments, plans, todaysAttendance, selectedMonth]);
+  }, [members, payments, plans, todaysAttendance]);
 
   const isLoading = isLoadingMembers || isLoadingPayments || isLoadingAttendance || isLoadingPlans;
 
@@ -204,16 +199,10 @@ export default function DashboardPage() {
                         <h2 className="text-xl font-semibold">Monthly Stats</h2>
                         <p className="text-xl text-muted-foreground">{format(stats.targetMonthDate, "MMMM yyyy")}</p>
                     </div>
-                    <Input 
-                        type="month" 
-                        value={selectedMonth} 
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="w-full sm:w-auto h-9 bg-white"
-                    />
                 </div>
                 <div className="grid gap-4 grid-cols-2">
-                    <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href={`/payments?status=paid&month=${selectedMonth}`} className="bg-primary/10" valueClassName="text-primary" />
-                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href={`/payments?filter=due_this_month&month=${selectedMonth}`} className="bg-chart-5/10" valueClassName="text-chart-5" />
+                    <StatsCard title="Month Collection" value={`₹${stats.monthlyCollection.toLocaleString()}`} href={`/payments?status=paid&month=${format(stats.targetMonthDate, 'yyyy-MM')}`} className="bg-primary/10" valueClassName="text-primary" />
+                    <StatsCard title="Month Due" value={`₹${stats.monthlyDues.toLocaleString()}`} href={`/payments?filter=due_this_month&month=${format(stats.targetMonthDate, 'yyyy-MM')}`} className="bg-chart-5/10" valueClassName="text-chart-5" />
                 </div>
             </div>
 
@@ -228,4 +217,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-

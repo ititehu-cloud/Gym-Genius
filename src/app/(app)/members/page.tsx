@@ -201,7 +201,7 @@ function MemberList() {
               gymAddress={gymAddress} 
               gymIconUrl={gymIconUrl}
               gymPhone={gymPhone}
-              attendanceRecord={attendanceRecordMap.get(member.id)}
+              attendanceRecord={attendanceMap.get(member.id)}
               allMembers={members || []}
               payments={paymentsByMember.get(member.id) || []}
             />

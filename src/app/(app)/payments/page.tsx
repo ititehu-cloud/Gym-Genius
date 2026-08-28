@@ -32,7 +32,8 @@ function PaymentsList() {
       setStatusFilter('paid');
     } else if (filterParam === 'due_this_month') {
         setSelectedMonth(format(new Date(), 'yyyy-MM'));
-        setStatusFilter('unpaid');
+        // When clicking 'Month Due', show anyone who hasn't fully paid (Unpaid + Part Paid)
+        setStatusFilter('due'); 
         setMembershipFilter('active');
     } else if (statusParam) {
         setStatusFilter(statusParam);
@@ -125,6 +126,8 @@ function PaymentsList() {
                     return dueForMonth <= 0.01;
                 } else if (statusFilter === 'part_paid') {
                     return totalPaidForMonth > 0.01 && dueForMonth > 0.01;
+                } else if (statusFilter === 'due') {
+                    return dueForMonth > 0.01;
                 }
                 
                 return true;
@@ -158,6 +161,7 @@ function PaymentsList() {
     if (statusFilter === 'unpaid') return "Unpaid Members";
     if (statusFilter === 'paid') return "Paid Members";
     if (statusFilter === 'part_paid') return "Partially Paid Members";
+    if (statusFilter === 'due') return "Dues for the Month";
     if (selectedMonth && !dateFilter) {
       try {
         return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;
@@ -188,7 +192,8 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
   
-  const showHistoryInitially = dateFilter === 'today' || statusParam === 'paid';
+  // Always show history if we are viewing a specific month or day
+  const showHistoryInitially = !!selectedMonth || !!dateFilter || statusParam === 'paid' || filterParam === 'due_this_month';
 
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -225,6 +230,7 @@ function PaymentsList() {
                       <SelectItem value="paid">Paid</SelectItem>
                       <SelectItem value="unpaid">Unpaid</SelectItem>
                       <SelectItem value="part_paid">Part Paid</SelectItem>
+                      <SelectItem value="due">Total Dues</SelectItem>
                   </SelectContent>
               </Select>
               <Input
@@ -253,15 +259,6 @@ function PaymentsList() {
                     const memberPayments = paymentsByMember.get(member.id) || [];
                     if (!memberPlan) return null;
 
-                    const hasPaymentInSelectedMonth = !!selectedMonth && memberPayments.some(p => {
-                        try {
-                            const monthDate = new Date(selectedMonth + '-01');
-                            return isSameMonth(parseISO(p.paymentDate), monthDate);
-                        } catch {
-                            return false;
-                        }
-                    });
-
                     return (
                         <PaymentStatusCard 
                             key={member.id}
@@ -272,7 +269,7 @@ function PaymentsList() {
                             gymName={gymName}
                             gymAddress={gymAddress}
                             gymIconUrl={gymIconUrl}
-                            showHistoryInitially={showHistoryInitially || hasPaymentInSelectedMonth}
+                            showHistoryInitially={showHistoryInitially}
                             filterHistoryByDate={dateFilter}
                             filterHistoryByMonth={selectedMonth}
                         />

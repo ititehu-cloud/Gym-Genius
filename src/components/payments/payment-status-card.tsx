@@ -10,7 +10,7 @@ import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, sta
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Separator } from '../ui/separator';
@@ -36,6 +36,11 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const [showHistory, setShowHistory] = useState(showHistoryInitially);
     const router = useRouter();
     const { toast } = useToast();
+
+    // Re-sync local expanded state if the prop changes (e.g., user changes month filter)
+    useEffect(() => {
+        setShowHistory(showHistoryInitially);
+    }, [showHistoryInitially, filterHistoryByMonth, filterHistoryByDate]);
 
     if (!plan) {
         return null;
@@ -140,7 +145,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             </div>
                             <div className="space-y-0.5">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
-                                <p className="text-base font-bold text-destructive">₹{dueForPeriod.toFixed(2)}</p>
+                                <p className={`text-base font-bold ${dueForPeriod > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueForPeriod.toFixed(2)}</p>
                             </div>
                         </div>
                     </div>
@@ -148,29 +153,59 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
             </div>
 
             {showHistory && (
-                <div className="px-6 pb-4 border-t pt-4 bg-white">
-                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                        {filterHistoryByDate === 'today' ? "Today's Transaction" : "Transaction History"}
-                    </h4>
+                <div className="px-6 pb-4 border-t pt-4 bg-muted/5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            {filterHistoryByDate === 'today' 
+                                ? "Today's Transaction" 
+                                : filterHistoryByMonth 
+                                ? `Transactions for ${format(new Date(filterHistoryByMonth + '-01T00:00:00'), 'MMM yyyy')}`
+                                : "Recent History"}
+                        </h4>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] text-muted-foreground"
+                            onClick={() => setShowHistory(false)}
+                        >
+                            Collapse
+                        </Button>
+                    </div>
                     {filteredHistory.length > 0 ? (
                         <ul className="space-y-2">
                             {filteredHistory.slice(0, 5).map(payment => (
-                                <li key={payment.id} className="flex justify-between items-center text-sm p-3 bg-muted/30 rounded-lg border border-muted/50">
+                                <li key={payment.id} className="flex justify-between items-center text-sm p-3 bg-white rounded-lg border border-primary/10 shadow-sm">
                                     <div className="space-y-0.5">
-                                        <p className='font-bold'>{format(parseISO(payment.paymentDate), 'dd MMM yyyy')}</p>
-                                        <p className="text-[10px] uppercase font-bold text-muted-foreground">{payment.paymentType} • {payment.paymentMethod}</p>
+                                        <p className='font-bold text-xs'>{format(parseISO(payment.paymentDate), 'dd MMM yyyy')}</p>
+                                        <p className="text-[9px] uppercase font-bold text-muted-foreground">{payment.paymentType} • {payment.paymentMethod}</p>
                                     </div>
                                     <div className="text-right flex items-center gap-3">
-                                        <p className="font-bold text-base">₹{payment.amount.toFixed(0)}</p>
-                                        <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600 text-white' : ''} text-[10px] h-5`}>{payment.status.toUpperCase()}</Badge>
+                                        <p className="font-bold text-sm">₹{payment.amount.toFixed(0)}</p>
+                                        <Badge variant={payment.status === 'paid' ? 'default' : 'destructive'} className={`${payment.status === 'paid' ? 'bg-green-600 text-white' : ''} text-[8px] h-4 leading-none px-1.5`}>{payment.status.toUpperCase()}</Badge>
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-sm text-muted-foreground italic">No transactions found for this period.</p>
+                        <div className="text-center py-4 border-2 border-dashed rounded-lg">
+                            <p className="text-xs text-muted-foreground italic">No transactions found for this period.</p>
+                        </div>
                     )}
                 </div>
+            )}
+
+            {!showHistory && payments.length > 0 && (
+                 <div className="px-6 py-2 bg-muted/5 flex justify-center">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-[10px] font-bold uppercase text-primary tracking-tighter"
+                        onClick={() => setShowHistory(true)}
+                    >
+                        <History className="h-3 w-3 mr-1" />
+                        Show History
+                    </Button>
+                 </div>
             )}
 
             <Separator className="mx-6 w-auto bg-muted/40" />

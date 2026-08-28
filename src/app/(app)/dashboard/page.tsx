@@ -105,17 +105,17 @@ export default function DashboardPage() {
         return sum + Math.max(0, plan.price - totalPaid);
     }, 0) ?? 0;
     
-    // Calculate Monthly Due: Only for members active during selected month
-    const membersActiveInMonth = members?.filter(m => {
+    // Calculate Monthly Due: Only for members active during the ongoing month AND not expired today
+    const membersForMonthlyDue = activeMembersListToday.filter(m => {
         const joinDate = parseISO(m.joinDate);
-        const expiryDate = parseISO(m.expiryDate);
-        return joinDate <= targetMonthEnd && expiryDate >= targetMonthStart;
-    }) ?? [];
+        return joinDate <= targetMonthEnd;
+    });
 
-    const monthlyDues = membersActiveInMonth.reduce((sum, member) => {
+    const monthlyDues = membersForMonthlyDue.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
         if (!plan) return sum;
 
+        // Calculate installment for the month
         const monthlyInstallment = plan.duration > 0 ? plan.price / plan.duration : plan.price;
 
         const paymentsThisMonth = paidPayments.filter(p => 

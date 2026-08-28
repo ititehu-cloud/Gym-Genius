@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, LoaderCircle, Camera, CreditCard, User } from "lucide-react";
+import { AlertTriangle, LoaderCircle, Camera, CreditCard, User, Upload } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, query, where } from "firebase/firestore";
@@ -34,6 +34,7 @@ import { compressImage } from "@/lib/utils";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CameraCaptureDialog from "./camera-capture-dialog";
 
 const formSchema = z.object({
   memberId: z.string().min(1, { message: "Member ID cannot be empty." }),
@@ -57,6 +58,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCameraOpen, setCameraOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   
@@ -184,6 +186,13 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         });
   }
 
+  const handleCameraCapture = (file: File) => {
+    form.setValue('profilePicture', [file]);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
@@ -204,43 +213,60 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
               </div>
 
               <div className="flex flex-col md:flex-row items-center gap-8 bg-muted/20 p-6 rounded-2xl border border-muted-foreground/10">
-                <FormField
-                    control={form.control}
-                    name="profilePicture"
-                    render={() => (
-                        <FormItem>
-                            <FormControl>
-                                <label htmlFor="picture-upload-add" className="cursor-pointer group">
-                                    <div className="relative h-32 w-32 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden border-4 border-white shadow-xl transition-all group-hover:scale-105 group-hover:border-primary/20">
-                                      {imagePreview ? (
-                                          <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-                                      ) : (
-                                          <Camera className="h-10 w-10" />
-                                      )}
-                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <Camera className="h-8 w-8 text-white" />
-                                      </div>
-                                    </div>
-                                    <Input
-                                      id="picture-upload-add"
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                            form.setValue('profilePicture', e.target.files);
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => setImagePreview(reader.result as string);
-                                            reader.readAsDataURL(file);
-                                          }
-                                      }}
-                                    />
-                                </label>
-                            </FormControl>
-                        </FormItem>
-                    )}
-                />
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative h-40 w-40 rounded-full bg-muted flex items-center justify-center text-muted-foreground overflow-hidden border-4 border-white shadow-2xl">
+                      {imagePreview ? (
+                          <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                      ) : (
+                          <User className="h-16 w-16 opacity-20" />
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            size="sm" 
+                            className="rounded-full gap-2"
+                            onClick={() => setCameraOpen(true)}
+                        >
+                            <Camera className="h-4 w-4" />
+                            Camera
+                        </Button>
+                        <FormField
+                            control={form.control}
+                            name="profilePicture"
+                            render={() => (
+                                <FormItem>
+                                    <FormControl>
+                                        <>
+                                            <label htmlFor="picture-upload-add">
+                                                <Button type="button" variant="outline" size="sm" className="rounded-full gap-2 pointer-events-none">
+                                                    <Upload className="h-4 w-4" />
+                                                    Upload
+                                                </Button>
+                                            </label>
+                                            <Input
+                                                id="picture-upload-add"
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        form.setValue('profilePicture', e.target.files);
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setImagePreview(reader.result as string);
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </>
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
                 
                 <div className="flex-1 w-full space-y-4">
                   <FormField
@@ -437,6 +463,12 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
                 )}
             </Button>
         </div>
+
+        <CameraCaptureDialog 
+            isOpen={isCameraOpen} 
+            onOpenChange={setCameraOpen} 
+            onCapture={handleCameraCapture} 
+        />
       </form>
     </Form>
   );

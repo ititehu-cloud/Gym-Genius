@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { collection, query, where } from "firebase/firestore";
 import type { Plan } from "@/lib/types";
 import AddPlanDialog from "@/components/plans/add-plan-dialog";
 import EditPlanDialog from "@/components/plans/edit-plan-dialog";
+import DeletePlanDialog from "@/components/plans/delete-plan-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function PlansPage() {
@@ -49,7 +49,7 @@ export default function PlansPage() {
       {plans && plans.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
           {plans.map(plan => (
-              <Card key={plan.id} className="flex flex-col">
+              <Card key={plan.id} className="flex flex-col border-2 border-primary/5 hover:border-primary/20 transition-all">
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                           <Tags className="h-5 w-5 text-primary"/>
@@ -58,11 +58,12 @@ export default function PlansPage() {
                       <CardDescription>{plan.duration} Month Access</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
-                      {plan.description && <p className="text-muted-foreground mb-4">{plan.description}</p>}
-                      <p className="text-4xl font-bold">₹{plan.price}</p>
+                      {plan.description && <p className="text-muted-foreground mb-4 text-sm line-clamp-3">{plan.description}</p>}
+                      <p className="text-4xl font-black text-primary">₹{plan.price.toLocaleString()}</p>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex gap-2 border-t pt-4">
                       <EditPlanDialog plan={plan} />
+                      <DeletePlanDialog planId={plan.id} planName={plan.name} />
                   </CardFooter>
               </Card>
           ))}

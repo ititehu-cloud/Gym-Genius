@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,19 +116,21 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
 
                     if (totalAfterNewPayment >= plan.price - EPSILON) {
                         const memberRef = doc(firestore, "members", selectedMember.id);
-                        const newJoinDate = paymentDateISO;
-                        const newExpiryDate = addMonths(new Date(paymentDateISO), plan.duration).toISOString();
+                        
+                        // NEW LOGIC: Calculate expiry from the member's current joinDate, not payment date
+                        const currentJoinDate = parseISO(selectedMember.joinDate);
+                        const newExpiryDate = addMonths(currentJoinDate, plan.duration).toISOString();
 
                         updateDoc(memberRef, {
-                            joinDate: newJoinDate,
+                            // We do NOT update joinDate here anymore to avoid shifting cycles based on late payments
                             expiryDate: newExpiryDate,
                             status: 'active',
                             updatedAt: serverTimestamp()
                         });
 
                         toast({
-                          title: "Membership Cycle Renewed!",
-                          description: `Full payment received. ${selectedMember.name}'s membership has been renewed.`,
+                          title: "Membership Active!",
+                          description: `Full payment received. ${selectedMember.name}'s membership is active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
                         });
                     }
                 }

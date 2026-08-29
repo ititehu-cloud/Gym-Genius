@@ -148,7 +148,8 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         return;
     }
     
-    const expiryDate = addMonths(new Date(values.joinDate), selectedPlan.duration);
+    const joinDateObj = new Date(values.joinDate + 'T00:00:00');
+    const expiryDate = addMonths(joinDateObj, selectedPlan.duration);
     
     const membersCollection = collection(firestore, "members");
     const data = {
@@ -158,7 +159,7 @@ export default function AddMemberForm({ setDialogOpen }: AddMemberFormProps) {
         address: values.address,
         planId: values.planId,
         mobileNumber: values.mobileNumber || "",
-        joinDate: new Date(values.joinDate + 'T00:00:00').toISOString(),
+        joinDate: joinDateObj.toISOString(),
         expiryDate: expiryDate.toISOString(),
         status: 'active',
         imageUrl: imageUrl,

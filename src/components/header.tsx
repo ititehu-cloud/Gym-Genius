@@ -24,7 +24,7 @@ type HeaderProps = {
 
 export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-md sm:px-6 sticky top-0 z-30">
+    <header className="flex h-28 md:h-32 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
         <div className="flex items-center gap-4">
             <Link href="/dashboard">
                 <Logo 
@@ -40,10 +40,10 @@ export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
                 <AlertDialogTrigger asChild>
                     <Button 
                         variant="ghost" 
-                        size="sm" 
-                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2"
+                        size="lg" 
+                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-3 h-14 px-6 text-lg font-bold"
                     >
-                        <LogOut className="h-5 w-5" />
+                        <LogOut className="h-6 w-6" />
                         <span className="hidden md:inline">Sign Out</span>
                     </Button>
                 </AlertDialogTrigger>

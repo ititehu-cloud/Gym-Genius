@@ -6,9 +6,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -19,7 +16,11 @@ export function AppSidebar({ userProfile, ...props }: React.ComponentProps<typeo
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="h-20 border-b border-sidebar-border bg-sidebar flex items-center px-6">
-        <Logo displayName={userProfile?.displayName} />
+        <Logo 
+          displayName={userProfile?.displayName} 
+          iconUrl={userProfile?.icon} 
+          className="text-primary" 
+        />
       </SidebarHeader>
       <SidebarContent>
         <div className="py-4 px-2">

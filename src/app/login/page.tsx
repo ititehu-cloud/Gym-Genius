@@ -52,7 +52,6 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      // Redirect is handled by the layout component
     } catch (error: any) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -79,7 +78,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
         <div className='mb-6'>
-            <Logo />
+            <Logo className="text-primary" />
         </div>
       <Card className="w-full max-w-sm">
         <CardHeader>

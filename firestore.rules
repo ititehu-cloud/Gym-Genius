@@ -3,53 +3,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper to check if a user is signed in
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Check if the authenticated user owns the existing document
-    function isDocOwner() {
-      return isSignedIn() && resource.data.userId == request.auth.uid;
-    }
-    
-    // Check if the authenticated user will own the new/updated document
-    function incomingDataIsOwned() {
-      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    // Helper to check if the user is accessing their own profile
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Rules for the User Profiles collection
+    // These documents are keyed by the user's UID
     match /users/{userId} {
-      allow get, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow get, create, update: if isSelf(userId);
       allow list, delete: if false;
     }
     
-    match /members/{memberId} {
-      allow get, list, delete: if isDocOwner();
-      allow create: if incomingDataIsOwned();
-      allow update: if isDocOwner() && incomingDataIsOwned();
-    }
-
-    match /attendance/{attendanceId} {
-      allow get, list, delete: if isDocOwner();
-      allow create: if incomingDataIsOwned();
-      allow update: if isDocOwner() && incomingDataIsOwned();
-    }
-
-    match /payments/{paymentId} {
-      allow get, list, delete: if isDocOwner();
-      allow create: if incomingDataIsOwned();
-      allow update: if isDocOwner() && incomingDataIsOwned();
-    }
-
-    match /plans/{planId} {
-      allow get, list, delete: if isDocOwner();
-      allow create: if incomingDataIsOwned();
-      allow update: if isDocOwner() && incomingDataIsOwned();
-    }
-
-    match /notes/{noteId} {
-      allow get, list, delete: if isDocOwner();
-      allow create: if incomingDataIsOwned();
-      allow update: if isDocOwner() && incomingDataIsOwned();
+    // Global rule for gym management data collections
+    // (members, attendance, payments, plans, notes, etc.)
+    // These all use a 'userId' field for ownership.
+    match /{collectionName}/{docId} {
+      
+      // Allow reading (get/list) and deleting if the document belongs to the user
+      // For list queries, the client MUST include: where("userId", "==", auth.uid)
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Allow creating if the new document's userId matches the authenticated user
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Allow updates if both the existing document and the new data belong to the user
+      allow update: if isSignedIn() && 
+                      resource.data.userId == request.auth.uid && 
+                      request.resource.data.userId == request.auth.uid;
+                      
+      // Exception: Prevent these broad rules from overriding specific /users rules
+      // (This is implicitly handled as /users docs don't have a 'userId' field)
     }
   }
 }

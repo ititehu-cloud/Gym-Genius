@@ -7,49 +7,47 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
+    // Check if the authenticated user owns the existing document
     function isDocOwner() {
       return isSignedIn() && resource.data.userId == request.auth.uid;
     }
     
+    // Check if the authenticated user will own the new/updated document
     function incomingDataIsOwned() {
       return isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
     match /users/{userId} {
-      allow get, create, update: if isOwner(userId);
+      allow get, create, update: if isSignedIn() && request.auth.uid == userId;
       allow list, delete: if false;
     }
     
     match /members/{memberId} {
-      allow read, delete: if isDocOwner();
+      allow get, list, delete: if isDocOwner();
       allow create: if incomingDataIsOwned();
       allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /attendance/{attendanceId} {
-      allow read, delete: if isDocOwner();
+      allow get, list, delete: if isDocOwner();
       allow create: if incomingDataIsOwned();
       allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /payments/{paymentId} {
-      allow read, delete: if isDocOwner();
+      allow get, list, delete: if isDocOwner();
       allow create: if incomingDataIsOwned();
       allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /plans/{planId} {
-      allow read, delete: if isDocOwner();
+      allow get, list, delete: if isDocOwner();
       allow create: if incomingDataIsOwned();
       allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /notes/{noteId} {
-      allow read, delete: if isDocOwner();
+      allow get, list, delete: if isDocOwner();
       allow create: if incomingDataIsOwned();
       allow update: if isDocOwner() && incomingDataIsOwned();
     }

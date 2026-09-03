@@ -11,44 +11,47 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isDocOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    function incomingDataIsOwned() {
+      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow get, create, update: if isOwner(userId);
       allow list, delete: if false;
     }
     
     match /members/{memberId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
+      allow read, delete: if isDocOwner();
+      allow create: if incomingDataIsOwned();
+      allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /attendance/{attendanceId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
+      allow read, delete: if isDocOwner();
+      allow create: if incomingDataIsOwned();
+      allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /payments/{paymentId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
+      allow read, delete: if isDocOwner();
+      allow create: if incomingDataIsOwned();
+      allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /plans/{planId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
+      allow read, delete: if isDocOwner();
+      allow create: if incomingDataIsOwned();
+      allow update: if isDocOwner() && incomingDataIsOwned();
     }
 
     match /notes/{noteId} {
-      allow read, write: if isSignedIn() && (
-        (resource == null && request.resource.data.userId == request.auth.uid) ||
-        (resource != null && resource.data.userId == request.auth.uid)
-      );
+      allow read, delete: if isDocOwner();
+      allow create: if incomingDataIsOwned();
+      allow update: if isDocOwner() && incomingDataIsOwned();
     }
   }
 }

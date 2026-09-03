@@ -47,6 +47,15 @@ export type Attendance = {
   createdAt?: any;
 };
 
+export type MemberNote = {
+  id: string;
+  userId: string;
+  memberId: string;
+  content: string;
+  noteDate: string;
+  createdAt: any;
+};
+
 export type UserProfile = {
   id: string;
   displayName: string;

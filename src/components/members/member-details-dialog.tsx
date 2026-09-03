@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -7,17 +8,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { Member, Plan, Payment } from "@/lib/types";
+import type { Member, Plan, Payment, MemberNote } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { CreditCard, User, LoaderCircle } from "lucide-react";
-import { useMemo } from "react";
+import { CreditCard, User, LoaderCircle, NotebookPen, Calendar, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
+import { Input } from "../ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 type MemberDetailsDialogProps = {
   member: Member;
@@ -29,6 +34,11 @@ type MemberDetailsDialogProps = {
 export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange }: MemberDetailsDialogProps) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
+
+  const [noteContent, setNoteContent] = useState("");
+  const [noteDate, setNoteDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isAddingNote, setIsAddingNote] = useState(false);
 
   const paymentsQuery = useMemoFirebase(() => {
     if (!firestore || !user || !member.id || !isOpen) return null;
@@ -42,10 +52,55 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
   
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
+  const notesQuery = useMemoFirebase(() => {
+    if (!firestore || !user || !member.id || !isOpen) return null;
+    return query(
+      collection(firestore, "notes"),
+      where("userId", "==", user.uid),
+      where("memberId", "==", member.id),
+      orderBy("noteDate", "desc")
+    );
+  }, [firestore, user, member.id, isOpen]);
+
+  const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
+
   const totalPaid = useMemo(() => {
     if (!payments) return 0;
     return payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
   }, [payments]);
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !noteContent.trim()) return;
+
+    setIsAddingNote(true);
+    try {
+      await addDoc(collection(firestore, "notes"), {
+        userId: user.uid,
+        memberId: member.id,
+        content: noteContent.trim(),
+        noteDate: new Date(noteDate + 'T00:00:00').toISOString(),
+        createdAt: serverTimestamp(),
+      });
+      setNoteContent("");
+      toast({ title: "Note Added", description: "Your note has been saved." });
+    } catch (error) {
+      console.error("Error adding note:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not save the note." });
+    } finally {
+      setIsAddingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteDoc(doc(firestore, "notes", noteId));
+      toast({ title: "Note Deleted", description: "The note has been removed." });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not delete the note." });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -70,19 +125,22 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
             </div>
           </div>
           <DialogDescription className="sr-only">
-            Detailed information for member {member.name}, including profile and payment history.
+            Detailed information for member {member.name}, including profile, payment history and notes.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden p-0">
             <Tabs defaultValue="profile" className="h-full flex flex-col">
                 <div className="px-6 pt-4 bg-muted/30 border-b shrink-0">
-                    <TabsList className="grid w-full grid-cols-2 h-12 bg-muted p-1">
+                    <TabsList className="grid w-full grid-cols-3 h-12 bg-muted p-1">
                         <TabsTrigger value="profile" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
                             <User className="h-4 w-4"/> Profile
                         </TabsTrigger>
                         <TabsTrigger value="payments" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
                             <CreditCard className="h-4 w-4"/> Payments
+                        </TabsTrigger>
+                        <TabsTrigger value="notes" className="gap-2 font-bold uppercase text-[10px] tracking-widest">
+                            <NotebookPen className="h-4 w-4"/> Notes
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -206,6 +264,89 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                 </div>
                             </div>
                          )}
+                    </TabsContent>
+
+                    <TabsContent value="notes" className="mt-0 h-full data-[state=active]:flex flex-col gap-6">
+                        <section className="bg-muted/30 p-4 rounded-xl border border-dashed border-primary/20 shrink-0">
+                            <form onSubmit={handleAddNote} className="space-y-4">
+                                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border shadow-sm w-full sm:w-auto">
+                                        <Calendar className="h-4 w-4 text-primary" />
+                                        <Input 
+                                            type="date" 
+                                            value={noteDate} 
+                                            onChange={(e) => setNoteDate(e.target.value)}
+                                            className="border-none h-6 p-0 focus-visible:ring-0 text-sm font-bold w-[120px]"
+                                        />
+                                    </div>
+                                    <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Add New Note</h4>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Textarea 
+                                        placeholder="Type your note about the member here..."
+                                        value={noteContent}
+                                        onChange={(e) => setNoteContent(e.target.value)}
+                                        className="bg-white resize-none h-20 text-sm border-primary/10"
+                                    />
+                                    <Button 
+                                        type="submit" 
+                                        disabled={isAddingNote || !noteContent.trim()}
+                                        className="h-20 w-20 flex-col gap-1 font-bold text-[10px] uppercase tracking-tighter"
+                                    >
+                                        {isAddingNote ? <LoaderCircle className="animate-spin h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                                        Save Note
+                                    </Button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section className="flex-1 overflow-hidden flex flex-col">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Member Timeline</h3>
+                                <Badge variant="secondary" className="font-mono text-[9px]">{notes?.length || 0} Notes</Badge>
+                            </div>
+                            
+                            <div className="flex-1 overflow-hidden border rounded-xl bg-card shadow-inner">
+                                <ScrollArea className="h-full">
+                                    {isLoadingNotes ? (
+                                        <div className="p-12 flex justify-center">
+                                            <LoaderCircle className="h-6 w-6 animate-spin text-primary opacity-20" />
+                                        </div>
+                                    ) : notes && notes.length > 0 ? (
+                                        <div className="p-4 space-y-4">
+                                            {notes.map((note) => (
+                                                <div key={note.id} className="relative group bg-muted/40 hover:bg-muted/60 transition-colors p-4 rounded-lg border border-transparent hover:border-primary/10">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="h-3 w-3 text-primary" />
+                                                            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                                                                {format(parseISO(note.noteDate), 'dd MMM yyyy')}
+                                                            </span>
+                                                        </div>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => handleDeleteNote(note.id)}
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                    <p className="text-sm font-medium leading-relaxed text-foreground whitespace-pre-wrap">
+                                                        {note.content}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20 opacity-30 gap-3">
+                                            <NotebookPen className="h-12 w-12" />
+                                            <p className="text-sm font-black uppercase tracking-widest">No notes yet</p>
+                                        </div>
+                                    )}
+                                </ScrollArea>
+                            </div>
+                        </section>
                     </TabsContent>
                 </div>
             </Tabs>

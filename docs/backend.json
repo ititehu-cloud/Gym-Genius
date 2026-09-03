@@ -242,6 +242,41 @@
         "imageUrl",
         "status"
       ]
+    },
+    "MemberNote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Member Note",
+      "type": "object",
+      "description": "Represents a historical note about a gym member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the note."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the gym owner who owns this note."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to Member."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the note."
+        },
+        "noteDate": {
+          "type": "string",
+          "description": "Timestamp for the note.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "memberId",
+        "content",
+        "noteDate"
+      ]
     }
   },
   "auth": {
@@ -279,6 +314,12 @@
         "$ref": "#/entities/Member"
       },
       "description": "Stores gym member profiles."
+    },
+    "/notes/{noteId}": {
+      "schema": {
+        "$ref": "#/entities/MemberNote"
+      },
+      "description": "Stores personal notes about gym members."
     }
   }
 }

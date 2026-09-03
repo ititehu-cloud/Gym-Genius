@@ -25,9 +25,10 @@ service cloud.firestore {
     // These all use a 'userId' field for ownership.
     match /{collectionName}/{docId} {
       
-      // Allow reading (get/list) and deleting if the document belongs to the user
+      // Explicitly allow list queries (collection queries) and single document gets
+      // for documents owned by the authenticated user.
       // For list queries, the client MUST include: where("userId", "==", auth.uid)
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get, list, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
       
       // Allow creating if the new document's userId matches the authenticated user
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -37,8 +38,8 @@ service cloud.firestore {
                       resource.data.userId == request.auth.uid && 
                       request.resource.data.userId == request.auth.uid;
                       
-      // Exception: Prevent these broad rules from overriding specific /users rules
-      // (This is implicitly handled as /users docs don't have a 'userId' field)
+      // Note: This broad match is safe as long as all gym entities use 'userId' for ownership.
+      // Specific overrides like /users should always come before this catch-all or handle overlap.
     }
   }
 }

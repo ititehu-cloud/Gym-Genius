@@ -374,7 +374,11 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       </Dialog>
 
       <Dialog open={isImageZoomOpen} onOpenChange={setImageZoomOpen}>
-        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none p-0 flex items-center justify-center outline-none">
+        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none p-0 flex flex-col items-center justify-center outline-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{member.name}'s Profile Picture</DialogTitle>
+            <DialogDescription>A full-screen zoomed view of the member's profile photo.</DialogDescription>
+          </DialogHeader>
           <div className="relative w-[90vw] h-[90vh] max-w-2xl max-h-[800px]">
             <Image 
               src={member.imageUrl} 
@@ -389,7 +393,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       {/* HIDDEN capture area */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <div ref={cardRef} style={{ padding: '40px', backgroundColor: '#ffffff' }}>
+          <div ref={cardRef} style={{ padding: '60px', backgroundColor: '#ffffff' }}>
             <div style={{ 
               width: '650px', 
               backgroundColor: '#f8fafc', 
@@ -397,25 +401,25 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               overflow: 'hidden', 
               fontFamily: 'Arial, sans-serif',
               border: '2px solid #e2e8f0',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+              boxShadow: '0 20px 50px rgba(0,0,0,0.15)'
             }}>
-              {/* Header */}
-              <div style={{ backgroundColor: '#1e8177', padding: '40px 50px', display: 'flex', alignItems: 'center', gap: '30px' }}>
+              {/* Header - Centered Branding */}
+              <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
                   {gymIconUrl && (
-                    <div style={{ width: '100px', height: '100px', backgroundColor: '#ffffff', borderRadius: '24px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+                    <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
                         <img src={gymIconUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
                     </div>
                   )}
-                  <div style={{ flexGrow: 1 }}>
-                      <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: '#ffffff', margin: '0', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '-0.5px' }}>{displayGymName}</h2>
-                      <p style={{ fontSize: '18px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.3' }}>{gymAddress || ''}</p>
-                      <p style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: '4px 0 0' }}>{gymPhone || ''}</p>
+                  <div>
+                      <h2 style={{ fontSize: '40px', fontWeight: '900', color: '#ffffff', margin: '0', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>{displayGymName}</h2>
+                      <p style={{ fontSize: '20px', fontWeight: '500', color: 'rgba(255,255,255,0.9)', margin: '0', lineHeight: '1.4' }}>{gymAddress || ''}</p>
+                      {gymPhone && <p style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '8px 0 0' }}>{gymPhone}</p>}
                   </div>
               </div>
 
               {/* Member Section */}
               <div style={{ padding: '45px 50px', display: 'flex', alignItems: 'center', gap: '40px', backgroundColor: '#ffffff' }}>
-                  <div style={{ width: '150px', height: '150px', borderRadius: '50%', border: '6px solid #1e8177', overflow: 'hidden', flexShrink: 0, boxShadow: '0 10px 20px rgba(0,0,0,0.05)', position: 'relative' }}>
+                  <div style={{ width: '160px', height: '160px', borderRadius: '50%', border: '8px solid #1e8177', overflow: 'hidden', flexShrink: 0, boxShadow: '0 10px 20px rgba(0,0,0,0.05)', position: 'relative', backgroundColor: '#f1f5f9' }}>
                       <img 
                         src={member.imageUrl} 
                         alt={member.name} 
@@ -431,8 +435,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       />
                   </div>
                   <div style={{ flexGrow: 1 }}>
-                      <h3 style={{ fontSize: '48px', fontWeight: '900', color: '#0f172a', margin: '0', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '-1.5px' }}>{member.name}</h3>
-                      <p style={{ fontSize: '30px', color: '#64748b', fontWeight: '700', margin: '0' }}>ID: {member.memberId}</p>
+                      <h3 style={{ fontSize: '52px', fontWeight: '950', color: '#0f172a', margin: '0', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '-1.5px' }}>{member.name}</h3>
+                      <p style={{ fontSize: '32px', color: '#64748b', fontWeight: '800', margin: '0', letterSpacing: '-0.5px' }}>ID: {member.memberId}</p>
                   </div>
               </div>
 

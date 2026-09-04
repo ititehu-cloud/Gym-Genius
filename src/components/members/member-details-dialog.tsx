@@ -23,6 +23,8 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 type MemberDetailsDialogProps = {
   member: Member;
@@ -69,37 +71,51 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
     return payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
   }, [payments]);
 
-  const handleAddNote = async (e: React.FormEvent) => {
+  const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !noteContent.trim()) return;
 
     setIsAddingNote(true);
-    try {
-      await addDoc(collection(firestore, "notes"), {
-        userId: user.uid,
-        memberId: member.id,
-        content: noteContent.trim(),
-        noteDate: new Date(noteDate + 'T00:00:00').toISOString(),
-        createdAt: serverTimestamp(),
+    const notesCollection = collection(firestore, "notes");
+    const noteData = {
+      userId: user.uid,
+      memberId: member.id,
+      content: noteContent.trim(),
+      noteDate: new Date(noteDate + 'T00:00:00').toISOString(),
+      createdAt: serverTimestamp(),
+    };
+
+    addDoc(notesCollection, noteData)
+      .then(() => {
+        setNoteContent("");
+        toast({ title: "Note Added", description: "Your note has been saved." });
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: notesCollection.path,
+          operation: 'create',
+          requestResourceData: noteData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsAddingNote(false);
       });
-      setNoteContent("");
-      toast({ title: "Note Added", description: "Your note has been saved." });
-    } catch (error) {
-      console.error("Error adding note:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not save the note." });
-    } finally {
-      setIsAddingNote(false);
-    }
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    try {
-      await deleteDoc(doc(firestore, "notes", noteId));
-      toast({ title: "Note Deleted", description: "The note has been removed." });
-    } catch (error) {
-      console.error("Error deleting note:", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not delete the note." });
-    }
+  const handleDeleteNote = (noteId: string) => {
+    const noteRef = doc(firestore, "notes", noteId);
+    deleteDoc(noteRef)
+      .then(() => {
+        toast({ title: "Note Deleted", description: "The note has been removed." });
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: noteRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (

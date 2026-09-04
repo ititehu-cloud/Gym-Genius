@@ -41,5 +41,7 @@ service cloud.firestore {
       // Note: This broad match is safe as long as all gym entities use 'userId' for ownership.
       // Specific overrides like /users should always come before this catch-all or handle overlap.
     }
+    
+    // Trigger deployment comment: Updated logic for gym collection matching.
   }
 }

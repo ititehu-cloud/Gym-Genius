@@ -270,7 +270,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         <p className="text-base font-bold text-green-600">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
                     </div>
                     <div className="space-y-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
+                        <p className="text-[10px) font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
                         <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount}</p>
                     </div>
                 </div>
@@ -374,7 +374,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       </Dialog>
 
       <Dialog open={isImageZoomOpen} onOpenChange={setImageZoomOpen}>
-        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none p-0 flex flex-col items-center justify-center outline-none">
+        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none p-0 flex flex-col items-center justify-center outline-none [&>button]:bg-white [&>button]:text-black [&>button]:hover:bg-gray-100 [&>button]:opacity-100 [&>button]:shadow-xl [&>button]:rounded-full [&>button]:h-10 [&>button]:w-10 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:right-4 [&>button]:top-4 [&>button]:z-50 [&>button]:p-0">
           <DialogHeader className="sr-only">
             <DialogTitle>{member.name}'s Profile Picture</DialogTitle>
             <DialogDescription>A full-screen zoomed view of the member's profile photo.</DialogDescription>

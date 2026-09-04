@@ -50,6 +50,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const [isPaymentOpen, setPaymentOpen] = useState(false);
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
+  const [isImageZoomOpen, setImageZoomOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -238,7 +239,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
           <div className="flex gap-6 items-start">
             <div className="flex-shrink-0">
-              <div className="h-24 w-24 rounded-full border-4 border-primary/10 overflow-hidden bg-muted relative">
+              <div 
+                className="h-24 w-24 rounded-full border-4 border-primary/10 overflow-hidden bg-muted relative cursor-zoom-in active:scale-95 transition-transform"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageZoomOpen(true);
+                }}
+              >
                 <Image src={member.imageUrl} alt={member.name} fill className="object-cover" />
               </div>
             </div>
@@ -363,6 +370,20 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <DialogDescription>Recording a payment for {member.name}.</DialogDescription>
           </DialogHeader>
           <RecordPaymentForm members={allMembers} setDialogOpen={setPaymentOpen} defaultMemberId={member.id} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImageZoomOpen} onOpenChange={setImageZoomOpen}>
+        <DialogContent className="max-w-3xl border-none bg-transparent shadow-none p-0 flex items-center justify-center outline-none">
+          <div className="relative w-[90vw] h-[90vh] max-w-2xl max-h-[800px]">
+            <Image 
+              src={member.imageUrl} 
+              alt={member.name} 
+              fill 
+              className="object-contain rounded-lg"
+              priority
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

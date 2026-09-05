@@ -67,7 +67,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                 />
                 
                 {displayValidity && (
-                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full w-fit border border-white/10 shadow-xl ml-14 animate-in fade-in slide-in-from-left-2 duration-500">
+                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full w-fit border border-white/10 shadow-xl ml-16 animate-in fade-in slide-in-from-left-2 duration-500">
                         {isLifetime ? (
                             <ShieldCheck className="h-3 w-3 text-green-400 shrink-0" />
                         ) : (

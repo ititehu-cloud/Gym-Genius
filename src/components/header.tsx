@@ -58,16 +58,16 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
 
   return (
     <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
-        <div className="flex flex-col justify-center overflow-hidden">
+        <div className="flex flex-col justify-center">
             <Link href="/dashboard" className="flex flex-col gap-0.5 group">
                 <Logo 
                   displayName={displayName} 
                   iconUrl={iconUrl} 
-                  className="text-primary-foreground transition-transform group-hover:scale-[1.01] scale-90 -ml-2 origin-left" 
+                  className="text-primary-foreground transition-transform group-hover:scale-[1.01]" 
                 />
                 
                 {displayValidity && (
-                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full w-fit border border-white/10 shadow-xl ml-9 animate-in fade-in slide-in-from-left-2 duration-500">
+                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full w-fit border border-white/10 shadow-xl ml-14 animate-in fade-in slide-in-from-left-2 duration-500">
                         {isLifetime ? (
                             <ShieldCheck className="h-3 w-3 text-green-400 shrink-0" />
                         ) : (

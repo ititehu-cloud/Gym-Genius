@@ -15,7 +15,7 @@ import { UserProfile } from "@/lib/types";
 export function AppSidebar({ userProfile, ...props }: React.ComponentProps<typeof Sidebar> & { userProfile?: UserProfile | null }) {
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="h-28 md:h-32 border-b border-sidebar-border bg-sidebar flex items-center px-6">
+      <SidebarHeader className="h-20 md:h-24 border-b border-sidebar-border bg-sidebar flex items-center px-6">
         <Logo 
           displayName={userProfile?.displayName} 
           iconUrl={userProfile?.icon} 

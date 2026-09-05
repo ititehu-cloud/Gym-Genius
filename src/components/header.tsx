@@ -50,7 +50,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
   }, [validity]);
 
   return (
-    <header className="flex h-28 md:h-32 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
+    <header className="flex h-20 md:h-24 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
         <div className="flex flex-col">
             <Link href="/dashboard" className="flex flex-col">
                 <Logo 
@@ -59,9 +59,9 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                   className="text-primary-foreground" 
                 />
                 {displayValidity && (
-                    <div className="flex items-center gap-2 mt-1.5 ml-[72px] md:ml-[96px] bg-white/10 px-2 py-0.5 rounded-full w-fit">
-                        <CalendarClock className="h-3 w-3 text-chart-2" />
-                        <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-chart-2">
+                    <div className="flex items-center gap-2 mt-1 ml-[52px] md:ml-[68px] bg-black/20 px-2.5 py-0.5 rounded-full w-fit">
+                        <CalendarClock className="h-3 w-3 text-amber-400" />
+                        <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-400">
                             License Validity Till: {displayValidity}
                         </span>
                     </div>
@@ -75,9 +75,9 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                     <Button 
                         variant="ghost" 
                         size="lg" 
-                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-3 h-14 px-6 text-lg font-bold"
+                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2 h-10 px-4 text-base font-bold"
                     >
-                        <LogOut className="h-6 w-6" />
+                        <LogOut className="h-5 w-5" />
                         <span className="hidden md:inline">Sign Out</span>
                     </Button>
                 </AlertDialogTrigger>

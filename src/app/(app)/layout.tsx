@@ -81,7 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <h1 className="text-3xl font-black uppercase tracking-tighter mb-2 text-destructive">Validity Expired</h1>
         <p className="text-muted-foreground max-w-md text-lg font-medium leading-relaxed mb-8">
-            Your gym dashboard license has expired. Please renew the license message to continue managing your gym.
+            Your gym dashboard license has expired. Please renew your validity to continue managing your gym.
         </p>
         <div className="flex flex-col gap-4 w-full max-w-sm">
             <Button size="lg" className="h-14 text-lg font-bold gap-2" variant="default">

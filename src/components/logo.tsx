@@ -23,7 +23,7 @@ export function Logo({
       ) : (
         <Dumbbell className="h-8 w-8 md:h-10 md:w-10 shrink-0" />
       )}
-      <span className="group-data-[collapsible=icon]:hidden truncate max-w-[200px] md:max-w-[400px] tracking-tighter uppercase">
+      <span className="group-data-[collapsible=icon]:hidden truncate max-w-[200px] md:max-w-[400px] tracking-tight uppercase">
         {displayName || 'Gym Genius'}
       </span>
     </div>

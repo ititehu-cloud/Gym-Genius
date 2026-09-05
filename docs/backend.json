@@ -32,6 +32,11 @@
           "type": "string",
           "format": "uri",
           "description": "URL for the user's profile icon, typically the gym logo."
+        },
+        "validity": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date until which the gym's software license is valid."
         }
       },
       "required": ["id", "displayName", "email"]

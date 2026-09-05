@@ -1,7 +1,8 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, CalendarClock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,23 +16,33 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
+import { format, parseISO } from "date-fns";
 
 type HeaderProps = {
     displayName?: string | null;
     iconUrl?: string | null;
+    validity?: string | null;
     onLogout: () => void;
 }
 
-export function Header({ displayName, iconUrl, onLogout }: HeaderProps) {
+export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps) {
   return (
     <header className="flex h-28 md:h-32 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-            <Link href="/dashboard">
+        <div className="flex flex-col">
+            <Link href="/dashboard" className="flex flex-col">
                 <Logo 
                   displayName={displayName} 
                   iconUrl={iconUrl} 
                   className="text-primary-foreground" 
                 />
+                {validity && (
+                    <div className="flex items-center gap-1.5 mt-1 ml-[72px] md:ml-[96px] opacity-80">
+                        <CalendarClock className="h-3 w-3" />
+                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                            Validity: {format(parseISO(validity), 'dd MMM yyyy')}
+                        </span>
+                    </div>
+                )}
             </Link>
         </div>
         

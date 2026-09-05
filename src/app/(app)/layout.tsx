@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -5,9 +6,12 @@ import { redirect } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { doc } from "firebase/firestore";
 import { Header } from "@/components/header";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, ShieldAlert, KeyRound } from "lucide-react";
 import type { UserProfile as UserProfileType } from "@/lib/types";
 import { BottomNavigation } from "@/components/bottom-navigation";
+import { useMemo } from "react";
+import { parseISO, isBefore, startOfDay } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
@@ -22,6 +26,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfileType>(userDocRef);
   
   const isUserLoading = isAuthLoading || (!!user && isProfileLoading);
+
+  const isExpired = useMemo(() => {
+    if (!userProfile?.validity) return false;
+    const validityDate = startOfDay(parseISO(userProfile.validity));
+    const today = startOfDay(new Date());
+    return isBefore(validityDate, today);
+  }, [userProfile]);
 
   if (isUserLoading) {
     return (
@@ -38,6 +49,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = () => {
     signOut(auth);
   };
+
+  if (isExpired) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="h-24 w-24 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+            <ShieldAlert className="h-12 w-12 text-destructive" />
+        </div>
+        <h1 className="text-3xl font-black uppercase tracking-tighter mb-2 text-destructive">Validity Expired</h1>
+        <p className="text-muted-foreground max-w-md text-lg font-medium leading-relaxed mb-8">
+            Your gym dashboard license has expired. Please renew the license message to continue managing your gym.
+        </p>
+        <div className="flex flex-col gap-4 w-full max-w-sm">
+            <Button size="lg" className="h-14 text-lg font-bold gap-2" variant="default">
+                <KeyRound className="h-5 w-5" />
+                Renew License Now
+            </Button>
+            <Button variant="ghost" onClick={handleLogout} className="font-bold text-muted-foreground">
+                Sign Out
+            </Button>
+        </div>
+        <p className="mt-12 text-xs text-muted-foreground font-mono uppercase tracking-widest">
+            License ID: {userProfile?.id}
+        </p>
+      </div>
+    );
+  }
   
   const displayName = userProfile?.displayName || user.email;
 
@@ -46,6 +83,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Header 
         displayName={displayName} 
         iconUrl={userProfile?.icon} 
+        validity={userProfile?.validity}
         onLogout={handleLogout} 
       />
       <main className="flex-1 overflow-y-auto">

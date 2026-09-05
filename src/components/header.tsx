@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -60,10 +59,10 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                   className="text-primary-foreground" 
                 />
                 {displayValidity && (
-                    <div className="flex items-center gap-1.5 mt-1 ml-[72px] md:ml-[96px] opacity-80">
-                        <CalendarClock className="h-3 w-3" />
-                        <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                            Validity: {displayValidity}
+                    <div className="flex items-center gap-1.5 mt-1 ml-[72px] md:ml-[96px]">
+                        <CalendarClock className="h-3.5 w-3.5 text-chart-4" />
+                        <span className="text-[10px] md:text-xs font-mono font-black uppercase tracking-tighter text-chart-4">
+                            License Valid: {displayValidity}
                         </span>
                     </div>
                 )}

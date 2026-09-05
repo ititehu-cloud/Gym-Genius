@@ -62,7 +62,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                     <div className="flex items-center gap-1.5 mt-1 ml-[72px] md:ml-[96px]">
                         <CalendarClock className="h-3.5 w-3.5 text-chart-4" />
                         <span className="text-[10px] md:text-xs font-mono font-black uppercase tracking-tighter text-chart-4">
-                            License Valid: {displayValidity}
+                            License Validity Till: {displayValidity}
                         </span>
                     </div>
                 )}

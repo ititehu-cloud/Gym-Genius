@@ -63,5 +63,5 @@ export type UserProfile = {
   phoneNumber?: string;
   displayAddress?: string;
   icon?: string;
-  validity?: string;
+  validity?: any;
 };

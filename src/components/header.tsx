@@ -16,16 +16,40 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Logo } from "@/components/logo";
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
+import { useMemo } from "react";
 
 type HeaderProps = {
     displayName?: string | null;
     iconUrl?: string | null;
-    validity?: string | null;
+    validity?: any;
     onLogout: () => void;
 }
 
 export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps) {
+  const displayValidity = useMemo(() => {
+    if (!validity) return null;
+    
+    try {
+        let date: Date;
+        // Handle Firestore Timestamp, ISO string, or Date object
+        if (typeof validity === 'string') {
+            date = parseISO(validity);
+        } else if (validity && typeof validity.toDate === 'function') {
+            date = validity.toDate();
+        } else {
+            date = new Date(validity);
+        }
+
+        if (isValid(date)) {
+            return format(date, 'dd MMM yyyy');
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+  }, [validity]);
+
   return (
     <header className="flex h-28 md:h-32 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
         <div className="flex flex-col">
@@ -35,11 +59,11 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                   iconUrl={iconUrl} 
                   className="text-primary-foreground" 
                 />
-                {validity && (
+                {displayValidity && (
                     <div className="flex items-center gap-1.5 mt-1 ml-[72px] md:ml-[96px] opacity-80">
                         <CalendarClock className="h-3 w-3" />
                         <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                            Validity: {format(parseISO(validity), 'dd MMM yyyy')}
+                            Validity: {displayValidity}
                         </span>
                     </div>
                 )}

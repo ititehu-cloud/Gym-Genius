@@ -10,7 +10,7 @@ import { LoaderCircle, ShieldAlert, KeyRound } from "lucide-react";
 import type { UserProfile as UserProfileType } from "@/lib/types";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { useMemo } from "react";
-import { parseISO, isBefore, startOfDay } from "date-fns";
+import { parseISO, isBefore, startOfDay, isValid } from "date-fns";
 import { Button } from "@/components/ui/button";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isExpired = useMemo(() => {
     if (!userProfile?.validity) return false;
     try {
-      const validityDate = startOfDay(parseISO(userProfile.validity));
+      const val = userProfile.validity;
+      let validityDateRaw: Date;
+      
+      // Resilient parsing for Timestamp or ISO string
+      if (typeof val === 'string') {
+        validityDateRaw = parseISO(val);
+      } else if (val && typeof val.toDate === 'function') {
+        validityDateRaw = val.toDate();
+      } else {
+        validityDateRaw = new Date(val);
+      }
+
+      if (!isValid(validityDateRaw)) return false;
+
+      const validityDate = startOfDay(validityDateRaw);
       const today = startOfDay(new Date());
       return isBefore(validityDate, today);
     } catch (e) {

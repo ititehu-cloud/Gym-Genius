@@ -12,7 +12,7 @@ export function Logo({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-3 font-headline text-xl md:text-2xl font-black group-data-[collapsible=icon]:justify-center", className)}>
+    <div className={cn("flex items-center gap-3 font-headline text-2xl md:text-3xl font-black group-data-[collapsible=icon]:justify-center", className)}>
       {iconUrl ? (
         <Avatar className="h-10 w-10 md:h-14 md:w-14 border-2 border-white/20 shadow-lg shrink-0">
           <AvatarImage src={iconUrl} alt={displayName || 'Gym Logo'} className="object-contain p-1 bg-white" />

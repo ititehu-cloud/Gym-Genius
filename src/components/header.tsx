@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { LogOut, CalendarClock } from "lucide-react";
+import { LogOut, CalendarClock, ShieldCheck } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,20 +54,30 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
     }
   }, [validity]);
 
+  const isLifetime = displayValidity === 'LIFETIME ACCESS';
+
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
-        <div className="flex flex-col">
-            <Link href="/dashboard" className="flex flex-col">
+    <header className="flex h-24 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
+        <div className="flex flex-col justify-center">
+            <Link href="/dashboard" className="flex flex-col gap-1.5 group">
                 <Logo 
                   displayName={displayName} 
                   iconUrl={iconUrl} 
-                  className="text-primary-foreground -ml-2" 
+                  className="text-primary-foreground transition-transform group-hover:scale-[1.02]" 
                 />
+                
                 {displayValidity && (
-                    <div className="flex items-center gap-2 mt-1 ml-10 bg-black/20 px-3 py-1 rounded-full w-fit">
-                        <CalendarClock className="h-3 w-3 text-amber-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-400">
-                            License Validity Till: {displayValidity}
+                    <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full w-fit border border-white/10 shadow-inner ml-12">
+                        {isLifetime ? (
+                            <ShieldCheck className="h-3 w-3 text-green-400" />
+                        ) : (
+                            <CalendarClock className="h-3 w-3 text-amber-400" />
+                        )}
+                        <span className="text-[10px] font-black uppercase tracking-wider text-white">
+                            <span className="opacity-70 mr-1">License:</span>
+                            <span className={isLifetime ? "text-green-400" : "text-amber-400"}>
+                                {displayValidity}
+                            </span>
                         </span>
                     </div>
                 )}
@@ -80,7 +90,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2 h-10 px-4 text-sm font-bold"
+                        className="text-primary-foreground hover:bg-white/10 flex items-center gap-2 h-10 px-4 text-sm font-bold border border-transparent hover:border-white/20 transition-all"
                     >
                         <LogOut className="h-5 w-5" />
                         <span className="hidden sm:inline">Sign Out</span>

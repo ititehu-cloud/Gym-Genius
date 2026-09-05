@@ -29,9 +29,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isExpired = useMemo(() => {
     if (!userProfile?.validity) return false;
-    const validityDate = startOfDay(parseISO(userProfile.validity));
-    const today = startOfDay(new Date());
-    return isBefore(validityDate, today);
+    try {
+      const validityDate = startOfDay(parseISO(userProfile.validity));
+      const today = startOfDay(new Date());
+      return isBefore(validityDate, today);
+    } catch (e) {
+      return false;
+    }
   }, [userProfile]);
 
   if (isUserLoading) {

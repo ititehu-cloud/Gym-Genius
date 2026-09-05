@@ -29,6 +29,11 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
   const displayValidity = useMemo(() => {
     if (!validity) return null;
     
+    // Handle "lifetime" string explicitly
+    if (typeof validity === 'string' && validity.toLowerCase() === 'lifetime') {
+      return 'LIFETIME ACCESS';
+    }
+    
     try {
         let date: Date;
         // Handle Firestore Timestamp, ISO string, or Date object
@@ -50,18 +55,18 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
   }, [validity]);
 
   return (
-    <header className="flex h-20 md:h-24 shrink-0 items-center justify-between gap-4 border-b bg-primary px-6 text-primary-foreground shadow-lg sm:px-8 sticky top-0 z-30">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
         <div className="flex flex-col">
             <Link href="/dashboard" className="flex flex-col">
                 <Logo 
                   displayName={displayName} 
                   iconUrl={iconUrl} 
-                  className="text-primary-foreground" 
+                  className="text-primary-foreground scale-90 -ml-2" 
                 />
                 {displayValidity && (
-                    <div className="flex items-center gap-2 mt-1 ml-[52px] md:ml-[68px] bg-black/20 px-2.5 py-0.5 rounded-full w-fit">
-                        <CalendarClock className="h-3 w-3 text-amber-400" />
-                        <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-400">
+                    <div className="flex items-center gap-2 mt-0 ml-10 bg-black/20 px-2 py-0.5 rounded-full w-fit">
+                        <CalendarClock className="h-2.5 w-2.5 text-amber-400" />
+                        <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-amber-400">
                             License Validity Till: {displayValidity}
                         </span>
                     </div>
@@ -74,11 +79,11 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                 <AlertDialogTrigger asChild>
                     <Button 
                         variant="ghost" 
-                        size="lg" 
-                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2 h-10 px-4 text-base font-bold"
+                        size="sm" 
+                        className="text-primary-foreground hover:bg-primary-foreground/10 flex items-center gap-2 h-9 px-3 text-sm font-bold"
                     >
-                        <LogOut className="h-5 w-5" />
-                        <span className="hidden md:inline">Sign Out</span>
+                        <LogOut className="h-4 w-4" />
+                        <span className="hidden sm:inline">Sign Out</span>
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

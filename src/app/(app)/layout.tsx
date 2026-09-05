@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -29,6 +28,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isExpired = useMemo(() => {
     if (!userProfile?.validity) return false;
+    
+    // Check for "lifetime" string explicitly
+    if (typeof userProfile.validity === 'string' && userProfile.validity.toLowerCase() === 'lifetime') {
+      return false; // Lifetime never expires
+    }
+
     try {
       const val = userProfile.validity;
       let validityDateRaw: Date;

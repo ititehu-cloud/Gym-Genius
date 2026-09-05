@@ -57,24 +57,24 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
   const isLifetime = displayValidity === 'LIFETIME ACCESS';
 
   return (
-    <header className="flex h-24 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
-        <div className="flex flex-col justify-center">
-            <Link href="/dashboard" className="flex flex-col gap-1.5 group">
+    <header className="flex h-28 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30">
+        <div className="flex flex-col justify-center py-2">
+            <Link href="/dashboard" className="flex flex-col gap-2 group">
                 <Logo 
                   displayName={displayName} 
                   iconUrl={iconUrl} 
-                  className="text-primary-foreground transition-transform group-hover:scale-[1.02]" 
+                  className="text-primary-foreground transition-transform group-hover:scale-[1.01]" 
                 />
                 
                 {displayValidity && (
-                    <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full w-fit border border-white/10 shadow-inner ml-12">
+                    <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full w-fit border border-white/10 shadow-xl ml-12 animate-in fade-in slide-in-from-left-2 duration-500">
                         {isLifetime ? (
-                            <ShieldCheck className="h-3 w-3 text-green-400" />
+                            <ShieldCheck className="h-3.5 w-3.5 text-green-400" />
                         ) : (
-                            <CalendarClock className="h-3 w-3 text-amber-400" />
+                            <CalendarClock className="h-3.5 w-3.5 text-amber-400" />
                         )}
-                        <span className="text-[10px] font-black uppercase tracking-wider text-white">
-                            <span className="opacity-70 mr-1">License:</span>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                            <span className="opacity-70 mr-1.5">License Validity Till:</span>
                             <span className={isLifetime ? "text-green-400" : "text-amber-400"}>
                                 {displayValidity}
                             </span>
@@ -90,7 +90,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="text-primary-foreground hover:bg-white/10 flex items-center gap-2 h-10 px-4 text-sm font-bold border border-transparent hover:border-white/20 transition-all"
+                        className="text-primary-foreground hover:bg-white/10 flex items-center gap-2 h-11 px-4 text-sm font-bold border border-transparent hover:border-white/20 transition-all"
                     >
                         <LogOut className="h-5 w-5" />
                         <span className="hidden sm:inline">Sign Out</span>

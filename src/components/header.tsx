@@ -67,13 +67,13 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
                 />
                 
                 {displayValidity && (
-                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full w-fit border border-white/10 shadow-xl ml-12 md:ml-16 -mt-1 animate-in fade-in slide-in-from-left-2 duration-500 relative z-10 scale-90 md:scale-100 origin-left">
+                    <div className="flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full w-fit border border-white/10 shadow-xl ml-12 md:ml-16 -mt-1 animate-in fade-in slide-in-from-left-2 duration-500 relative z-10 scale-90 md:scale-100 origin-left">
                         {isLifetime ? (
-                            <ShieldCheck className="h-3 w-3 text-green-400 shrink-0" />
+                            <ShieldCheck className="h-3.5 w-3.5 text-green-400 shrink-0" />
                         ) : (
-                            <CalendarClock className="h-3 w-3 text-amber-400 shrink-0" />
+                            <CalendarClock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                         )}
-                        <span className="text-[9px] font-black uppercase tracking-wider text-white whitespace-nowrap">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white whitespace-nowrap">
                             <span className="opacity-70 mr-1">License Validity Till:</span>
                             <span className={isLifetime ? "text-green-400" : "text-amber-400"}>
                                 {displayValidity}

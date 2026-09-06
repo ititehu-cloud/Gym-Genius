@@ -57,7 +57,7 @@ export function Header({ displayName, iconUrl, validity, onLogout }: HeaderProps
   const isLifetime = displayValidity === 'LIFETIME ACCESS';
 
   return (
-    <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30 overflow-hidden">
+    <header className="flex h-24 shrink-0 items-center justify-between gap-4 border-b bg-primary px-4 text-primary-foreground shadow-lg sm:px-6 sticky top-0 z-30 overflow-hidden">
         <div className="flex flex-col justify-center h-full">
             <Link href="/dashboard" className="flex flex-col gap-0 group">
                 <Logo 

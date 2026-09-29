@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -59,10 +60,20 @@ function AttendanceList() {
         return new Map(selectedDateAttendance.map(att => [att.memberId, att]));
     }, [selectedDateAttendance]);
     
-    const filteredMembers = useMemo(() => {
+    const activeMembers = useMemo(() => {
         if (!members) return [];
+        const today = startOfDay(new Date());
+        return members.filter(m => {
+            try {
+                return parseISO(m.expiryDate) >= today;
+            } catch (e) {
+                return true;
+            }
+        });
+    }, [members]);
 
-        let tempMembers = [...members];
+    const filteredMembers = useMemo(() => {
+        let tempMembers = [...activeMembers];
         
         if (filter === 'present') {
             tempMembers = tempMembers.filter(member => attendanceMap.has(member.id));
@@ -76,7 +87,7 @@ function AttendanceList() {
             );
         }
         return tempMembers;
-    }, [members, searchQuery, filter, attendanceMap]);
+    }, [activeMembers, searchQuery, filter, attendanceMap]);
 
     const isLoading = isLoadingMembers || isLoadingAttendance;
     const isToday = isSameDay(selectedDate, new Date());
@@ -139,7 +150,7 @@ function AttendanceList() {
         )
     }
 
-    const absentCount = (members?.length || 0) - (selectedDateAttendance?.length || 0);
+    const absentCount = Math.max(0, activeMembers.length - (selectedDateAttendance?.length || 0));
 
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -178,16 +189,16 @@ function AttendanceList() {
                     </CardTitle>
                     <CardDescription>
                         {filter === 'present' 
-                            ? `Showing ${selectedDateAttendance?.length || 0} members who are present today.` 
+                            ? `Showing ${selectedDateAttendance?.length || 0} active members who are present today.` 
                             : filter === 'absent'
-                            ? `Showing ${absentCount} members who have yet to check in for today.`
-                            : isToday ? 'Mark members as present for today. ' 
+                            ? `Showing ${absentCount} active members who have yet to check in for today.`
+                            : isToday ? 'Mark active members as present for today. ' 
                             : `Viewing attendance for ${format(selectedDate, 'MMMM do, yyyy')}. `}
-                        {!filter && `${selectedDateAttendance?.length || 0} out of ${members?.length || 0} members checked in.`}
+                        {!filter && `${selectedDateAttendance?.length || 0} out of ${activeMembers.length} active members checked in.`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {members && members.length > 0 ? (
+                    {activeMembers.length > 0 ? (
                         filteredMembers.length > 0 ? (
                             <div className="border rounded-md">
                                 <Table>
@@ -290,7 +301,7 @@ function AttendanceList() {
                                 ) : (
                                     <>
                                         <h3 className="text-xl font-bold tracking-tight">No Members Found</h3>
-                                        <p className="text-sm text-muted-foreground">Your search for "{searchQuery}" did not return any results.</p>
+                                        <p className="text-sm text-muted-foreground">Your search for "{searchQuery}" did not return any results from active members.</p>
                                     </>
                                 )}
                             </div>
@@ -298,8 +309,8 @@ function AttendanceList() {
                     ) : (
                         <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm py-12">
                             <div className="text-center">
-                                <h3 className="text-2xl font-bold tracking-tight">No members found</h3>
-                                <p className="text-sm text-muted-foreground">Add members in the 'Members' section to see them here.</p>
+                                <h3 className="text-2xl font-bold tracking-tight">No active members found</h3>
+                                <p className="text-sm text-muted-foreground">Only members with a valid membership are shown here.</p>
                             </div>
                         </div>
                     )}

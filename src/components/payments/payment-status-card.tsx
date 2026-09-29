@@ -266,6 +266,8 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
             <WhatsAppMessageDialog 
                 member={member} 
+                plan={plan}
+                dueAmount={dueForPeriod}
                 gymName={gymName} 
                 isOpen={isWhatsAppDialogOpen} 
                 onOpenChange={setWhatsAppDialogOpen} 

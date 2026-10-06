@@ -66,6 +66,19 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
   const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
 
+  const trueStartingJoinDate = useMemo(() => {
+    const storedJoinDate = parseISO(member.joinDate);
+    if (!payments || payments.length === 0) return storedJoinDate;
+    
+    // Find the earliest payment date
+    const earliestPaymentDate = payments.reduce((earliest, current) => {
+      const currentDate = parseISO(current.paymentDate);
+      return currentDate < earliest ? currentDate : earliest;
+    }, storedJoinDate);
+    
+    return earliestPaymentDate;
+  }, [payments, member.joinDate]);
+
   const totalPaid = useMemo(() => {
     if (!payments) return 0;
     return payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
@@ -202,7 +215,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="p-3 bg-chart-2/10 rounded-lg space-y-1">
                                                 <p className="text-[10px] font-bold text-chart-2 uppercase">Starting Joining Date</p>
-                                                <p className="font-black text-chart-2">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                                                <p className="font-black text-chart-2">{format(trueStartingJoinDate, 'dd MMM yyyy')}</p>
                                             </div>
                                             <div className="p-3 bg-destructive/10 rounded-lg space-y-1">
                                                 <p className="text-[10px] font-bold text-destructive uppercase">Cycle Expiry Date</p>

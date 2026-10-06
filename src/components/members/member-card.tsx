@@ -56,6 +56,18 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const firestore = useFirestore();
   const { user } = useUser();
   
+  const trueStartingJoinDate = useMemo(() => {
+    const storedJoinDate = parseISO(member.joinDate);
+    if (!payments || payments.length === 0) return storedJoinDate;
+    
+    const earliestPaymentDate = payments.reduce((earliest, p) => {
+      const pDate = parseISO(p.paymentDate);
+      return pDate < earliest ? pDate : earliest;
+    }, storedJoinDate);
+    
+    return earliestPaymentDate;
+  }, [payments, member.joinDate]);
+
   const getStatus = (): Member['status'] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -73,7 +85,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const dueAmount = useMemo(() => {
     if (!plan) return 0;
     
-    const joinDate = parseISO(member.joinDate);
+    const joinDate = trueStartingJoinDate;
     const expiryDate = parseISO(member.expiryDate);
     const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
     const leadDate = new Date(joinDate.getTime() - leadTimeMs);
@@ -87,7 +99,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
     const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
     return Math.max(0, plan.price - totalPaid);
-  }, [member, plan, payments]);
+  }, [trueStartingJoinDate, member.expiryDate, plan, payments]);
 
   const handleShareId = async () => {
     if (isSharing) return;
@@ -105,7 +117,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
     try {
       const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
-      const joinStr = format(parseISO(member.joinDate), 'dd MMM yyyy');
+      const joinStr = format(trueStartingJoinDate, 'dd MMM yyyy');
       let sharedUrl = member.idCardUrl;
 
       // If missing, generate it now
@@ -405,9 +417,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               boxShadow: '0 20px 50px rgba(0,0,0,0.15)'
             }}>
               {/* Header - Centered Branding */}
-              <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
+              <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justify-content: 'center', textAlign: 'center', gap: '20px' }}>
                   {gymIconUrl && (
-                    <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+                    <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justify-content: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
                         <img src={gymIconUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
                     </div>
                   )}
@@ -453,7 +465,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>JOINED</span>
-                        <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                        <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(trueStartingJoinDate, 'dd MMM yyyy')}</p>
                     </div>
 
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>

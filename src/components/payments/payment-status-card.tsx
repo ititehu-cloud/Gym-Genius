@@ -47,22 +47,33 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return null;
     }
 
-    const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
+    const trueStartingJoinDate = useMemo(() => {
+        const storedJoinDate = parseISO(member.joinDate);
+        if (!payments || payments.length === 0) return storedJoinDate;
+        
+        const earliestPaymentDate = payments.reduce((earliest, p) => {
+          const pDate = parseISO(p.paymentDate);
+          return pDate < earliest ? pDate : earliest;
+        }, storedJoinDate);
+        
+        return earliestPaymentDate;
+    }, [payments, member.joinDate]);
+
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
     // All payments within the member's current membership cycle
     const paymentsForCurrentCycle = useMemo(() => {
         const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-        const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
+        const leadDate = new Date(trueStartingJoinDate.getTime() - leadTimeMs);
 
         return payments.filter(p => {
             const paymentDate = parseISO(p.paymentDate);
             const isWithinCycle = paymentDate >= startOfDay(leadDate) && paymentDate <= endOfDay(memberExpiryDate);
             return isWithinCycle && p.status === 'paid';
         });
-    }, [payments, memberJoinDate, memberExpiryDate]);
+    }, [payments, trueStartingJoinDate, memberExpiryDate]);
 
-    // Calculate due for the cycle. Monthly splitting is confusing for partial payments across months.
+    // Calculate due for the cycle.
     const dueForPeriod = useMemo(() => {
         const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
         return Math.max(0, plan.price - totalPaidForCycle);
@@ -87,9 +98,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     return (
         <Card className="relative w-full max-w-lg mx-auto shadow-lg rounded-2xl overflow-hidden flex flex-col bg-white border-2 border-primary/20 transition-all hover:shadow-xl hover:border-primary/30">
-            {/* Top Right Decorative Accent */}
             <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-primary/30 rounded-tr-2xl pointer-events-none" />
-            {/* Bottom Left Decorative Accent */}
             <div className="absolute bottom-16 left-0 w-16 h-16 border-b-4 border-l-4 border-primary/30 rounded-bl-2xl pointer-events-none" />
 
             <div className="relative p-6 pb-4">

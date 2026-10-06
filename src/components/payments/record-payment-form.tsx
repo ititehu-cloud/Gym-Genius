@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -114,15 +115,18 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
                     const existingPaid = memberPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
                     const totalAfterNewPayment = existingPaid + values.amount;
 
-                    if (totalAfterNewPayment >= plan.price - EPSILON) {
+                    // Standardize calculation from original join date
+                    // We calculate total months covered by all payments made so far
+                    const totalMonthsCovered = Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
+
+                    if (totalMonthsCovered > 0) {
                         const memberRef = doc(firestore, "members", selectedMember.id);
                         
-                        // NEW LOGIC: Calculate expiry from the member's current joinDate, not payment date
+                        // Always anchor expiry to the original starting joinDate
                         const currentJoinDate = parseISO(selectedMember.joinDate);
-                        const newExpiryDate = addMonths(currentJoinDate, plan.duration).toISOString();
+                        const newExpiryDate = addMonths(currentJoinDate, totalMonthsCovered).toISOString();
 
                         updateDoc(memberRef, {
-                            // We do NOT update joinDate here anymore to avoid shifting cycles based on late payments
                             expiryDate: newExpiryDate,
                             status: 'active',
                             updatedAt: serverTimestamp()
@@ -130,7 +134,7 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
 
                         toast({
                           title: "Membership Active!",
-                          description: `Full payment received. ${selectedMember.name}'s membership is active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
+                          description: `${selectedMember.name}'s membership is active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
                         });
                     }
                 }

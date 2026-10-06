@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -270,7 +271,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                         <p className="text-base font-bold text-green-600">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
                     </div>
                     <div className="space-y-0.5">
-                        <p className="text-[10px) font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
                         <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount}</p>
                     </div>
                 </div>
@@ -451,7 +452,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     </div>
 
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>START</span>
+                        <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>JOINED</span>
                         <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
                     </div>
 

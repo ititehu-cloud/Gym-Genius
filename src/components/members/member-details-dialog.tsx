@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import type { Member, Plan, Payment, MemberNote } from "@/lib/types";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
@@ -201,11 +201,11 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="p-3 bg-chart-2/10 rounded-lg space-y-1">
-                                                <p className="text-[10px] font-bold text-chart-2 uppercase">Join Date</p>
+                                                <p className="text-[10px] font-bold text-chart-2 uppercase">Starting Joining Date</p>
                                                 <p className="font-black text-chart-2">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
                                             </div>
                                             <div className="p-3 bg-destructive/10 rounded-lg space-y-1">
-                                                <p className="text-[10px] font-bold text-destructive uppercase">Expiry Date</p>
+                                                <p className="text-[10px] font-bold text-destructive uppercase">Cycle Expiry Date</p>
                                                 <p className="font-black text-destructive">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
                                             </div>
                                         </div>

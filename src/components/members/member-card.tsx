@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -369,7 +368,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
       <WhatsAppMessageDialog 
         member={member} 
-        plan={plan}
+        plan={plan} 
         dueAmount={dueAmount}
         gymName={gymName} 
         isOpen={isWhatsAppDialogOpen} 
@@ -417,9 +416,9 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               boxShadow: '0 20px 50px rgba(0,0,0,0.15)'
             }}>
               {/* Header - Centered Branding */}
-              <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justify-content: 'center', textAlign: 'center', gap: '20px' }}>
+              <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
                   {gymIconUrl && (
-                    <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justify-content: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+                    <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
                         <img src={gymIconUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
                     </div>
                   )}

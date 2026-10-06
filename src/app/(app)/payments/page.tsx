@@ -9,7 +9,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { parseISO, format, isSameMonth, isSameDay, startOfDay } from "date-fns";
+import { parseISO, format, isSameMonth, isSameDay, startOfDay, endOfDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -110,7 +110,7 @@ function PaymentsList() {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
     }
     
-    // Status Filter (Month Based)
+    // Status Filter
     if (selectedMonth) {
         const monthDate = new Date(selectedMonth + "-01T00:00:00");
         if (!isNaN(monthDate.getTime())) {
@@ -119,22 +119,31 @@ function PaymentsList() {
                 if (!memberPlan) return false;
 
                 const memberPayments = paymentsByMember.get(member.id) || [];
-                const paymentsInSelectedMonth = memberPayments.filter(p => {
-                    return p.status === 'paid' && isSameMonth(parseISO(p.paymentDate), monthDate);
+                
+                // For Saud Shk fix: We look at the cycle corresponding to the selected membership
+                const memberJoinDate = parseISO(member.joinDate);
+                const memberExpiryDate = parseISO(member.expiryDate);
+                const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
+                const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
+
+                const paymentsForCycle = memberPayments.filter(p => {
+                    const pDate = parseISO(p.paymentDate);
+                    return p.status === 'paid' && 
+                           pDate >= startOfDay(leadDate) && 
+                           pDate <= endOfDay(memberExpiryDate);
                 });
 
-                const totalPaidForMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
-                const monthlyInstallment = memberPlan.duration > 0 ? memberPlan.price / memberPlan.duration : memberPlan.price;
-                const dueForMonth = Math.max(0, monthlyInstallment - totalPaidForMonth);
+                const totalPaidForCycle = paymentsForCycle.reduce((acc, p) => acc + p.amount, 0);
+                const dueForCycle = Math.max(0, memberPlan.price - totalPaidForCycle);
                 
                 if (statusFilter === 'unpaid') {
-                    return totalPaidForMonth <= 0.01;
+                    return totalPaidForCycle <= 0.01;
                 } else if (statusFilter === 'paid') {
-                    return dueForMonth <= 0.01;
+                    return dueForCycle <= 0.01;
                 } else if (statusFilter === 'part_paid') {
-                    return totalPaidForMonth > 0.01 && dueForMonth > 0.01;
+                    return totalPaidForCycle > 0.01 && dueForCycle > 0.01;
                 } else if (statusFilter === 'due') {
-                    return dueForMonth > 0.01;
+                    return dueForCycle > 0.01;
                 }
                 
                 return true;

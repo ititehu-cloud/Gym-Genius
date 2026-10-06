@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -49,6 +50,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const memberJoinDate = useMemo(() => parseISO(member.joinDate), [member.joinDate]);
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
+    // All payments within the member's current membership cycle
     const paymentsForCurrentCycle = useMemo(() => {
         const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
         const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
@@ -60,36 +62,11 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         });
     }, [payments, memberJoinDate, memberExpiryDate]);
 
-    const { dueForPeriod, statsDate } = useMemo(() => {
-        const planPrice = plan.price;
-        const referenceDate = filterHistoryByMonth ? new Date(filterHistoryByMonth + "-01T00:00:00") : new Date();
-
-        if (filterHistoryByMonth && !isNaN(referenceDate.getTime())) {
-            const monthlyInstallment = plan.duration > 0 ? planPrice / plan.duration : planPrice;
-            const paymentsInSelectedMonth = paymentsForCurrentCycle.filter(p => {
-                const paymentDate = parseISO(p.paymentDate);
-                return isSameMonth(paymentDate, referenceDate);
-            });
-
-            const totalPaidForSelectedMonth = paymentsInSelectedMonth.reduce((acc, p) => acc + p.amount, 0);
-            const dueForSelectedMonth = Math.max(0, monthlyInstallment - totalPaidForSelectedMonth);
-            
-            return {
-                dueForPeriod: dueForSelectedMonth,
-                statsDate: referenceDate
-            };
-        } 
-        else {
-            const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
-            const overallDue = Math.max(0, planPrice - totalPaidForCycle);
-
-            return {
-                dueForPeriod: overallDue,
-                statsDate: new Date()
-            };
-        }
-
-    }, [filterHistoryByMonth, paymentsForCurrentCycle, plan.price, plan.duration]);
+    // Calculate due for the cycle. Monthly splitting is confusing for partial payments across months.
+    const dueForPeriod = useMemo(() => {
+        const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
+        return Math.max(0, plan.price - totalPaidForCycle);
+    }, [paymentsForCurrentCycle, plan.price]);
 
     const filteredHistory = useMemo(() => {
         let history = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());

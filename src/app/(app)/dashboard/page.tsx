@@ -1,3 +1,4 @@
+
 'use client';
 
 import { format, isSameDay, parseISO, startOfDay, addDays, endOfDay, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
@@ -51,7 +52,6 @@ export default function DashboardPage() {
     
     // Monthly Stats Target (Current Month)
     const targetMonthDate = today;
-    const targetMonthStart = startOfMonth(targetMonthDate);
     const targetMonthEnd = endOfMonth(targetMonthDate);
 
     const planMap = new Map(plans?.map(p => [p.id, p]));
@@ -105,27 +105,28 @@ export default function DashboardPage() {
         return sum + Math.max(0, plan.price - totalPaid);
     }, 0) ?? 0;
     
-    // Calculate Monthly Due: Only for members active during the ongoing month AND not expired today
-    const membersForMonthlyDue = activeMembersListToday.filter(m => {
-        const joinDate = parseISO(m.joinDate);
-        return joinDate <= targetMonthEnd;
-    });
-
-    const monthlyDues = membersForMonthlyDue.reduce((sum, member) => {
+    // Monthly Due: Sum of outstanding balances for all active members
+    const monthlyDues = activeMembersListToday.reduce((sum, member) => {
         const plan = planMap.get(member.planId);
         if (!plan) return sum;
 
-        // Calculate installment for the month
-        const monthlyInstallment = plan.duration > 0 ? plan.price / plan.duration : plan.price;
+        const joinDate = parseISO(member.joinDate);
+        const expiryDate = parseISO(member.expiryDate);
+        const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
+        const leadDate = new Date(joinDate.getTime() - leadTimeMs);
 
-        const paymentsThisMonth = paidPayments.filter(p => 
-            p.memberId === member.id && isSameMonth(parseISO(p.paymentDate), targetMonthDate)
-        );
+        // All payments for the current membership cycle
+        const cyclePayments = paidPayments.filter(p => {
+            const pDate = parseISO(p.paymentDate);
+            return p.memberId === member.id &&
+                   pDate >= startOfDay(leadDate) && 
+                   pDate <= endOfDay(expiryDate);
+        });
+
+        const totalPaidForCycle = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        const dueForCycle = Math.max(0, plan.price - totalPaidForCycle);
         
-        const totalPaidThisMonth = paymentsThisMonth.reduce((acc, p) => acc + p.amount, 0);
-        const dueForMonth = Math.max(0, monthlyInstallment - totalPaidThisMonth);
-        
-        return sum + dueForMonth;
+        return sum + dueForCycle;
     }, 0);
 
     return {

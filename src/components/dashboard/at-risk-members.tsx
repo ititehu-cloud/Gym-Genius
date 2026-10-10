@@ -106,21 +106,23 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
 
     const calculateDueAmount = (member: Member, plan: Plan | undefined) => {
         if (!plan) return 0;
-        const joinDate = parseISO(member.joinDate);
+        
+        // Consistent cycle logic anchored to profile's joinDate
+        const anchorDate = parseISO(member.joinDate);
         const expiryDate = parseISO(member.expiryDate);
-        const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-        const leadDate = new Date(joinDate.getTime() - leadTimeMs);
+        const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+        const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-        const memberPayments = payments.filter(p => p.memberId === member.id);
-        const cyclePayments = memberPayments.filter(p => {
+        const periodPayments = payments.filter(p => p.memberId === member.id);
+        const cyclePayments = periodPayments.filter(p => {
             const pDate = parseISO(p.paymentDate);
-            return pDate >= startOfDay(leadDate) && 
+            return pDate >= startOfDay(periodStart) && 
                    pDate <= endOfDay(expiryDate) && 
                    p.status === 'paid';
         });
 
-        const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaid);
+        const totalPaidInPeriod = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        return Math.max(0, plan.price - totalPaidInPeriod);
     };
 
     const renderContent = () => {

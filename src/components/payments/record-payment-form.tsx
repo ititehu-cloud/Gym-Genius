@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -111,20 +110,25 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
             if (selectedMember && plans && values.status === 'paid') {
                 const plan = plans.find(p => p.id === selectedMember.planId);
                 if (plan) {
-                    const EPSILON = 0.01;
-                    const existingPaid = memberPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-                    const totalAfterNewPayment = existingPaid + values.amount;
+                    // Logic anchored to profile's joinDate
+                    const anchorDate = parseISO(selectedMember.joinDate);
+                    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+                    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-                    // Standardize calculation from original join date
-                    // We calculate total months covered by all payments made so far
+                    const paymentsInPeriod = memberPayments?.filter(p => {
+                        const pDate = parseISO(p.paymentDate);
+                        return pDate >= startOfDay(periodStart);
+                    }) || [];
+                    
+                    const existingPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + p.amount, 0);
+                    const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+
+                    // Calculate extension based on payments for THIS anchored period
                     const totalMonthsCovered = Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
 
                     if (totalMonthsCovered > 0) {
                         const memberRef = doc(firestore, "members", selectedMember.id);
-                        
-                        // Always anchor expiry to the original starting joinDate
-                        const currentJoinDate = parseISO(selectedMember.joinDate);
-                        const newExpiryDate = addMonths(currentJoinDate, totalMonthsCovered).toISOString();
+                        const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
 
                         updateDoc(memberRef, {
                             expiryDate: newExpiryDate,
@@ -133,8 +137,8 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
                         });
 
                         toast({
-                          title: "Membership Active!",
-                          description: `${selectedMember.name}'s membership is active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
+                          title: "Membership Updated",
+                          description: `${selectedMember.name} is now active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
                         });
                     }
                 }

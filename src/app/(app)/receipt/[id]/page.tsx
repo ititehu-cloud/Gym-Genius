@@ -58,19 +58,20 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   const dueAmount = useMemo(() => {
     if (!member || !plan || !memberPayments) return 0;
     
-    const joinDate = parseISO(member.joinDate);
+    // Consistent Due logic anchored to profile's joinDate
+    const anchorDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
-    const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-    const leadDate = new Date(joinDate.getTime() - leadTimeMs);
+    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-    const cyclePayments = memberPayments.filter(p => {
+    const periodPayments = memberPayments.filter(p => {
         const pDate = parseISO(p.paymentDate);
-        return pDate >= startOfDay(leadDate) && 
+        return pDate >= startOfDay(periodStart) && 
                pDate <= endOfDay(expiryDate);
     });
 
-    const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
-    return Math.max(0, plan.price - totalPaid);
+    const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+    return Math.max(0, plan.price - totalPaidInPeriod);
   }, [member, plan, memberPayments]);
 
   const currentPaymentList = useMemo(() => {

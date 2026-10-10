@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LoaderCircle, AlertTriangle } from "lucide-react";
@@ -29,7 +28,6 @@ function PaymentsList() {
   const monthParam = searchParams.get('month');
 
   useEffect(() => {
-    // Handle month param first if provided
     if (monthParam) {
         setSelectedMonth(monthParam);
     }
@@ -39,7 +37,6 @@ function PaymentsList() {
       setStatusFilter('paid');
     } else if (filterParam === 'due_this_month') {
         if (!monthParam) setSelectedMonth(format(new Date(), 'yyyy-MM'));
-        // When clicking 'Month Due', show anyone who hasn't fully paid (Unpaid + Part Paid)
         setStatusFilter('due'); 
         setMembershipFilter('active');
     } else if (statusParam) {
@@ -80,7 +77,7 @@ function PaymentsList() {
     if (!firestore || !user) return null;
     return query(collection(firestore, "plans"), where("userId", "==", user.uid));
   }, [firestore, user]);
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+  const { data: plans } = useCollection<Plan>(plansRef);
 
   const planMap = useMemo(() => {
     if (!plans) return new Map<string, Plan>();
@@ -103,14 +100,12 @@ function PaymentsList() {
     let tempMembers = [...members];
     const today = startOfDay(new Date());
 
-    // Membership Filter
     if (membershipFilter === 'active') {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) >= today);
     } else if (membershipFilter === 'inactive') {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
     }
     
-    // Status Filter
     if (selectedMonth) {
         const monthDate = new Date(selectedMonth + "-01T00:00:00");
         if (!isNaN(monthDate.getTime())) {
@@ -120,17 +115,17 @@ function PaymentsList() {
 
                 const memberPayments = paymentsByMember.get(member.id) || [];
                 
-                // For Saud Shk fix: We look at the cycle corresponding to the selected membership
-                const memberJoinDate = parseISO(member.joinDate);
-                const memberExpiryDate = parseISO(member.expiryDate);
-                const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-                const leadDate = new Date(memberJoinDate.getTime() - leadTimeMs);
+                // Unified cycle logic anchored to profile joinDate
+                const anchorDate = parseISO(member.joinDate);
+                const expiryDate = parseISO(member.expiryDate);
+                const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+                const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
                 const paymentsForCycle = memberPayments.filter(p => {
                     const pDate = parseISO(p.paymentDate);
                     return p.status === 'paid' && 
-                           pDate >= startOfDay(leadDate) && 
-                           pDate <= endOfDay(memberExpiryDate);
+                           pDate >= startOfDay(periodStart) && 
+                           pDate <= endOfDay(expiryDate);
                 });
 
                 const totalPaidForCycle = paymentsForCycle.reduce((acc, p) => acc + p.amount, 0);
@@ -208,7 +203,6 @@ function PaymentsList() {
   const gymAddress = userProfile?.displayAddress;
   const gymIconUrl = userProfile?.icon;
   
-  // Always show history if we are viewing a specific month or day
   const showHistoryInitially = !!selectedMonth || !!dateFilter || statusParam === 'paid' || filterParam === 'due_this_month';
 
   return (

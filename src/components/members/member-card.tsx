@@ -55,7 +55,8 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const firestore = useFirestore();
   const { user } = useUser();
   
-  const trueStartingJoinDate = useMemo(() => {
+  // Earliest activity for display on ID card
+  const earliestJoinDate = useMemo(() => {
     const storedJoinDate = parseISO(member.joinDate);
     if (!payments || payments.length === 0) return storedJoinDate;
     
@@ -84,21 +85,25 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const dueAmount = useMemo(() => {
     if (!plan) return 0;
     
-    const joinDate = trueStartingJoinDate;
+    // Anchor to the current join date (which is editable in profile)
+    const anchorDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
-    const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-    const leadDate = new Date(joinDate.getTime() - leadTimeMs);
+    
+    // We look for payments intended for THIS period.
+    // We use a lead time (15 days) to catch advance payments for this cycle.
+    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-    const cyclePayments = payments.filter(p => {
+    const periodPayments = payments.filter(p => {
         const pDate = parseISO(p.paymentDate);
-        return pDate >= startOfDay(leadDate) && 
+        return pDate >= startOfDay(periodStart) && 
                pDate <= endOfDay(expiryDate) && 
                p.status === 'paid';
     });
 
-    const totalPaid = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
-    return Math.max(0, plan.price - totalPaid);
-  }, [trueStartingJoinDate, member.expiryDate, plan, payments]);
+    const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+    return Math.max(0, plan.price - totalPaidInPeriod);
+  }, [member.joinDate, member.expiryDate, plan, payments]);
 
   const handleShareId = async () => {
     if (isSharing) return;
@@ -116,7 +121,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
     try {
       const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
-      const joinStr = format(trueStartingJoinDate, 'dd MMM yyyy');
+      const joinStr = format(earliestJoinDate, 'dd MMM yyyy');
       let sharedUrl = member.idCardUrl;
 
       // If missing, generate it now
@@ -283,7 +288,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     </div>
                     <div className="space-y-0.5">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
-                        <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount}</p>
+                        <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount.toFixed(0)}</p>
                     </div>
                 </div>
             </div>
@@ -464,7 +469,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>JOINED</span>
-                        <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(trueStartingJoinDate, 'dd MMM yyyy')}</p>
+                        <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(earliestJoinDate, 'dd MMM yyyy')}</p>
                     </div>
 
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -38,7 +37,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
     const router = useRouter();
     const { toast } = useToast();
 
-    // Re-sync local expanded state if the prop changes (e.g., user changes month filter)
+    // Re-sync local expanded state if the prop changes
     useEffect(() => {
         setShowHistory(showHistoryInitially);
     }, [showHistoryInitially, filterHistoryByMonth, filterHistoryByDate]);
@@ -47,37 +46,24 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
         return null;
     }
 
-    const trueStartingJoinDate = useMemo(() => {
-        const storedJoinDate = parseISO(member.joinDate);
-        if (!payments || payments.length === 0) return storedJoinDate;
-        
-        const earliestPaymentDate = payments.reduce((earliest, p) => {
-          const pDate = parseISO(p.paymentDate);
-          return pDate < earliest ? pDate : earliest;
-        }, storedJoinDate);
-        
-        return earliestPaymentDate;
-    }, [payments, member.joinDate]);
-
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
-
-    // All payments within the member's current membership cycle
-    const paymentsForCurrentCycle = useMemo(() => {
-        const leadTimeMs = 30 * 24 * 60 * 60 * 1000;
-        const leadDate = new Date(trueStartingJoinDate.getTime() - leadTimeMs);
-
-        return payments.filter(p => {
-            const paymentDate = parseISO(p.paymentDate);
-            const isWithinCycle = paymentDate >= startOfDay(leadDate) && paymentDate <= endOfDay(memberExpiryDate);
-            return isWithinCycle && p.status === 'paid';
-        });
-    }, [payments, trueStartingJoinDate, memberExpiryDate]);
 
     // Calculate due for the cycle.
     const dueForPeriod = useMemo(() => {
-        const totalPaidForCycle = paymentsForCurrentCycle.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaidForCycle);
-    }, [paymentsForCurrentCycle, plan.price]);
+        const anchorDate = parseISO(member.joinDate);
+        const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+        const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+
+        const periodPayments = payments.filter(p => {
+            const pDate = parseISO(p.paymentDate);
+            return p.status === 'paid' && 
+                   pDate >= startOfDay(periodStart) && 
+                   pDate <= endOfDay(memberExpiryDate);
+        });
+
+        const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+        return Math.max(0, plan.price - totalPaidInPeriod);
+    }, [payments, member.joinDate, member.expiryDate, plan.price]);
 
     const filteredHistory = useMemo(() => {
         let history = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());
@@ -131,7 +117,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             </div>
                             <div className="space-y-0.5">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
-                                <p className={`text-base font-bold ${dueForPeriod > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueForPeriod.toFixed(2)}</p>
+                                <p className={`text-base font-bold ${dueForPeriod > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueForPeriod.toFixed(0)}</p>
                             </div>
                         </div>
                     </div>

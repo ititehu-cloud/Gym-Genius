@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -66,20 +65,18 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
   const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
 
-  const trueStartingJoinDate = useMemo(() => {
+  // Dynamic calculation for the earliest recorded activity
+  const earliestActivityDate = useMemo(() => {
     const storedJoinDate = parseISO(member.joinDate);
     if (!payments || payments.length === 0) return storedJoinDate;
-    
-    // Find the earliest payment date
     const earliestPaymentDate = payments.reduce((earliest, current) => {
       const currentDate = parseISO(current.paymentDate);
       return currentDate < earliest ? currentDate : earliest;
     }, storedJoinDate);
-    
     return earliestPaymentDate;
   }, [payments, member.joinDate]);
 
-  const totalPaid = useMemo(() => {
+  const totalLifetimePaid = useMemo(() => {
     if (!payments) return 0;
     return payments.reduce((sum, p) => p.status === 'paid' ? sum + p.amount : sum, 0);
   }, [payments]);
@@ -214,8 +211,8 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="p-3 bg-chart-2/10 rounded-lg space-y-1">
-                                                <p className="text-[10px] font-bold text-chart-2 uppercase">Starting Joining Date</p>
-                                                <p className="font-black text-chart-2">{format(trueStartingJoinDate, 'dd MMM yyyy')}</p>
+                                                <p className="text-[10px] font-bold text-chart-2 uppercase">First Joined Date</p>
+                                                <p className="font-black text-chart-2">{format(earliestActivityDate, 'dd MMM yyyy')}</p>
                                             </div>
                                             <div className="p-3 bg-destructive/10 rounded-lg space-y-1">
                                                 <p className="text-[10px] font-bold text-destructive uppercase">Cycle Expiry Date</p>
@@ -225,11 +222,11 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex justify-between items-center">
                                             <div>
                                                 <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Total Collections</p>
-                                                <p className="text-2xl font-black text-primary">₹{totalPaid}</p>
+                                                <p className="text-2xl font-black text-primary">₹{totalLifetimePaid}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Plan Value</p>
-                                                <p className="text-lg font-bold">₹{plan?.price || 0}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Period Anchor</p>
+                                                <p className="text-lg font-bold">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
                                             </div>
                                         </div>
                                     </div>

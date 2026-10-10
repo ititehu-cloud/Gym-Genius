@@ -8,26 +8,50 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Rules for the User Profiles collection
+    // Helper to check if the data belongs to the authenticated user
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    // Rules for the User Profiles collection (where doc ID is the UID)
     match /users/{userId} {
       allow get, create, update: if isSignedIn() && request.auth.uid == userId;
       allow list, delete: if false;
     }
     
-    // Generic ownership rule for gym data collections
-    match /{collectionName}/{docId} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-      
-      // Ensure these rules only apply to our known gym collections
-      // to avoid accidental shadowing of other paths.
-      allow read, write: if collectionName in ['attendance', 'payments', 'plans', 'members', 'notes'] 
-        ? (isSignedIn() && (
-            (request.resource != null && request.resource.data.userId == request.auth.uid) ||
-            (resource != null && resource.data.userId == request.auth.uid)
-          ))
-        : false;
+    // Explicit rules for the payments collection with validation
+    match /payments/{paymentId} {
+      allow read, delete: if isOwner(resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow create: if isOwner(request.resource.data) &&
+        request.resource.data.memberId is string &&
+        request.resource.data.amount is number &&
+        request.resource.data.paymentDate is string &&
+        request.resource.data.paymentMethod is string &&
+        request.resource.data.paymentType is string &&
+        request.resource.data.status is string &&
+        request.resource.data.createdAt == request.time;
+    }
+    
+    // Generic rules for other gym-related collections
+    match /attendance/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create, update: if isOwner(request.resource.data);
+    }
+
+    match /plans/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create, update: if isOwner(request.resource.data);
+    }
+
+    match /members/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create, update: if isOwner(request.resource.data);
+    }
+
+    match /notes/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create, update: if isOwner(request.resource.data);
     }
     
     // Catch-all for any other collections

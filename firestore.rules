@@ -8,56 +8,45 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper to check if the user is accessing their own profile
-    function isSelf(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     // Rules for the User Profiles collection
     match /users/{userId} {
-      allow get, create, update: if isSelf(userId);
+      allow get, create, update: if isSignedIn() && request.auth.uid == userId;
       allow list, delete: if false;
     }
     
-    // Check if the current user is the owner of the document
-    // We check request.resource.data for writes and resource.data for reads
-    function isOwner(data) {
-      return isSignedIn() && data.userId == request.auth.uid;
-    }
-
     // Specific rules for gym management data collections
     match /attendance/{id} {
-      allow read, delete: if isOwner(resource.data);
-      allow create: if isOwner(request.resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
     match /payments/{id} {
-      allow read, delete: if isOwner(resource.data);
-      allow create: if isOwner(request.resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
     match /plans/{id} {
-      allow read, delete: if isOwner(resource.data);
-      allow create: if isOwner(request.resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
     match /members/{id} {
-      allow read, delete: if isOwner(resource.data);
-      allow create: if isOwner(request.resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
     match /notes/{id} {
-      allow read, delete: if isOwner(resource.data);
-      allow create: if isOwner(request.resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
     
     // Catch-all for any other collections to ensure security
-    match /{collectionName}/{docId} {
+    match /{document=**} {
       allow read, write: if false;
     }
   }

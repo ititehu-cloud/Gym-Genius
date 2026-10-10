@@ -14,38 +14,23 @@ service cloud.firestore {
       allow list, delete: if false;
     }
     
-    // Specific rules for gym management data collections
-    match /attendance/{id} {
+    // Generic ownership rule for gym data collections
+    match /{collectionName}/{docId} {
       allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /payments/{id} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /plans/{id} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /members/{id} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
-    }
-
-    match /notes/{id} {
-      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
+      
+      // Ensure these rules only apply to our known gym collections
+      // to avoid accidental shadowing of other paths.
+      allow read, write: if collectionName in ['attendance', 'payments', 'plans', 'members', 'notes'] 
+        ? (isSignedIn() && (
+            (request.resource != null && request.resource.data.userId == request.auth.uid) ||
+            (resource != null && resource.data.userId == request.auth.uid)
+          ))
+        : false;
     }
     
-    // Catch-all for any other collections to ensure security
+    // Catch-all for any other collections
     match /{document=**} {
       allow read, write: if false;
     }

@@ -14,34 +14,50 @@ service cloud.firestore {
     }
 
     // Rules for the User Profiles collection
-    // These documents are keyed by the user's UID
     match /users/{userId} {
       allow get, create, update: if isSelf(userId);
       allow list, delete: if false;
     }
     
-    // Global rule for gym management data collections
-    // (members, attendance, payments, plans, notes, etc.)
-    // These all use a 'userId' field for ownership.
-    match /{collectionName}/{docId} {
-      
-      // Explicitly allow list queries (collection queries) and single document gets
-      // for documents owned by the authenticated user.
-      // For list queries, the client MUST include: where("userId", "==", auth.uid)
-      allow get, list, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-      
-      // Allow creating if the new document's userId matches the authenticated user
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      
-      // Allow updates if both the existing document and the new data belong to the user
-      allow update: if isSignedIn() && 
-                      resource.data.userId == request.auth.uid && 
-                      request.resource.data.userId == request.auth.uid;
-                      
-      // Note: This broad match is safe as long as all gym entities use 'userId' for ownership.
-      // Specific overrides like /users should always come before this catch-all or handle overlap.
+    // Helper to check ownership of gym data
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    // Specific rules for gym management data collections
+    match /attendance/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+    }
+
+    match /payments/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+    }
+
+    match /plans/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+    }
+
+    match /members/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
+    }
+
+    match /notes/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
     }
     
-    // Trigger deployment comment: Updated logic for gym collection matching.
+    // Catch-all for any other collections to ensure security
+    match /{collectionName}/{docId} {
+      allow read, write: if false;
+    }
   }
 }

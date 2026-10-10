@@ -77,7 +77,7 @@ function PaymentsList() {
     if (!firestore || !user) return null;
     return query(collection(firestore, "plans"), where("userId", "==", user.uid));
   }, [firestore, user]);
-  const { data: plans } = useCollection<Plan>(plansRef);
+  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
 
   const planMap = useMemo(() => {
     if (!plans) return new Map<string, Plan>();

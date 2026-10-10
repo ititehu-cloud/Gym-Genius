@@ -19,7 +19,8 @@ service cloud.firestore {
       allow list, delete: if false;
     }
     
-    // Helper to check ownership of gym data
+    // Check if the current user is the owner of the document
+    // We check request.resource.data for writes and resource.data for reads
     function isOwner(data) {
       return isSignedIn() && data.userId == request.auth.uid;
     }

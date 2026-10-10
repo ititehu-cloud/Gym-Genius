@@ -78,7 +78,7 @@ function PaymentsList() {
     if (!firestore || !user) return null;
     return query(collection(firestore, "plans"), where("userId", "==", user.uid));
   }, [firestore, user]);
-  const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
+  const { data: plans, isLoading: isPlansLoading } = useCollection<Plan>(plansRef);
 
   const planMap = useMemo(() => {
     if (!plans) return new Map<string, Plan>();
@@ -166,7 +166,7 @@ function PaymentsList() {
     return tempMembers;
   }, [members, searchQuery, payments, planMap, paymentsByMember, statusFilter, membershipFilter, selectedMonth, dateFilter]);
 
-  const isLoading = isLoadingPayments || isLoadingMembers || isLoadingPlans || isProfileLoading;
+  const isLoading = isLoadingPayments || isLoadingMembers || isPlansLoading || isProfileLoading;
   
   const pageTitle = useMemo(() => {
     if (dateFilter === 'today') return "Today's Collection";

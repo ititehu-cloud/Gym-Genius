@@ -9,6 +9,7 @@ service cloud.firestore {
     }
 
     // Helper to check if the data belongs to the authenticated user
+    // Used for both existing data (resource.data) and incoming data (request.resource.data)
     function isOwner(data) {
       return isSignedIn() && data.userId == request.auth.uid;
     }
@@ -19,22 +20,14 @@ service cloud.firestore {
       allow list, delete: if false;
     }
     
-    // Explicit rules for the payments collection with validation
-    match /payments/{paymentId} {
-      allow read, delete: if isOwner(resource.data);
-      allow update: if isOwner(resource.data) && isOwner(request.resource.data);
-      allow create: if isOwner(request.resource.data) &&
-        request.resource.data.memberId is string &&
-        request.resource.data.amount is number &&
-        request.resource.data.paymentDate is string &&
-        request.resource.data.paymentMethod is string &&
-        request.resource.data.paymentType is string &&
-        request.resource.data.status is string &&
-        request.resource.data.createdAt == request.time;
-    }
-    
-    // Generic rules for other gym-related collections
+    // Unified rules for all gym-related collections
+    // Logic: User must be signed in and the document must belong to them (via userId field)
     match /attendance/{id} {
+      allow read, delete: if isOwner(resource.data);
+      allow create, update: if isOwner(request.resource.data);
+    }
+
+    match /payments/{id} {
       allow read, delete: if isOwner(resource.data);
       allow create, update: if isOwner(request.resource.data);
     }

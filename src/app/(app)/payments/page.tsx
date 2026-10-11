@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LoaderCircle, AlertTriangle } from "lucide-react";
@@ -116,7 +115,6 @@ function PaymentsList() {
 
                 const memberPayments = paymentsByMember.get(member.id) || [];
                 
-                // Unified cycle logic anchored to profile joinDate
                 const anchorDate = parseISO(member.joinDate);
                 const expiryDate = parseISO(member.expiryDate);
                 const leadTimeMs = 15 * 24 * 60 * 60 * 1000;

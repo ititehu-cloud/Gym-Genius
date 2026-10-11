@@ -1,4 +1,3 @@
-
 'use client';
     
 import { useState, useEffect, useRef } from 'react';
@@ -9,6 +8,8 @@ import {
   FirestoreError,
   DocumentSnapshot,
 } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -18,14 +19,13 @@ type WithId<T> = T & { id: string };
  * @template T Type of the document data.
  */
 export interface UseDocResult<T> {
-  data: WithId<T> | null; // Document data with ID, or null.
-  isLoading: boolean;       // True if loading.
-  error: FirestoreError | Error | null; // Error object, or null.
+  data: WithId<T> | null;
+  isLoading: boolean;
+  error: FirestoreError | Error | null;
 }
 
 /**
  * React hook to subscribe to a single Firestore document in real-time.
- * Handles nullable references.
  */
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
@@ -65,9 +65,15 @@ export function useDoc<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (err: FirestoreError) => {
+      async (err: FirestoreError) => {
         if (!isMounted.current) return;
-        console.error('❌ Firestore error:', err.code, err.message);
+        
+        const permissionError = new FirestorePermissionError({
+          path: memoizedDocRef?.path || 'unknown-doc',
+          operation: 'get',
+        });
+
+        errorEmitter.emit('permission-error', permissionError);
         setError(err);
         setData(null);
         setIsLoading(false);

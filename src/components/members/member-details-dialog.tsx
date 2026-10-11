@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import type { Member, Plan, Payment, MemberNote } from "@/lib/types";
-import { format, parseISO, isValid } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
@@ -16,7 +16,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { CreditCard, User, LoaderCircle, NotebookPen, Calendar, Plus, Trash2 } from "lucide-react";
+import { CreditCard, User, LoaderCircle, NotebookPen, Calendar, Plus, Trash2, Milestone } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -65,7 +65,7 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
   const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
 
-  // Dynamic calculation for the earliest recorded activity
+  // Dynamic calculation for the earliest recorded activity (True Joining Date)
   const earliestActivityDate = useMemo(() => {
     const storedJoinDate = parseISO(member.joinDate);
     if (!payments || payments.length === 0) return storedJoinDate;
@@ -201,32 +201,37 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
                                 <section className="space-y-4">
                                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-chart-2 border-l-4 border-chart-2 pl-3">
-                                        Membership Status
+                                        Membership Timeline
                                     </h3>
                                     <div className="grid gap-3">
-                                         <div className="p-3 bg-muted/40 rounded-lg space-y-1 border-l-4 border-primary">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Plan</p>
-                                            <p className="font-black text-xl text-primary">{plan?.name || 'N/A'}</p>
-                                            <p className="text-xs font-bold text-muted-foreground">₹{plan?.price} for {plan?.duration} Months</p>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="p-3 bg-chart-2/10 rounded-lg space-y-1">
-                                                <p className="text-[10px] font-bold text-chart-2 uppercase">First Joined Date</p>
-                                                <p className="font-black text-chart-2">{format(earliestActivityDate, 'dd MMM yyyy')}</p>
+                                        <div className="p-3 bg-chart-2/10 rounded-lg space-y-2 border border-chart-2/20">
+                                            <div className="flex items-center gap-2">
+                                                <Milestone className="h-4 w-4 text-chart-2" />
+                                                <p className="text-[10px] font-bold text-chart-2 uppercase">Starting Joining Date</p>
                                             </div>
-                                            <div className="p-3 bg-destructive/10 rounded-lg space-y-1">
+                                            <p className="font-black text-xl text-chart-2">{format(earliestActivityDate, 'dd MMM yyyy')}</p>
+                                            <p className="text-[9px] text-muted-foreground leading-tight italic">Detects the first recorded payment or join date.</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 bg-primary/5 rounded-lg space-y-1 border border-primary/10">
+                                                <p className="text-[10px] font-bold text-primary uppercase">Current Period Start</p>
+                                                <p className="font-black text-primary">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                                            </div>
+                                            <div className="p-3 bg-destructive/10 rounded-lg space-y-1 border border-destructive/20">
                                                 <p className="text-[10px] font-bold text-destructive uppercase">Cycle Expiry Date</p>
                                                 <p className="font-black text-destructive">{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex justify-between items-center">
+                                        
+                                        <div className="p-4 bg-muted/40 rounded-xl border border-muted-foreground/10 flex justify-between items-center mt-2">
                                             <div>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Total Collections</p>
-                                                <p className="text-2xl font-black text-primary">₹{totalLifetimePaid}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Lifetime Collections</p>
+                                                <p className="text-2xl font-black text-primary">₹{totalLifetimePaid.toLocaleString()}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Period Anchor</p>
-                                                <p className="text-lg font-bold">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Current Plan</p>
+                                                <p className="text-lg font-bold">{plan?.name || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>

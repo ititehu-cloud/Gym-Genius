@@ -21,9 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoaderCircle } from "lucide-react";
-import { format, addMonths, parseISO } from "date-fns";
+import { format, addMonths, parseISO, startOfDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
-import { collection, addDoc, serverTimestamp, query, where, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import type { Member, Plan, Payment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
@@ -35,7 +43,9 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   paymentDate: z.string({ required_error: "Please select a payment date." }),
   paymentMethod: z.string().min(1, { message: "Payment method cannot be empty." }),
-  paymentType: z.enum(['monthly', 'renewal', 'advance'], { required_error: "Please select a payment type." }),
+  paymentType: z.enum(['monthly', 'renewal', 'advance'], {
+    required_error: "Please select a payment type.",
+  }),
   status: z.enum(['paid', 'pending']),
   invoiceNumber: z.string().optional(),
 });
@@ -46,7 +56,11 @@ type RecordPaymentFormProps = {
   defaultMemberId?: string;
 };
 
-export default function RecordPaymentForm({ members, setDialogOpen, defaultMemberId }: RecordPaymentFormProps) {
+export default function RecordPaymentForm({
+  members,
+  setDialogOpen,
+  defaultMemberId,
+}: RecordPaymentFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -72,25 +86,25 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
   const { data: plans } = useCollection<Plan>(plansRef);
 
   const memberPaymentsQuery = useMemoFirebase(() => {
-      if (!firestore || !selectedMemberId || !user) return null;
-      return query(
-          collection(firestore, "payments"), 
-          where("userId", "==", user.uid),
-          where("memberId", "==", selectedMemberId),
-          where("status", "==", "paid")
-      );
+    if (!firestore || !selectedMemberId || !user) return null;
+    return query(
+      collection(firestore, "payments"),
+      where("userId", "==", user.uid),
+      where("memberId", "==", selectedMemberId),
+      where("status", "==", "paid")
+    );
   }, [firestore, selectedMemberId, user]);
   const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
 
-  const selectedMember = useMemo(() => 
-    members.find(m => m.id === selectedMemberId), 
+  const selectedMember = useMemo(
+    () => members.find((m) => m.id === selectedMemberId),
     [members, selectedMemberId]
   );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) return;
+    if (!user || !firestore) return;
     setIsSubmitting(true);
-    
+
     try {
       const paymentsCollection = collection(firestore, "payments");
       const { invoiceNumber, ...rest } = values;
@@ -105,65 +119,77 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
         ...(invoiceNumber && { invoiceNumber }),
       };
 
-      addDoc(paymentsCollection, dataToSave)
-        .then(async () => {
-            if (selectedMember && plans && values.status === 'paid') {
-                const plan = plans.find(p => p.id === selectedMember.planId);
-                if (plan) {
-                    // Logic anchored to profile's joinDate
-                    const anchorDate = parseISO(selectedMember.joinDate);
-                    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-                    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+      // ✅ Await so errors propagate here, not silently
+      await addDoc(paymentsCollection, dataToSave);
 
-                    const paymentsInPeriod = memberPayments?.filter(p => {
-                        const pDate = parseISO(p.paymentDate);
-                        return pDate >= startOfDay(periodStart);
-                    }) || [];
-                    
-                    const existingPaidInPeriod = paymentsInPeriod.reduce((sum, p) => sum + p.amount, 0);
-                    const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+      // ---- Update membership expiry if paid ----
+      if (selectedMember && plans && values.status === 'paid') {
+        const plan = plans.find((p) => p.id === selectedMember.planId);
+        if (plan) {
+          const anchorDate = parseISO(selectedMember.joinDate);
+          const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+          const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-                    // Calculate extension based on payments for THIS anchored period
-                    const totalMonthsCovered = Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
+          const paymentsInPeriod =
+            memberPayments?.filter((p) => {
+              const pDate = parseISO(p.paymentDate);
+              return pDate >= startOfDay(periodStart);
+            }) || [];
 
-                    if (totalMonthsCovered > 0) {
-                        const memberRef = doc(firestore, "members", selectedMember.id);
-                        const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
+          const existingPaidInPeriod = paymentsInPeriod.reduce(
+            (sum, p) => sum + p.amount,
+            0
+          );
+          const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+          const totalMonthsCovered =
+            Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
 
-                        updateDoc(memberRef, {
-                            expiryDate: newExpiryDate,
-                            status: 'active',
-                            updatedAt: serverTimestamp()
-                        });
+          if (totalMonthsCovered > 0) {
+            const memberRef = doc(firestore, "members", selectedMember.id);
+            const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
 
-                        toast({
-                          title: "Membership Updated",
-                          description: `${selectedMember.name} is now active until ${format(parseISO(newExpiryDate), 'dd MMM yyyy')}.`,
-                        });
-                    }
-                }
-            }
+            await updateDoc(memberRef, {
+              expiryDate: newExpiryDate,
+              status: 'active',
+              updatedAt: serverTimestamp(),
+            });
+
             toast({
-                title: "Payment Recorded!",
-                description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
+              title: "Membership Updated",
+              description: `${selectedMember.name} is now active until ${format(
+                parseISO(newExpiryDate),
+                'dd MMM yyyy'
+              )}.`,
             });
-            form.reset();
-            setDialogOpen(false);
-        })
-        .catch(async (error) => {
-            const permissionError = new FirestorePermissionError({
-                path: paymentsCollection.path,
-                operation: 'create',
-                requestResourceData: dataToSave,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+          }
+        }
+      }
 
-    } catch (error) {
+      toast({
+        title: "Payment Recorded!",
+        description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
+      });
+
+      form.reset();
+      setDialogOpen(false);
+    } catch (error: any) {
       console.error("Error recording payment:", error);
+
+      if (error?.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+          path: 'payments',
+          operation: 'create',
+          requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to record payment",
+          description: error?.message ?? "Something went wrong. Please try again.",
+        });
+      }
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -177,14 +203,18 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
           render={({ field }) => (
             <FormItem>
               <FormLabel>Member</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!defaultMemberId}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                disabled={!!defaultMemberId}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a member" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {members.map(member => (
+                  {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name} (ID: {member.memberId})
                     </SelectItem>
@@ -197,17 +227,25 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
         />
 
         <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Amount (₹)</FormLabel>
-                    <FormControl>
-                        <Input type="number" placeholder="500" {...field} onChange={e => field.onChange(e.target.value === '' ? null : +e.target.value)} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )}
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount (₹)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="500"
+                  {...field}
+                  onChange={(e) =>
+                    field.onChange(e.target.value === '' ? null : +e.target.value)
+                  }
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
 
         <FormField
@@ -217,10 +255,7 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
             <FormItem>
               <FormLabel>Payment Date</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                />
+                <Input type="date" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -228,74 +263,74 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
         />
 
         <div className="grid grid-cols-2 gap-4">
-            <FormField
+          <FormField
             control={form.control}
             name="paymentMethod"
             render={({ field }) => (
-                <FormItem>
+              <FormItem>
                 <FormLabel>Method</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
+                  <FormControl>
                     <SelectTrigger>
-                        <SelectValue placeholder="Select method" />
+                      <SelectValue placeholder="Select method" />
                     </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="credit card">Credit Card</SelectItem>
-                        <SelectItem value="bank transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="upi">UPI</SelectItem>
-                    </SelectContent>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="credit card">Credit Card</SelectItem>
+                    <SelectItem value="bank transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                  </SelectContent>
                 </Select>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
+          />
 
-            <FormField
+          <FormField
             control={form.control}
             name="paymentType"
             render={({ field }) => (
-                <FormItem>
+              <FormItem>
                 <FormLabel>Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
+                  <FormControl>
                     <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select type" />
                     </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="renewal">Renewal</SelectItem>
-                        <SelectItem value="advance">Advance</SelectItem>
-                    </SelectContent>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="renewal">Renewal</SelectItem>
+                    <SelectItem value="advance">Advance</SelectItem>
+                  </SelectContent>
                 </Select>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
+          />
         </div>
-        
+
         <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select payment status" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="paid">Paid</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )}
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
         />
 
         <FormField
@@ -313,11 +348,13 @@ export default function RecordPaymentForm({ members, setDialogOpen, defaultMembe
         />
 
         <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                Record Payment
-            </Button>
+          <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+            Record Payment
+          </Button>
         </div>
       </form>
     </Form>

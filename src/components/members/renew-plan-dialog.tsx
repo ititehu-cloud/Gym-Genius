@@ -30,15 +30,15 @@ export default function RenewPlanDialog({ member }: RenewPlanDialogProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-        <DialogHeader className="p-6 bg-[#00695c] text-white">
+        <DialogHeader className="p-6 bg-primary text-primary-foreground">
           <DialogTitle className="text-xl font-bold flex items-center gap-3">
             Renew Plan
           </DialogTitle>
-          <DialogDescription className="text-white/70">
+          <DialogDescription className="text-primary-foreground/70">
             Set a new membership cycle and record payment for {member.name}.
           </DialogDescription>
         </DialogHeader>
-        <div className="bg-gray-50/30">
+        <div className="bg-muted/10">
             <RenewPlanForm member={member} setDialogOpen={setIsOpen} />
         </div>
       </DialogContent>

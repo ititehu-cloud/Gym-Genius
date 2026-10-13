@@ -151,14 +151,14 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="planId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Select Gym Plan</FormLabel>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Select Gym Plan</FormLabel>
                   <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00695c]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <ClipboardList className="h-5 w-5" />
                     </div>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus:ring-[#00695c]">
+                        <SelectTrigger className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus:ring-primary">
                           <SelectValue placeholder="Choose a plan" />
                         </SelectTrigger>
                       </FormControl>
@@ -184,13 +184,13 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="planStartDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Plan Start Date *</FormLabel>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Plan Start Date *</FormLabel>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00695c]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <Calendar className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input type="date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm" {...field} />
+                      <Input type="date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -205,11 +205,11 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               render={({ field }) => (
                 <FormItem>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00695c]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <Calendar className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input type="date" placeholder="Payment Date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm" {...field} />
+                      <Input type="date" placeholder="Payment Date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -224,11 +224,11 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               render={({ field }) => (
                 <FormItem>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00695c]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <Banknote className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input type="number" placeholder="Paid Amount" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm text-lg font-bold" {...field} />
+                      <Input type="number" placeholder="Paid Amount" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm text-lg font-bold text-primary focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -243,12 +243,12 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               render={({ field }) => (
                 <FormItem>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00695c]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <CreditCard className="h-5 w-5" />
                     </div>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm">
+                        <SelectTrigger className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus:ring-primary">
                           <SelectValue placeholder="Payment Method" />
                         </SelectTrigger>
                       </FormControl>
@@ -276,11 +276,11 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               render={({ field }) => (
                 <FormItem>
                   <div className="relative">
-                    <div className="absolute left-3 top-4 text-[#00695c]">
+                    <div className="absolute left-3 top-4 text-primary">
                       <MessageSquare className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input placeholder="Comments" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm" {...field} />
+                      <Input placeholder="Comments" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -291,18 +291,17 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
         </ScrollArea>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button 
+            <button 
                 type="button" 
-                variant="ghost" 
                 onClick={() => setDialogOpen(false)}
-                className="font-bold text-gray-500"
+                className="font-bold text-gray-500 mr-2"
             >
                 Cancel
-            </Button>
+            </button>
             <Button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="bg-[#00695c] hover:bg-[#004d40] text-white font-bold h-12 px-8 rounded-xl min-w-[140px] shadow-lg shadow-[#00695c]/20"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 px-8 rounded-xl min-w-[140px] shadow-lg shadow-primary/20"
             >
                 {isSubmitting ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "RENEW PLAN"}
             </Button>

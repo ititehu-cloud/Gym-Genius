@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import type { Member, Plan, Payment, MemberNote } from "@/lib/types";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
@@ -16,8 +16,8 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { CreditCard, User, LoaderCircle, NotebookPen, Calendar, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { CreditCard, User, LoaderCircle, NotebookPen, Calendar, Plus, Trash2, Tags, Banknote } from "lucide-react";
+import { useState, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
@@ -64,6 +64,23 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
   }, [firestore, user, member.id, isOpen]);
 
   const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
+
+  // Calculate Total Collection for the current cycle
+  const totalPaidInPeriod = useMemo(() => {
+    if (!payments) return 0;
+    
+    const anchorDate = parseISO(member.joinDate);
+    const expiryDate = parseISO(member.expiryDate);
+    
+    const periodPayments = payments.filter(p => {
+        const pDate = parseISO(p.paymentDate);
+        return p.status === 'paid' && 
+               pDate >= startOfDay(anchorDate) && 
+               pDate <= endOfDay(expiryDate);
+    });
+
+    return periodPayments.reduce((acc, p) => acc + p.amount, 0);
+  }, [member.joinDate, member.expiryDate, payments]);
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,6 +196,32 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                         <div className="p-3 bg-muted/40 rounded-lg space-y-1">
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase">Home Address</p>
                                             <p className="font-medium text-sm leading-relaxed">{member.address}</p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="space-y-4">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary border-l-4 border-primary pl-3">
+                                        Membership Details
+                                    </h3>
+                                    <div className="grid gap-3">
+                                        <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <Tags className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Plan</p>
+                                                <p className="font-black text-primary">{plan?.name || 'No Active Plan'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-green-50 border border-green-100 rounded-lg flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <Banknote className="h-5 w-5 text-green-600" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] font-bold text-green-600/70 uppercase">Total Collection (Cycle)</p>
+                                                <p className="font-black text-green-600 text-lg">₹{totalPaidInPeriod.toLocaleString()}</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>

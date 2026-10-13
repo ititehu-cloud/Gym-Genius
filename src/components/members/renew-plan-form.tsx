@@ -142,9 +142,9 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
-        <ScrollArea className="max-h-[70vh] pr-4">
-          <div className="space-y-5">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+        <ScrollArea className="flex-1 max-h-[60vh] sm:max-h-[500px]">
+          <div className="p-6 space-y-5">
             <FormField
               control={form.control}
               name="planId"
@@ -288,7 +288,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+        <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-100 bg-white shrink-0">
             <button 
                 type="button" 
                 onClick={() => setDialogOpen(false)}

@@ -6,15 +6,15 @@ import type { Member, Plan, Attendance, Payment } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { PhoneCall, Fingerprint, LoaderCircle, User, CreditCard, IdCard } from 'lucide-react';
+import { PhoneCall, LoaderCircle, CreditCard, IdCard, CalendarSync } from 'lucide-react';
 import { useRef, useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import EditMemberDialog from './edit-member-dialog';
 import DeleteMemberDialog from './delete-member-dialog';
 import MemberDetailsDialog from './member-details-dialog';
-import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { uploadImage } from '@/app/actions';
 import {
   Dialog,
@@ -30,6 +30,7 @@ import {
 import { Separator } from '../ui/separator';
 import { WhatsAppIcon } from '../icons/whatsapp-icon';
 import WhatsAppMessageDialog from './whatsapp-message-dialog';
+import RenewPlanDialog from './renew-plan-dialog';
 
 type MemberCardProps = {
   member: Member;
@@ -43,19 +44,16 @@ type MemberCardProps = {
   payments: Payment[];
 };
 
-export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, gymPhone, attendanceRecord, allMembers, payments }: MemberCardProps) {
+export default function MemberCard({ member, plan, gymName, gymAddress, gymIconUrl, gymPhone, allMembers, payments }: MemberCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const [isPaymentOpen, setPaymentOpen] = useState(false);
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [isWhatsAppDialogOpen, setWhatsAppDialogOpen] = useState(false);
   const [isImageZoomOpen, setImageZoomOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
   
-  // Earliest activity for display on ID card
   const earliestJoinDate = useMemo(() => {
     const storedJoinDate = parseISO(member.joinDate);
     if (!payments || payments.length === 0) return storedJoinDate;
@@ -68,29 +66,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     return earliestPaymentDate;
   }, [payments, member.joinDate]);
 
-  const getStatus = (): Member['status'] => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expiry = parseISO(member.expiryDate);
-    if (expiry < today) {
-      return 'expired';
-    }
-    return member.status;
-  }
-
-  const status = getStatus();
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
   const dueAmount = useMemo(() => {
     if (!plan) return 0;
-    
-    // Anchor to the current join date (which is editable in profile)
     const anchorDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
-    
-    // We look for payments intended for THIS period.
-    // We use a lead time (15 days) to catch advance payments for this cycle.
     const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
     const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
@@ -107,7 +89,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   const handleShareId = async () => {
     if (isSharing) return;
-
     if (!hasPhone) {
       toast({
         variant: 'destructive',
@@ -116,57 +97,42 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
       });
       return;
     }
-
     setIsSharing(true);
-
     try {
       const expiryStr = format(parseISO(member.expiryDate), 'dd MMM yyyy');
       const joinStr = format(earliestJoinDate, 'dd MMM yyyy');
       let sharedUrl = member.idCardUrl;
 
-      // If missing, generate it now
       if (!sharedUrl) {
         toast({ title: "Sharing...", description: "Generating digital ID link..." });
-        
         const elementToCapture = cardRef.current;
         if (!elementToCapture) throw new Error("Capture target missing");
-
         await new Promise(resolve => setTimeout(resolve, 1000));
-
         const canvas = await html2canvas(elementToCapture, {
           useCORS: true,
           scale: 3,
           backgroundColor: '#ffffff',
           logging: false,
         });
-
         const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
         if (!blob) throw new Error("Image creation failed");
-
         const file = new File([blob], `${member.name}_id.png`, { type: 'image/png' });
         const formData = new FormData();
         formData.append('image', file);
-        
         const uploadResult = await uploadImage(formData);
         if (!uploadResult.url) throw new Error("Upload failed");
-        
         sharedUrl = uploadResult.url;
         updateDoc(doc(firestore, "members", member.id), { idCardUrl: sharedUrl });
       }
 
-      // Build WhatsApp message
       const message = `🏋️ ${gymName || 'Gym'} ID Card\n\n👤 Name: ${member.name.toUpperCase()}\n🆔 Member Id: ${member.memberId}\n📅 Joined: ${joinStr}\n📅 Expiry: ${expiryStr}\n\n🔗 View Card: ${sharedUrl}`;
       const encodedMsg = encodeURIComponent(message);
-
-      // Clean phone number
       let sanitizedPhone = member.mobileNumber!.replace(/\D/g, '');
       if (sanitizedPhone.startsWith('0')) sanitizedPhone = sanitizedPhone.substring(1);
       if (sanitizedPhone.length === 10) sanitizedPhone = `91${sanitizedPhone}`;
 
-      // Determine platform
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      
       let whatsappUrl;
       if (isIOS) {
         whatsappUrl = `whatsapp://send?phone=${sanitizedPhone}&text=${encodedMsg}`;
@@ -176,7 +142,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         whatsappUrl = `https://web.whatsapp.com/send?phone=${sanitizedPhone}&text=${encodedMsg}`;
       }
 
-      // Open WhatsApp directly
       if (isIOS) {
         window.location.href = whatsappUrl;
         setTimeout(() => {
@@ -190,12 +155,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
           window.location.href = `https://wa.me/${sanitizedPhone}?text=${encodedMsg}`;
         }
       }
-
-      toast({ 
-        title: "Opening WhatsApp...", 
-        description: "Your ID card will be sent to the member." 
-      });
-
+      toast({ title: "Opening WhatsApp...", description: "Your ID card will be sent to the member." });
     } catch (error) {
       console.error("Share error:", error);
       toast({ variant: "destructive", title: "Error", description: "Sharing failed. Please check your connection." });
@@ -204,40 +164,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
     }
   };
 
-  const handleCheckIn = async () => {
-    if (!user) return;
-    setIsAttendanceLoading(true);
-    try {
-      await addDoc(collection(firestore, "attendance"), {
-        userId: user.uid,
-        memberId: member.id,
-        checkInTime: new Date().toISOString(),
-        createdAt: serverTimestamp()
-      });
-      toast({ title: "Checked In!", description: `${member.name} marked present.` });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Check-in failed." });
-    } finally {
-      setIsAttendanceLoading(false);
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!attendanceRecord) return;
-    setIsAttendanceLoading(true);
-    try {
-      await updateDoc(doc(firestore, "attendance", attendanceRecord.id), {
-        checkOutTime: new Date().toISOString()
-      });
-      toast({ title: "Checked Out!", description: `${member.name} marked out.` });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Check-out failed." });
-    } finally {
-      setIsAttendanceLoading(false);
-    }
-  };
-
-  const isCheckedIn = attendanceRecord && !attendanceRecord.checkOutTime;
   const displayGymName = (gymName || 'Gym Name').replace(/ /g, '\u00a0');
 
   return (
@@ -337,15 +263,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
             <span className="text-[9px] font-bold uppercase tracking-tighter">Whatsapp</span>
           </Button>
 
-          <Button 
-            variant="ghost" 
-            className="flex flex-col gap-1 h-full rounded-none hover:bg-muted/30 text-muted-foreground"
-            onClick={() => isCheckedIn ? handleCheckOut() : handleCheckIn()}
-            disabled={isAttendanceLoading || !!attendanceRecord?.checkOutTime}
-          >
-            {isAttendanceLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Fingerprint className={`h-5 w-5 ${isCheckedIn ? 'text-orange-600' : 'text-foreground'}`} />}
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Attendance</span>
-          </Button>
+          <RenewPlanDialog member={member} />
 
           <Button 
             variant="ghost" 
@@ -408,7 +326,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
         </DialogContent>
       </Dialog>
 
-      {/* HIDDEN capture area */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <div ref={cardRef} style={{ padding: '60px', backgroundColor: '#ffffff' }}>
             <div style={{ 
@@ -420,7 +337,6 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
               border: '2px solid #e2e8f0',
               boxShadow: '0 20px 50px rgba(0,0,0,0.15)'
             }}>
-              {/* Header - Centered Branding */}
               <div style={{ backgroundColor: '#1e8177', padding: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
                   {gymIconUrl && (
                     <div style={{ width: '110px', height: '110px', backgroundColor: '#ffffff', borderRadius: '28px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
@@ -433,45 +349,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                       {gymPhone && <p style={{ fontSize: '22px', fontWeight: '800', color: '#ffffff', margin: '8px 0 0' }}>{gymPhone}</p>}
                   </div>
               </div>
-
-              {/* Member Section */}
               <div style={{ padding: '45px 50px', display: 'flex', alignItems: 'center', gap: '40px', backgroundColor: '#ffffff' }}>
                   <div style={{ width: '160px', height: '160px', borderRadius: '50%', border: '8px solid #1e8177', overflow: 'hidden', flexShrink: 0, boxShadow: '0 10px 20px rgba(0,0,0,0.05)', position: 'relative', backgroundColor: '#f1f5f9' }}>
-                      <img 
-                        src={member.imageUrl} 
-                        alt={member.name} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0
-                        }} 
-                        crossOrigin="anonymous" 
-                      />
+                      <img src={member.imageUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} crossOrigin="anonymous" />
                   </div>
                   <div style={{ flexGrow: 1 }}>
                       <h3 style={{ fontSize: '52px', fontWeight: '950', color: '#0f172a', margin: '0', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '-1.5px' }}>{member.name}</h3>
                       <p style={{ fontSize: '32px', color: '#64748b', fontWeight: '800', margin: '0', letterSpacing: '-0.5px' }}>ID: {member.memberId}</p>
                   </div>
               </div>
-
-              {/* Details Section */}
               <div style={{ padding: '0 50px 50px', backgroundColor: '#ffffff' }}>
                   <div style={{ height: '2px', backgroundColor: '#f1f5f9', width: '100%', marginBottom: '40px' }} />
-                  
                   <div style={{ display: 'flex', gap: '20px' }}>
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>PLAN</span>
                         <span style={{ fontSize: '28px', fontWeight: '900', color: '#1e293b' }}>{planName}</span>
                     </div>
-
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>JOINED</span>
                         <p style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a', margin: '0' }}>{format(earliestJoinDate, 'dd MMM yyyy')}</p>
                     </div>
-
                     <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '18px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>EXPIRY</span>
                         <p style={{ fontSize: '28px', fontWeight: '900', color: '#dc2626', margin: '0' }}>{format(parseISO(member.expiryDate), 'dd MMM yyyy')}</p>

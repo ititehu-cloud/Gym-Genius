@@ -1,6 +1,7 @@
+
 'use client';
 
-import { format, isSameDay, parseISO, startOfDay, addDays, endOfDay, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
+import { format, isSameDay, parseISO, startOfDay, addDays, endOfDay, differenceInMonths, isSameMonth } from "date-fns";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
@@ -94,24 +95,25 @@ export default function DashboardPage() {
     
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    // Dynamic Due calculation logic based on total collection for current cycle
+    // Balance-Forward Due calculation logic
     const calculateMemberDue = (member: Member) => {
         const plan = planMap.get(member.planId);
         if (!plan) return 0;
         
         const anchorDate = parseISO(member.joinDate);
-        const expiryDate = parseISO(member.expiryDate);
+        
+        // Calculate cycles elapsed (e.g., if plan is 1 month and they joined 35 days ago, they are in cycle 2)
+        const totalMonthsElapsed = differenceInMonths(today, anchorDate);
+        const cyclesElapsed = Math.max(1, Math.floor(totalMonthsElapsed / plan.duration) + 1);
+        
+        const totalOwed = cyclesElapsed * plan.price;
 
-        // Sum all paid payments for this member within their current membership cycle
-        const cyclePayments = paidPayments.filter(p => {
-            const pDate = parseISO(p.paymentDate);
-            return p.memberId === member.id &&
-                   pDate >= startOfDay(anchorDate) && 
-                   pDate <= endOfDay(expiryDate);
-        });
+        // Sum all paid payments for this member since their joining date
+        const memberTotalPaid = paidPayments
+            .filter(p => p.memberId === member.id && parseISO(p.paymentDate) >= startOfDay(anchorDate))
+            .reduce((acc, p) => acc + p.amount, 0);
 
-        const totalPaidInCycle = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaidInCycle);
+        return Math.max(0, totalOwed - memberTotalPaid);
     };
 
     // Monthly Due: Sum of current period outstanding balances for active members

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -11,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import type { Member, Payment, Plan, Attendance, UserProfile } from '@/lib/types';
-import { parseISO, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -107,21 +108,19 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     const calculateDueAmount = (member: Member, plan: Plan | undefined) => {
         if (!plan) return 0;
         
-        // Consistent cycle logic anchored to profile's joinDate
         const anchorDate = parseISO(member.joinDate);
-        const expiryDate = parseISO(member.expiryDate);
+        const today = new Date();
 
-        // Filter collections within this specific billing period
-        const periodPayments = payments.filter(p => p.memberId === member.id);
-        const cyclePayments = periodPayments.filter(p => {
-            const pDate = parseISO(p.paymentDate);
-            return pDate >= startOfDay(anchorDate) && 
-                   pDate <= endOfDay(expiryDate) && 
-                   p.status === 'paid';
-        });
+        // Cycles elapsed
+        const totalMonthsSinceAnchor = differenceInMonths(today, anchorDate);
+        const cyclesElapsed = Math.max(1, Math.floor(totalMonthsSinceAnchor / plan.duration) + 1);
+        const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
-        const totalPaidInPeriod = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaidInPeriod);
+        const paymentsSinceAnchor = payments
+            .filter(p => p.memberId === member.id && p.status === 'paid' && parseISO(p.paymentDate) >= startOfDay(anchorDate))
+            .reduce((acc, p) => acc + p.amount, 0);
+
+        return Math.max(0, totalOwedSinceAnchor - paymentsSinceAnchor);
     };
 
     const renderContent = () => {

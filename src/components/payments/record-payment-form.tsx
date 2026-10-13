@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoaderCircle } from "lucide-react";
-import { format, addMonths, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format, addMonths, parseISO, startOfDay, endOfDay, differenceInMonths } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import {
   collection,
@@ -121,28 +122,26 @@ export default function RecordPaymentForm({
 
       await addDoc(paymentsCollection, dataToSave);
 
-      // ---- Update membership status if fully paid based on total collection ----
+      // ---- Update membership status if fully paid based on Ledger ----
       if (selectedMember && plans && values.status === 'paid') {
         const plan = plans.find((p) => p.id === selectedMember.planId);
         if (plan) {
           const anchorDate = parseISO(selectedMember.joinDate);
-          const expiryDate = parseISO(selectedMember.expiryDate);
+          const today = new Date();
 
-          const paymentsInPeriod =
-            memberPayments?.filter((p) => {
-              const pDate = parseISO(p.paymentDate);
-              return pDate >= startOfDay(anchorDate) && pDate <= endOfDay(expiryDate);
-            }) || [];
+          // Ledger Due Calculation
+          const totalMonthsSinceAnchor = differenceInMonths(today, anchorDate);
+          const cyclesElapsed = Math.max(1, Math.floor(totalMonthsSinceAnchor / plan.duration) + 1);
+          const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
-          const existingPaidInPeriod = paymentsInPeriod.reduce(
-            (sum, p) => sum + p.amount,
-            0
-          );
+          const existingPaidSinceAnchor = memberPayments
+              ?.filter((p) => parseISO(p.paymentDate) >= startOfDay(anchorDate))
+              .reduce((sum, p) => sum + p.amount, 0) || 0;
           
-          const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+          const totalAfterNewPayment = existingPaidSinceAnchor + values.amount;
 
-          // If total collection meets or exceeds plan price, ensure member is active
-          if (totalAfterNewPayment >= plan.price) {
+          // If total collection meets or exceeds the required debt, ensure member is active
+          if (totalAfterNewPayment >= totalOwedSinceAnchor) {
             const memberRef = doc(firestore, "members", selectedMember.id);
             await updateDoc(memberRef, {
               status: 'active',
@@ -151,7 +150,7 @@ export default function RecordPaymentForm({
 
             toast({
               title: "Payment Complete",
-              description: `${selectedMember.name}'s balance for this cycle is cleared. Status: ACTIVE.`,
+              description: `${selectedMember.name}'s balance for the current period is cleared. Status: ACTIVE.`,
             });
           }
         }

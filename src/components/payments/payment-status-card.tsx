@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Member, Payment, Plan } from '@/lib/types';
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, LoaderCircle, History, Printer, CreditCard, IdCard, PhoneCall } from 'lucide-react';
-import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, isSameDay, isSameMonth, startOfMonth, endOfMonth, startOfDay, endOfDay, differenceInMonths } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import RecordPaymentForm from './record-payment-form';
 import DeleteMemberPaymentDialog from './delete-member-payment-dialog';
@@ -48,30 +49,30 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
-    // Calculate Lifetime Total and Cycle-Specific Due
+    // Calculate Lifetime Total and Balance-Forward Due
     const { lifetimeTotalPaid, dueForPeriod } = useMemo(() => {
-        // 1. Lifetime Total (All paid payments)
+        const today = new Date();
+        const anchorDate = parseISO(member.joinDate);
+
+        // 1. Lifetime Total (All paid payments ever)
         const lifetimeTotal = payments
             .filter(p => p.status === 'paid')
             .reduce((acc, p) => acc + p.amount, 0);
 
-        // 2. Cycle-Specific Due
-        const anchorDate = parseISO(member.joinDate);
+        // 2. Ledger Due (Owed since anchor - Paid since anchor)
+        const totalMonthsSinceAnchor = differenceInMonths(today, anchorDate);
+        const cyclesElapsed = Math.max(1, Math.floor(totalMonthsSinceAnchor / plan.duration) + 1);
+        const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
-        const currentCyclePayments = payments.filter(p => {
-            const pDate = parseISO(p.paymentDate);
-            return p.status === 'paid' && 
-                   pDate >= startOfDay(anchorDate) && 
-                   pDate <= endOfDay(memberExpiryDate);
-        });
-
-        const cyclePaid = currentCyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        const paymentsSinceAnchor = payments
+            .filter(p => p.status === 'paid' && parseISO(p.paymentDate) >= startOfDay(anchorDate))
+            .reduce((acc, p) => acc + p.amount, 0);
         
         return {
             lifetimeTotalPaid: lifetimeTotal,
-            dueForPeriod: Math.max(0, plan.price - cyclePaid)
+            dueForPeriod: Math.max(0, totalOwedSinceAnchor - paymentsSinceAnchor)
         };
-    }, [payments, member.joinDate, member.expiryDate, plan.price, memberExpiryDate]);
+    }, [payments, member.joinDate, plan]);
 
     const filteredHistory = useMemo(() => {
         let history = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());

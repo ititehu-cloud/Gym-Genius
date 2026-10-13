@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Member, Plan, Attendance, Payment } from "@/lib/types";
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, differenceInMonths } from 'date-fns';
 import { PhoneCall, LoaderCircle, CreditCard, IdCard, CalendarSync } from 'lucide-react';
 import { useRef, useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
@@ -70,31 +71,31 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
   const { lifetimeTotalPaid, dueAmount } = useMemo(() => {
+    const today = new Date();
     // 1. Calculate Lifetime Total (All paid payments ever)
     const totalPaid = payments
       .filter(p => p.status === 'paid')
       .reduce((acc, p) => acc + p.amount, 0);
 
-    // 2. Calculate Due for Current Cycle only
+    // 2. Calculate Due based on Ledger (Cycles since JoinDate - Payments since JoinDate)
     if (!plan) return { lifetimeTotalPaid: totalPaid, dueAmount: 0 };
     
     const anchorDate = parseISO(member.joinDate);
-    const expiryDate = parseISO(member.expiryDate);
     
-    const currentCyclePayments = payments.filter(p => {
-        const pDate = parseISO(p.paymentDate);
-        return pDate >= startOfDay(anchorDate) && 
-               pDate <= endOfDay(expiryDate) && 
-               p.status === 'paid';
-    });
+    // Total cycles elapsed since joinDate
+    const monthsSinceJoin = differenceInMonths(today, anchorDate);
+    const cyclesElapsed = Math.max(1, Math.floor(monthsSinceJoin / plan.duration) + 1);
+    const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
-    const cycleSum = currentCyclePayments.reduce((acc, p) => acc + p.amount, 0);
+    const paymentsSinceAnchor = payments
+        .filter(p => p.status === 'paid' && parseISO(p.paymentDate) >= startOfDay(anchorDate))
+        .reduce((acc, p) => acc + p.amount, 0);
     
     return {
         lifetimeTotalPaid: totalPaid,
-        dueAmount: Math.max(0, plan.price - cycleSum)
+        dueAmount: Math.max(0, totalOwedSinceAnchor - paymentsSinceAnchor)
     };
-  }, [member.joinDate, member.expiryDate, plan, payments]);
+  }, [member.joinDate, plan, payments]);
 
   const handleShareId = async () => {
     if (isSharing) return;

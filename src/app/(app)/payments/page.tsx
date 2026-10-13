@@ -1,3 +1,4 @@
+
 'use client';
 
 import { LoaderCircle, AlertTriangle } from "lucide-react";
@@ -8,7 +9,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { parseISO, format, isSameDay, startOfDay, endOfDay } from "date-fns";
+import { parseISO, format, isSameDay, startOfDay, endOfDay, differenceInMonths } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -106,43 +107,37 @@ function PaymentsList() {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
     }
     
-    if (selectedMonth) {
-        const monthDate = new Date(selectedMonth + "-01T00:00:00");
-        if (!isNaN(monthDate.getTime())) {
-            tempMembers = tempMembers.filter(member => {
-                const memberPlan = planMap.get(member.planId);
-                if (!memberPlan) return false;
+    if (selectedMonth || statusFilter !== 'all') {
+        tempMembers = tempMembers.filter(member => {
+            const memberPlan = planMap.get(member.planId);
+            if (!memberPlan) return false;
 
-                const memberPayments = paymentsByMember.get(member.id) || [];
-                
-                const anchorDate = parseISO(member.joinDate);
-                const expiryDate = parseISO(member.expiryDate);
-                const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-                const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+            const memberPayments = paymentsByMember.get(member.id) || [];
+            const anchorDate = parseISO(member.joinDate);
+            
+            // Ledger Due Calculation
+            const totalMonthsSinceAnchor = differenceInMonths(today, anchorDate);
+            const cyclesElapsed = Math.max(1, Math.floor(totalMonthsSinceAnchor / memberPlan.duration) + 1);
+            const totalOwedSinceAnchor = cyclesElapsed * memberPlan.price;
 
-                const paymentsForCycle = memberPayments.filter(p => {
-                    const pDate = parseISO(p.paymentDate);
-                    return p.status === 'paid' && 
-                           pDate >= startOfDay(periodStart) && 
-                           pDate <= endOfDay(expiryDate);
-                });
+            const paymentsSinceAnchor = memberPayments
+                .filter(p => p.status === 'paid' && parseISO(p.paymentDate) >= startOfDay(anchorDate))
+                .reduce((acc, p) => acc + p.amount, 0);
 
-                const totalPaidForCycle = paymentsForCycle.reduce((acc, p) => acc + p.amount, 0);
-                const dueForCycle = Math.max(0, memberPlan.price - totalPaidForCycle);
-                
-                if (statusFilter === 'unpaid') {
-                    return totalPaidForCycle <= 0.01;
-                } else if (statusFilter === 'paid') {
-                    return dueForCycle <= 0.01;
-                } else if (statusFilter === 'part_paid') {
-                    return totalPaidForCycle > 0.01 && dueForCycle > 0.01;
-                } else if (statusFilter === 'due') {
-                    return dueForCycle > 0.01;
-                }
-                
-                return true;
-            });
-        }
+            const dueForCycle = Math.max(0, totalOwedSinceAnchor - paymentsSinceAnchor);
+            
+            if (statusFilter === 'unpaid') {
+                return paymentsSinceAnchor <= 0.01;
+            } else if (statusFilter === 'paid') {
+                return dueForCycle <= 0.01;
+            } else if (statusFilter === 'part_paid') {
+                return paymentsSinceAnchor > 0.01 && dueForCycle > 0.01;
+            } else if (statusFilter === 'due') {
+                return dueForCycle > 0.01;
+            }
+            
+            return true;
+        });
     } else if (dateFilter === 'today') {
         const todayDate = new Date();
         tempMembers = tempMembers.filter(member => {

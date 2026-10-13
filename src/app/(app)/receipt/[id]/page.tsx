@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, use, useState, useRef } from "react";
@@ -11,7 +12,7 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { uploadImage } from "@/app/actions";
-import { parseISO, startOfDay, endOfDay } from "date-fns";
+import { parseISO, startOfDay, endOfDay, differenceInMonths } from "date-fns";
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -58,20 +59,19 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   const dueAmount = useMemo(() => {
     if (!member || !plan || !memberPayments) return 0;
     
-    // Consistent Due logic anchored to profile's joinDate
+    const today = new Date();
     const anchorDate = parseISO(member.joinDate);
-    const expiryDate = parseISO(member.expiryDate);
-    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+    
+    // Ledger Due Calculation
+    const totalMonthsSinceAnchor = differenceInMonths(today, anchorDate);
+    const cyclesElapsed = Math.max(1, Math.floor(totalMonthsSinceAnchor / plan.duration) + 1);
+    const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
-    const periodPayments = memberPayments.filter(p => {
-        const pDate = parseISO(p.paymentDate);
-        return pDate >= startOfDay(periodStart) && 
-               pDate <= endOfDay(expiryDate);
-    });
+    const paymentsSinceAnchor = memberPayments
+        .filter(p => parseISO(p.paymentDate) >= startOfDay(anchorDate))
+        .reduce((acc, p) => acc + p.amount, 0);
 
-    const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
-    return Math.max(0, plan.price - totalPaidInPeriod);
+    return Math.max(0, totalOwedSinceAnchor - paymentsSinceAnchor);
   }, [member, plan, memberPayments]);
 
   const currentPaymentList = useMemo(() => {

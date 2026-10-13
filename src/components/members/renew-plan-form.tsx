@@ -73,7 +73,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
   const selectedPlan = useMemo(() => plans?.find(p => p.id === watchedPlanId), [plans, watchedPlanId]);
   const dueAmount = useMemo(() => (selectedPlan?.price || 0) - watchedPaidAmount, [selectedPlan, watchedPaidAmount]);
 
-  // Pre-fill amount when plan changes
   useEffect(() => {
     if (selectedPlan) {
       form.setValue('paidAmount', selectedPlan.price);
@@ -85,15 +84,16 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
     setIsSubmitting(true);
     
     try {
+      // Calculate Expiry EXACTLY from the selected Plan Start Date
       const startDate = new Date(values.planStartDate + 'T00:00:00');
       const newExpiryDate = addMonths(startDate, selectedPlan.duration);
 
-      // 1. Update Member Profile (Anchoring the cycle)
+      // 1. Update Member Profile
       const memberDocRef = doc(firestore, "members", member.id);
       await updateDoc(memberDocRef, {
         planId: values.planId,
-        joinDate: startDate.toISOString(),
-        expiryDate: newExpiryDate.toISOString(),
+        joinDate: startDate.toISOString(), // Cycle Start
+        expiryDate: newExpiryDate.toISOString(), // Calculated from Start Date
         status: 'active',
         updatedAt: serverTimestamp()
       });
@@ -125,7 +125,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
 
       toast({
         title: "Plan Renewed!",
-        description: `${member.name}'s membership has been successfully updated.`,
+        description: `${member.name}'s membership is now valid until ${format(newExpiryDate, 'dd MMM yyyy')}.`,
       });
       setDialogOpen(false);
     } catch (error) {
@@ -133,7 +133,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
       toast({
         variant: "destructive",
         title: "Renewal Failed",
-        description: "An error occurred while updating the plan. Please try again.",
+        description: "An error occurred while updating the plan.",
       });
     } finally {
         setIsSubmitting(false);
@@ -145,7 +145,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
       <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
         <ScrollArea className="max-h-[70vh] pr-4">
           <div className="space-y-5">
-            {/* Select Gym Plan */}
             <FormField
               control={form.control}
               name="planId"
@@ -164,7 +163,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                       </FormControl>
                       <SelectContent>
                         {plans?.map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name} ({p.price})</SelectItem>
+                          <SelectItem key={p.id} value={p.id}>{p.name} (₹{p.price})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -178,7 +177,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                 Plan Amount: ₹{selectedPlan?.price || 0}
             </div>
 
-            {/* Plan Start Date */}
             <FormField
               control={form.control}
               name="planStartDate"
@@ -198,7 +196,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               )}
             />
 
-            {/* Payment Date */}
             <FormField
               control={form.control}
               name="paymentDate"
@@ -210,7 +207,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                       <Calendar className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input type="date" placeholder="Payment Date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
+                      <Input type="date" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -218,7 +215,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               )}
             />
 
-            {/* Paid Amount */}
             <FormField
               control={form.control}
               name="paidAmount"
@@ -230,7 +226,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                       <Banknote className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input type="number" placeholder="Paid Amount" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm text-lg font-bold text-primary focus-visible:ring-primary" {...field} />
+                      <Input type="number" placeholder="0" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm text-lg font-bold text-primary focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -238,7 +234,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               )}
             />
 
-            {/* Payment Method */}
             <FormField
               control={form.control}
               name="paymentMethod"
@@ -272,7 +267,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                 Due Amount: ₹{dueAmount}
             </div>
 
-            {/* Comments */}
             <FormField
               control={form.control}
               name="comments"
@@ -284,7 +278,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
                       <MessageSquare className="h-5 w-5" />
                     </div>
                     <FormControl>
-                      <Input placeholder="Comments" className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
+                      <Input placeholder="Optional comments..." className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus-visible:ring-primary" {...field} />
                     </FormControl>
                   </div>
                   <FormMessage />
@@ -314,4 +308,3 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
     </Form>
   );
 }
-

@@ -101,85 +101,97 @@ export default function RecordPaymentForm({
     [members, selectedMemberId]
   );
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !firestore) return;
     setIsSubmitting(true);
 
-    const paymentsCollection = collection(firestore, "payments");
-    const { invoiceNumber, ...rest } = values;
-    const paymentDateISO = new Date(values.paymentDate + 'T00:00:00').toISOString();
+    try {
+      const paymentsCollection = collection(firestore, "payments");
+      const { invoiceNumber, ...rest } = values;
 
-    const dataToSave = {
-      ...rest,
-      userId: user.uid,
-      paymentDate: paymentDateISO,
-      createdAt: serverTimestamp(),
-      ...(invoiceNumber && { invoiceNumber }),
-    };
+      const paymentDateISO = new Date(values.paymentDate + 'T00:00:00').toISOString();
 
-    addDoc(paymentsCollection, dataToSave)
-      .then(async () => {
-        if (selectedMember && plans && values.status === 'paid') {
-          const plan = plans.find((p) => p.id === selectedMember.planId);
-          if (plan) {
-            const anchorDate = parseISO(selectedMember.joinDate);
-            const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-            const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+      const dataToSave = {
+        ...rest,
+        userId: user.uid,
+        paymentDate: paymentDateISO,
+        createdAt: serverTimestamp(),
+        ...(invoiceNumber && { invoiceNumber }),
+      };
 
-            const paymentsInPeriod =
-              memberPayments?.filter((p) => {
-                const pDate = parseISO(p.paymentDate);
-                return pDate >= startOfDay(periodStart);
-              }) || [];
+      // ✅ Await so errors propagate here, not silently
+      await addDoc(paymentsCollection, dataToSave);
 
-            const existingPaidInPeriod = paymentsInPeriod.reduce(
-              (sum, p) => sum + p.amount,
-              0
-            );
-            const totalAfterNewPayment = existingPaidInPeriod + values.amount;
-            const totalMonthsCovered =
-              Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
+      // ---- Update membership expiry if paid ----
+      if (selectedMember && plans && values.status === 'paid') {
+        const plan = plans.find((p) => p.id === selectedMember.planId);
+        if (plan) {
+          const anchorDate = parseISO(selectedMember.joinDate);
+          const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+          const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-            if (totalMonthsCovered > 0) {
-              const memberRef = doc(firestore, "members", selectedMember.id);
-              const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
+          const paymentsInPeriod =
+            memberPayments?.filter((p) => {
+              const pDate = parseISO(p.paymentDate);
+              return pDate >= startOfDay(periodStart);
+            }) || [];
 
-              updateDoc(memberRef, {
-                expiryDate: newExpiryDate,
-                status: 'active',
-                updatedAt: serverTimestamp(),
-              });
+          const existingPaidInPeriod = paymentsInPeriod.reduce(
+            (sum, p) => sum + p.amount,
+            0
+          );
+          const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+          const totalMonthsCovered =
+            Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
 
-              toast({
-                title: "Membership Updated",
-                description: `${selectedMember.name} is now active until ${format(
-                  parseISO(newExpiryDate),
-                  'dd MMM yyyy'
-                )}.`,
-              });
-            }
+          if (totalMonthsCovered > 0) {
+            const memberRef = doc(firestore, "members", selectedMember.id);
+            const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
+
+            await updateDoc(memberRef, {
+              expiryDate: newExpiryDate,
+              status: 'active',
+              updatedAt: serverTimestamp(),
+            });
+
+            toast({
+              title: "Membership Updated",
+              description: `${selectedMember.name} is now active until ${format(
+                parseISO(newExpiryDate),
+                'dd MMM yyyy'
+              )}.`,
+            });
           }
         }
+      }
 
-        toast({
-          title: "Payment Recorded!",
-          description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
-        });
+      toast({
+        title: "Payment Recorded!",
+        description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
+      });
 
-        form.reset();
-        setDialogOpen(false);
-      })
-      .catch(async (serverError) => {
+      form.reset();
+      setDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error recording payment:", error);
+
+      if (error?.code === 'permission-denied') {
         const permissionError = new FirestorePermissionError({
-          path: paymentsCollection.path,
+          path: 'payments',
           operation: 'create',
-          requestResourceData: dataToSave,
+          requestResourceData: values,
         });
         errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to record payment",
+          description: error?.message ?? "Something went wrong. Please try again.",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (

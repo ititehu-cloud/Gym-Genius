@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -101,97 +102,86 @@ export default function RecordPaymentForm({
     [members, selectedMemberId]
   );
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !firestore) return;
     setIsSubmitting(true);
 
-    try {
-      const paymentsCollection = collection(firestore, "payments");
-      const { invoiceNumber, ...rest } = values;
+    const paymentsCollection = collection(firestore, "payments");
+    const { invoiceNumber, ...rest } = values;
+    const paymentDateISO = new Date(values.paymentDate + 'T00:00:00').toISOString();
 
-      const paymentDateISO = new Date(values.paymentDate + 'T00:00:00').toISOString();
+    const dataToSave = {
+      ...rest,
+      userId: user.uid,
+      paymentDate: paymentDateISO,
+      createdAt: serverTimestamp(),
+      ...(invoiceNumber && { invoiceNumber }),
+    };
 
-      const dataToSave = {
-        ...rest,
-        userId: user.uid,
-        paymentDate: paymentDateISO,
-        createdAt: serverTimestamp(),
-        ...(invoiceNumber && { invoiceNumber }),
-      };
+    addDoc(paymentsCollection, dataToSave)
+      .then(async () => {
+        // Success case
+        if (selectedMember && plans && values.status === 'paid') {
+          const plan = plans.find((p) => p.id === selectedMember.planId);
+          if (plan) {
+            const anchorDate = parseISO(selectedMember.joinDate);
+            const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
+            const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-      // ✅ Await so errors propagate here, not silently
-      await addDoc(paymentsCollection, dataToSave);
+            const paymentsInPeriod =
+              memberPayments?.filter((p) => {
+                const pDate = parseISO(p.paymentDate);
+                return pDate >= startOfDay(periodStart);
+              }) || [];
 
-      // ---- Update membership expiry if paid ----
-      if (selectedMember && plans && values.status === 'paid') {
-        const plan = plans.find((p) => p.id === selectedMember.planId);
-        if (plan) {
-          const anchorDate = parseISO(selectedMember.joinDate);
-          const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-          const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+            const existingPaidInPeriod = paymentsInPeriod.reduce(
+              (sum, p) => sum + p.amount,
+              0
+            );
+            const totalAfterNewPayment = existingPaidInPeriod + values.amount;
+            const totalMonthsCovered =
+              Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
 
-          const paymentsInPeriod =
-            memberPayments?.filter((p) => {
-              const pDate = parseISO(p.paymentDate);
-              return pDate >= startOfDay(periodStart);
-            }) || [];
+            if (totalMonthsCovered > 0) {
+              const memberRef = doc(firestore, "members", selectedMember.id);
+              const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
 
-          const existingPaidInPeriod = paymentsInPeriod.reduce(
-            (sum, p) => sum + p.amount,
-            0
-          );
-          const totalAfterNewPayment = existingPaidInPeriod + values.amount;
-          const totalMonthsCovered =
-            Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
+              updateDoc(memberRef, {
+                expiryDate: newExpiryDate,
+                status: 'active',
+                updatedAt: serverTimestamp(),
+              });
 
-          if (totalMonthsCovered > 0) {
-            const memberRef = doc(firestore, "members", selectedMember.id);
-            const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
-
-            await updateDoc(memberRef, {
-              expiryDate: newExpiryDate,
-              status: 'active',
-              updatedAt: serverTimestamp(),
-            });
-
-            toast({
-              title: "Membership Updated",
-              description: `${selectedMember.name} is now active until ${format(
-                parseISO(newExpiryDate),
-                'dd MMM yyyy'
-              )}.`,
-            });
+              toast({
+                title: "Membership Updated",
+                description: `${selectedMember.name} is now active until ${format(
+                  parseISO(newExpiryDate),
+                  'dd MMM yyyy'
+                )}.`,
+              });
+            }
           }
         }
-      }
 
-      toast({
-        title: "Payment Recorded!",
-        description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
-      });
+        toast({
+          title: "Payment Recorded!",
+          description: `Payment for ${selectedMember?.name || 'member'} successfully recorded.`,
+        });
 
-      form.reset();
-      setDialogOpen(false);
-    } catch (error: any) {
-      console.error("Error recording payment:", error);
-
-      if (error?.code === 'permission-denied') {
+        form.reset();
+        setDialogOpen(false);
+      })
+      .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: 'payments',
+          path: paymentsCollection.path,
           operation: 'create',
-          requestResourceData: values,
+          requestResourceData: dataToSave,
         });
         errorEmitter.emit('permission-error', permissionError);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Failed to record payment",
-          description: error?.message ?? "Something went wrong. Please try again.",
-        });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   }
 
   return (
@@ -253,7 +243,7 @@ export default function RecordPaymentForm({
           name="paymentDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Payment Date</FormLabel>
+              <FormLabel>Payment Date</label>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>

@@ -70,7 +70,7 @@ export default function TransactionsPage() {
                 if (
                     member.name.toLowerCase().includes(lowercasedQuery) ||
                     member.memberId.toLowerCase().includes(lowercasedQuery) ||
-                    member.mobileNumber.includes(searchQuery)
+                    (member.mobileNumber && member.mobileNumber.includes(searchQuery))
                 ) {
                     matchingMemberIds.add(member.id);
                 }
@@ -79,7 +79,10 @@ export default function TransactionsPage() {
             tempPayments = tempPayments.filter(p => matchingMemberIds.has(p.memberId));
         }
 
-        return tempPayments;
+        // Near dates first (Descending order of paymentDate)
+        return tempPayments.sort((a, b) => 
+            parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime()
+        );
     }, [payments, members, searchQuery, fromDate, toDate]);
     
     const totalAmount = useMemo(() => {

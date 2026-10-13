@@ -1,53 +1,54 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global helper to check if a user is owner of the data
+    // Helper to check if the user is the owner of the document
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Rules for User Profiles
+    // Explicit Rules for User Profiles
     match /users/{userId} {
       allow read, write: if isOwner(userId);
     }
     
-    // Rules for Attendance
+    // Explicit Rules for Attendance
     match /attendance/{id} {
-      allow read, delete: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
-    // Rules for Payments
+    // Explicit Rules for Payments
     match /payments/{id} {
-      allow read, delete: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
-    // Rules for Membership Plans
+    // Explicit Rules for Membership Plans
     match /plans/{id} {
-      allow read, delete: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
-    // Rules for Members
+    // Explicit Rules for Members
     match /members/{id} {
-      allow read, delete: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
 
-    // Rules for Member Notes
+    // Explicit Rules for Member Notes
     match /notes/{id} {
-      allow read, delete: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update: if isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
     }
     
-    // Default deny
+    // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;
     }

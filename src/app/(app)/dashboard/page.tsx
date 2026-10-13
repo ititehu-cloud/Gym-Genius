@@ -94,25 +94,24 @@ export default function DashboardPage() {
     
     const totalCollection = paidPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    // Dynamic Due calculation logic for dashboard
+    // Dynamic Due calculation logic based on total collection for current cycle
     const calculateMemberDue = (member: Member) => {
         const plan = planMap.get(member.planId);
         if (!plan) return 0;
         
         const anchorDate = parseISO(member.joinDate);
         const expiryDate = parseISO(member.expiryDate);
-        const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-        const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
-        const periodPayments = paidPayments.filter(p => {
+        // Sum all paid payments for this member within their current membership cycle
+        const cyclePayments = paidPayments.filter(p => {
             const pDate = parseISO(p.paymentDate);
             return p.memberId === member.id &&
-                   pDate >= startOfDay(periodStart) && 
+                   pDate >= startOfDay(anchorDate) && 
                    pDate <= endOfDay(expiryDate);
         });
 
-        const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaidInPeriod);
+        const totalPaidInCycle = cyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        return Math.max(0, plan.price - totalPaidInCycle);
     };
 
     // Monthly Due: Sum of current period outstanding balances for active members

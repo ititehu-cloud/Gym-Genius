@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoaderCircle } from "lucide-react";
-import { format, addMonths, parseISO, startOfDay } from "date-fns";
+import { format, addMonths, parseISO, startOfDay, endOfDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import {
   collection,
@@ -119,47 +119,39 @@ export default function RecordPaymentForm({
         ...(invoiceNumber && { invoiceNumber }),
       };
 
-      // ✅ Await so errors propagate here, not silently
       await addDoc(paymentsCollection, dataToSave);
 
-      // ---- Update membership expiry if paid ----
+      // ---- Update membership status if fully paid based on total collection ----
       if (selectedMember && plans && values.status === 'paid') {
         const plan = plans.find((p) => p.id === selectedMember.planId);
         if (plan) {
           const anchorDate = parseISO(selectedMember.joinDate);
-          const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-          const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
+          const expiryDate = parseISO(selectedMember.expiryDate);
 
           const paymentsInPeriod =
             memberPayments?.filter((p) => {
               const pDate = parseISO(p.paymentDate);
-              return pDate >= startOfDay(periodStart);
+              return pDate >= startOfDay(anchorDate) && pDate <= endOfDay(expiryDate);
             }) || [];
 
           const existingPaidInPeriod = paymentsInPeriod.reduce(
             (sum, p) => sum + p.amount,
             0
           );
+          
           const totalAfterNewPayment = existingPaidInPeriod + values.amount;
-          const totalMonthsCovered =
-            Math.floor(totalAfterNewPayment / plan.price) * plan.duration;
 
-          if (totalMonthsCovered > 0) {
+          // If total collection meets or exceeds plan price, ensure member is active
+          if (totalAfterNewPayment >= plan.price) {
             const memberRef = doc(firestore, "members", selectedMember.id);
-            const newExpiryDate = addMonths(anchorDate, totalMonthsCovered).toISOString();
-
             await updateDoc(memberRef, {
-              expiryDate: newExpiryDate,
               status: 'active',
               updatedAt: serverTimestamp(),
             });
 
             toast({
-              title: "Membership Updated",
-              description: `${selectedMember.name} is now active until ${format(
-                parseISO(newExpiryDate),
-                'dd MMM yyyy'
-              )}.`,
+              title: "Payment Complete",
+              description: `${selectedMember.name}'s balance for this cycle is cleared. Status: ACTIVE.`,
             });
           }
         }

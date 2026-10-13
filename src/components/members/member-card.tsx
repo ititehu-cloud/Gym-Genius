@@ -69,22 +69,26 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
-  const dueAmount = useMemo(() => {
-    if (!plan) return 0;
+  const { totalPaidInPeriod, dueAmount } = useMemo(() => {
+    if (!plan) return { totalPaidInPeriod: 0, dueAmount: 0 };
+    
+    // Cycle logic anchored to profile's joinDate
     const anchorDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
-    const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-    const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
-
+    
+    // Sum of all collections within this membership cycle
     const periodPayments = payments.filter(p => {
         const pDate = parseISO(p.paymentDate);
-        return pDate >= startOfDay(periodStart) && 
+        return pDate >= startOfDay(anchorDate) && 
                pDate <= endOfDay(expiryDate) && 
                p.status === 'paid';
     });
 
-    const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
-    return Math.max(0, plan.price - totalPaidInPeriod);
+    const sum = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+    return {
+        totalPaidInPeriod: sum,
+        dueAmount: Math.max(0, plan.price - sum)
+    };
   }, [member.joinDate, member.expiryDate, plan, payments]);
 
   const handleShareId = async () => {
@@ -215,6 +219,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                     <div className="space-y-0.5">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
                         <p className={`text-base font-bold ${dueAmount > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueAmount.toFixed(0)}</p>
+                    </div>
+                </div>
+
+                <div className="pt-2">
+                    <div className="flex justify-between items-center bg-primary/5 p-2 rounded-lg border border-primary/10">
+                        <span className="text-[10px] font-black uppercase text-primary/60 tracking-wider">Total Collection</span>
+                        <span className="text-xs font-black text-primary">₹{totalPaidInPeriod.toLocaleString()}</span>
                     </div>
                 </div>
             </div>

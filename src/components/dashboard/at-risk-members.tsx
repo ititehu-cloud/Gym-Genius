@@ -110,13 +110,12 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
         // Consistent cycle logic anchored to profile's joinDate
         const anchorDate = parseISO(member.joinDate);
         const expiryDate = parseISO(member.expiryDate);
-        const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-        const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
+        // Filter collections within this specific billing period
         const periodPayments = payments.filter(p => p.memberId === member.id);
         const cyclePayments = periodPayments.filter(p => {
             const pDate = parseISO(p.paymentDate);
-            return pDate >= startOfDay(periodStart) && 
+            return pDate >= startOfDay(anchorDate) && 
                    pDate <= endOfDay(expiryDate) && 
                    p.status === 'paid';
         });

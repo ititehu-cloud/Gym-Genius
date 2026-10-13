@@ -48,22 +48,23 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
-    // Calculate due for the cycle.
-    const dueForPeriod = useMemo(() => {
+    // Calculate due amount based on total collections for the current membership period
+    const { totalPaidForPeriod, dueForPeriod } = useMemo(() => {
         const anchorDate = parseISO(member.joinDate);
-        const leadTimeMs = 15 * 24 * 60 * 60 * 1000;
-        const periodStart = new Date(anchorDate.getTime() - leadTimeMs);
 
         const periodPayments = payments.filter(p => {
             const pDate = parseISO(p.paymentDate);
             return p.status === 'paid' && 
-                   pDate >= startOfDay(periodStart) && 
+                   pDate >= startOfDay(anchorDate) && 
                    pDate <= endOfDay(memberExpiryDate);
         });
 
-        const totalPaidInPeriod = periodPayments.reduce((acc, p) => acc + p.amount, 0);
-        return Math.max(0, plan.price - totalPaidInPeriod);
-    }, [payments, member.joinDate, member.expiryDate, plan.price]);
+        const totalPaid = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+        return {
+            totalPaidForPeriod: totalPaid,
+            dueForPeriod: Math.max(0, plan.price - totalPaid)
+        };
+    }, [payments, member.joinDate, member.expiryDate, plan.price, memberExpiryDate]);
 
     const filteredHistory = useMemo(() => {
         let history = [...payments].sort((a, b) => parseISO(b.paymentDate).getTime() - parseISO(a.paymentDate).getTime());
@@ -118,6 +119,13 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                             <div className="space-y-0.5">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due Amount:</p>
                                 <p className={`text-base font-bold ${dueForPeriod > 0 ? 'text-destructive' : 'text-green-600'}`}>₹{dueForPeriod.toFixed(0)}</p>
+                            </div>
+                        </div>
+
+                        <div className="pt-2">
+                            <div className="flex justify-between items-center bg-primary/5 p-2 rounded-lg border border-primary/10">
+                                <span className="text-[10px] font-black uppercase text-primary/60 tracking-wider">Total Collection</span>
+                                <span className="text-xs font-black text-primary">₹{totalPaidForPeriod.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

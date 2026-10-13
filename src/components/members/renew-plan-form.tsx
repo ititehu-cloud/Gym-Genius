@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoaderCircle, ClipboardList, Calendar, Banknote, CreditCard, MessageSquare } from "lucide-react";
-import { format, addMonths, parseISO, startOfDay } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, query, where } from "firebase/firestore";
 import type { Member, Plan } from "@/lib/types";
@@ -204,6 +204,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="paymentDate"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Payment Date *</FormLabel>
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <Calendar className="h-5 w-5" />
@@ -223,6 +224,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="paidAmount"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Paid Amount *</FormLabel>
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <Banknote className="h-5 w-5" />
@@ -242,6 +244,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="paymentMethod"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Payment Method</FormLabel>
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary">
                       <CreditCard className="h-5 w-5" />
@@ -275,6 +278,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
               name="comments"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1">Comments</FormLabel>
                   <div className="relative">
                     <div className="absolute left-3 top-4 text-primary">
                       <MessageSquare className="h-5 w-5" />
@@ -294,7 +298,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
             <button 
                 type="button" 
                 onClick={() => setDialogOpen(false)}
-                className="font-bold text-gray-500 mr-2"
+                className="font-bold text-gray-500 mr-2 hover:text-gray-700 transition-colors"
             >
                 Cancel
             </button>
@@ -310,3 +314,4 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
     </Form>
   );
 }
+

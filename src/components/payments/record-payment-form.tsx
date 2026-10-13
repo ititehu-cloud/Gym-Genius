@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -120,7 +119,6 @@ export default function RecordPaymentForm({
 
     addDoc(paymentsCollection, dataToSave)
       .then(async () => {
-        // Success case
         if (selectedMember && plans && values.status === 'paid') {
           const plan = plans.find((p) => p.id === selectedMember.planId);
           if (plan) {
@@ -243,7 +241,7 @@ export default function RecordPaymentForm({
           name="paymentDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Payment Date</label>
+              <FormLabel>Payment Date</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>

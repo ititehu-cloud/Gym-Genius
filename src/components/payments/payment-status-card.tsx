@@ -48,21 +48,28 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
 
     const memberExpiryDate = useMemo(() => parseISO(member.expiryDate), [member.expiryDate]);
 
-    // Calculate due amount based on total collections for the current membership period
-    const { totalPaidForPeriod, dueForPeriod } = useMemo(() => {
+    // Calculate Lifetime Total and Cycle-Specific Due
+    const { lifetimeTotalPaid, dueForPeriod } = useMemo(() => {
+        // 1. Lifetime Total (All paid payments)
+        const lifetimeTotal = payments
+            .filter(p => p.status === 'paid')
+            .reduce((acc, p) => acc + p.amount, 0);
+
+        // 2. Cycle-Specific Due
         const anchorDate = parseISO(member.joinDate);
 
-        const periodPayments = payments.filter(p => {
+        const currentCyclePayments = payments.filter(p => {
             const pDate = parseISO(p.paymentDate);
             return p.status === 'paid' && 
                    pDate >= startOfDay(anchorDate) && 
                    pDate <= endOfDay(memberExpiryDate);
         });
 
-        const totalPaid = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+        const cyclePaid = currentCyclePayments.reduce((acc, p) => acc + p.amount, 0);
+        
         return {
-            totalPaidForPeriod: totalPaid,
-            dueForPeriod: Math.max(0, plan.price - totalPaid)
+            lifetimeTotalPaid: lifetimeTotal,
+            dueForPeriod: Math.max(0, plan.price - cyclePaid)
         };
     }, [payments, member.joinDate, member.expiryDate, plan.price, memberExpiryDate]);
 
@@ -125,7 +132,7 @@ export default function PaymentStatusCard({ member, plan, payments, allMembers, 
                         <div className="pt-2">
                             <div className="flex justify-between items-center bg-primary/5 p-2 rounded-lg border border-primary/10">
                                 <span className="text-[10px] font-black uppercase text-primary/60 tracking-wider">Total Collection</span>
-                                <span className="text-xs font-black text-primary">₹{totalPaidForPeriod.toLocaleString()}</span>
+                                <span className="text-xs font-black text-primary">₹{lifetimeTotalPaid.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>

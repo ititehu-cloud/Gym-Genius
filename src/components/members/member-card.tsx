@@ -69,25 +69,30 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
   const planName = plan?.name || 'N/A';
   const hasPhone = !!member.mobileNumber && member.mobileNumber.trim().length > 0 && member.mobileNumber !== 'N/A';
 
-  const { totalPaidInPeriod, dueAmount } = useMemo(() => {
-    if (!plan) return { totalPaidInPeriod: 0, dueAmount: 0 };
+  const { lifetimeTotalPaid, dueAmount } = useMemo(() => {
+    // 1. Calculate Lifetime Total (All paid payments ever)
+    const totalPaid = payments
+      .filter(p => p.status === 'paid')
+      .reduce((acc, p) => acc + p.amount, 0);
+
+    // 2. Calculate Due for Current Cycle only
+    if (!plan) return { lifetimeTotalPaid: totalPaid, dueAmount: 0 };
     
-    // Cycle logic anchored to profile's joinDate
     const anchorDate = parseISO(member.joinDate);
     const expiryDate = parseISO(member.expiryDate);
     
-    // Sum of all collections within this membership cycle
-    const periodPayments = payments.filter(p => {
+    const currentCyclePayments = payments.filter(p => {
         const pDate = parseISO(p.paymentDate);
         return pDate >= startOfDay(anchorDate) && 
                pDate <= endOfDay(expiryDate) && 
                p.status === 'paid';
     });
 
-    const sum = periodPayments.reduce((acc, p) => acc + p.amount, 0);
+    const cycleSum = currentCyclePayments.reduce((acc, p) => acc + p.amount, 0);
+    
     return {
-        totalPaidInPeriod: sum,
-        dueAmount: Math.max(0, plan.price - sum)
+        lifetimeTotalPaid: totalPaid,
+        dueAmount: Math.max(0, plan.price - cycleSum)
     };
   }, [member.joinDate, member.expiryDate, plan, payments]);
 
@@ -225,7 +230,7 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
                 <div className="pt-2">
                     <div className="flex justify-between items-center bg-primary/5 p-2 rounded-lg border border-primary/10">
                         <span className="text-[10px] font-black uppercase text-primary/60 tracking-wider">Total Collection</span>
-                        <span className="text-xs font-black text-primary">₹{totalPaidInPeriod.toLocaleString()}</span>
+                        <span className="text-xs font-black text-primary">₹{lifetimeTotalPaid.toLocaleString()}</span>
                     </div>
                 </div>
             </div>

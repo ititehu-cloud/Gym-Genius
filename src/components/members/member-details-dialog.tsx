@@ -65,22 +65,13 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
 
   const { data: notes, isLoading: isLoadingNotes } = useCollection<MemberNote>(notesQuery);
 
-  // Calculate Total Collection for the current cycle
-  const totalPaidInPeriod = useMemo(() => {
+  // Calculate Lifetime Total Collection (Sum of all paid payments ever)
+  const lifetimeTotalPaid = useMemo(() => {
     if (!payments) return 0;
-    
-    const anchorDate = parseISO(member.joinDate);
-    const expiryDate = parseISO(member.expiryDate);
-    
-    const periodPayments = payments.filter(p => {
-        const pDate = parseISO(p.paymentDate);
-        return p.status === 'paid' && 
-               pDate >= startOfDay(anchorDate) && 
-               pDate <= endOfDay(expiryDate);
-    });
-
-    return periodPayments.reduce((acc, p) => acc + p.amount, 0);
-  }, [member.joinDate, member.expiryDate, payments]);
+    return payments
+      .filter(p => p.status === 'paid')
+      .reduce((acc, p) => acc + p.amount, 0);
+  }, [payments]);
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,8 +210,8 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                                 <Banknote className="h-5 w-5 text-green-600" />
                                             </div>
                                             <div className="space-y-0.5">
-                                                <p className="text-[10px] font-bold text-green-600/70 uppercase">Total Collection (Cycle)</p>
-                                                <p className="font-black text-green-600 text-lg">₹{totalPaidInPeriod.toLocaleString()}</p>
+                                                <p className="text-[10px] font-bold text-green-600/70 uppercase">Total Collection</p>
+                                                <p className="font-black text-green-600 text-lg">₹{lifetimeTotalPaid.toLocaleString()}</p>
                                             </div>
                                         </div>
                                     </div>

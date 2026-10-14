@@ -9,7 +9,7 @@ import { useMemo, useState, Suspense, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import PaymentStatusCard from "@/components/payments/payment-status-card";
 import { useSearchParams } from "next/navigation";
-import { parseISO, format, isSameDay, startOfDay, endOfDay, differenceInMonths } from "date-fns";
+import { parseISO, format, isSameDay, isSameMonth, startOfDay, differenceInMonths } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -107,7 +107,17 @@ function PaymentsList() {
         tempMembers = tempMembers.filter(m => parseISO(m.expiryDate) < today);
     }
     
-    if (selectedMonth || statusFilter !== 'all') {
+    // PRIORITY: If landing from dashboard "Collected Today", filter strictly by today's transactions
+    if (dateFilter === 'today') {
+        const todayDate = new Date();
+        tempMembers = tempMembers.filter(member => {
+            const memberPayments = paymentsByMember.get(member.id) || [];
+            return memberPayments.some(p => 
+                p.status === 'paid' && isSameDay(parseISO(p.paymentDate), todayDate)
+            );
+        });
+    } else if (selectedMonth || statusFilter !== 'all') {
+        // Otherwise, use the standard Ledger Status filter for the selected month/status
         tempMembers = tempMembers.filter(member => {
             const memberPlan = planMap.get(member.planId);
             if (!memberPlan) return false;
@@ -138,14 +148,6 @@ function PaymentsList() {
             
             return true;
         });
-    } else if (dateFilter === 'today') {
-        const todayDate = new Date();
-        tempMembers = tempMembers.filter(member => {
-            const memberPayments = paymentsByMember.get(member.id) || [];
-            return memberPayments.some(p => 
-                p.status === 'paid' && isSameDay(parseISO(p.paymentDate), todayDate)
-            );
-        });
     }
 
     if (searchQuery) {
@@ -166,7 +168,7 @@ function PaymentsList() {
     if (statusFilter === 'unpaid') return "Unpaid Members";
     if (statusFilter === 'paid') return "Paid Members";
     if (statusFilter === 'part_paid') return "Partially Paid Members";
-    if (statusFilter === 'due') return "Dues for the Month";
+    if (statusFilter === 'due') return "Total Dues";
     if (selectedMonth && !dateFilter) {
       try {
         return `Payments for ${format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}`;

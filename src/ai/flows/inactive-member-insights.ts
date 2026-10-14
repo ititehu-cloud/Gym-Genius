@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -16,7 +17,6 @@ const InactiveMemberInsightsInputSchema = z.object({
     .array(
       z.object({
         memberId: z.string(),
-        attendanceHistory: z.array(z.date()),
         paymentHistory: z.array(z.object({
           date: z.date(),
           amount: z.number(),
@@ -26,7 +26,7 @@ const InactiveMemberInsightsInputSchema = z.object({
         joinDate: z.date(),
       })
     )
-    .describe('An array of member data objects, each containing memberId, attendanceHistory, paymentHistory, membershipPlan and joinDate.'),
+    .describe('An array of member data objects, each containing memberId, paymentHistory, membershipPlan and joinDate.'),
 });
 export type InactiveMemberInsightsInput = z.infer<typeof InactiveMemberInsightsInputSchema>;
 
@@ -49,13 +49,12 @@ const prompt = ai.definePrompt({
   name: 'inactiveMemberInsightsPrompt',
   input: {schema: InactiveMemberInsightsInputSchema},
   output: {schema: InactiveMemberInsightsOutputSchema},
-  prompt: `You are an AI assistant designed to analyze gym member data and identify members who are at risk of becoming inactive. Analyze the provided member data, looking for patterns in attendance and payment history that indicate a risk of churn. Provide specific reasons for the identified risk and suggest potential interventions to prevent the member from becoming inactive.
+  prompt: `You are an AI assistant designed to analyze gym member data and identify members who are at risk of becoming inactive. Analyze the provided member data, looking for patterns in payment history (like missing or partial payments relative to their plan) and membership duration that indicate a risk of churn. Provide specific reasons for the identified risk and suggest potential interventions to prevent the member from becoming inactive.
 
 Here is the member data:
 
 {{#each memberData}}
 Member ID: {{memberId}}
-Attendance History: {{#each attendanceHistory}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
 Payment History: {{#each paymentHistory}}Date: {{{date}}}, Amount: {{{amount}}}, Status: {{{status}}}{{#unless @last}}, {{/unless}}{{/each}}
 Membership Plan: {{membershipPlan}}
 Join Date: {{{joinDate}}}

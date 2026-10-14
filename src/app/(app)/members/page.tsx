@@ -1,3 +1,4 @@
+
 'use client';
 
 import MemberCard from "@/components/members/member-card";
@@ -5,7 +6,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from "@
 import { collection, doc, query, where, orderBy } from "firebase/firestore";
 import { LoaderCircle, AlertTriangle } from "lucide-react";
 import AddMemberDialog from "@/components/members/add-member-dialog";
-import type { Member, Plan, Attendance, UserProfile, Payment } from "@/lib/types";
+import type { Member, Plan, UserProfile, Payment } from "@/lib/types";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -44,24 +45,6 @@ function MemberList() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
-  const attendanceQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    const start = startOfDay(new Date());
-    const end = endOfDay(new Date());
-    return query(
-        collection(firestore, "attendance"),
-        where("userId", "==", user.uid),
-        where("checkInTime", ">=", start.toISOString()),
-        where("checkInTime", "<=", end.toISOString())
-    );
-  }, [firestore, user]);
-  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
-
-  const attendanceMap = useMemo(() => {
-      if (!todaysAttendance) return new Map<string, Attendance>();
-      return new Map(todaysAttendance.map(att => [att.memberId, att]));
-  }, [todaysAttendance]);
 
   const paymentsByMember = useMemo(() => {
     if (!payments) return new Map<string, Payment[]>();
@@ -136,7 +119,7 @@ function MemberList() {
     return tempMembers;
   }, [members, searchQuery, statusFilter, expiryParam]);
 
-  const isLoading = isLoadingMembers || isLoadingPlans || isProfileLoading || isLoadingAttendance || isLoadingPayments;
+  const isLoading = isLoadingMembers || isLoadingPlans || isProfileLoading || isLoadingPayments;
 
   const gymName = userProfile?.displayName || user?.email;
   const gymAddress = userProfile?.displayAddress;
@@ -201,7 +184,6 @@ function MemberList() {
               gymAddress={gymAddress} 
               gymIconUrl={gymIconUrl}
               gymPhone={gymPhone}
-              attendanceRecord={attendanceMap.get(member.id)}
               allMembers={members || []}
               payments={paymentsByMember.get(member.id) || []}
             />

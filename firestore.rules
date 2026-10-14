@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,11 +14,6 @@ service cloud.firestore {
     }
     
     // Explicit Rules for Gym Data Collections
-    match /attendance/{id} {
-      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    }
-
     match /payments/{id} {
       allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;

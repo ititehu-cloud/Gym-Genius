@@ -38,15 +38,6 @@ export type Payment = {
   createdAt?: any;
 };
 
-export type Attendance = {
-  id: string;
-  userId: string;
-  memberId: string;
-  checkInTime: string;
-  checkOutTime?: string;
-  createdAt?: any;
-};
-
 export type MemberNote = {
   id: string;
   userId: string;

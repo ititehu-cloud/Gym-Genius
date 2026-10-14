@@ -41,41 +41,6 @@
       },
       "required": ["id", "displayName", "email"]
     },
-    "Attendance": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Attendance",
-      "type": "object",
-      "description": "Represents a member's attendance record.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the attendance record."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the gym owner who owns this record."
-        },
-        "memberId": {
-          "type": "string",
-          "description": "Reference to Member."
-        },
-        "checkInTime": {
-          "type": "string",
-          "description": "Timestamp when the member checked in.",
-          "format": "date-time"
-        },
-        "checkOutTime": {
-          "type": "string",
-          "description": "Timestamp when the member checked out.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "userId",
-        "memberId",
-        "checkInTime"
-      ]
-    },
     "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
@@ -295,12 +260,6 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "Stores user profile data."
-    },
-    "/attendance/{attendanceId}": {
-      "schema": {
-        "$ref": "#/entities/Attendance"
-      },
-      "description": "Stores attendance records for members."
     },
     "/payments/{paymentId}": {
       "schema": {

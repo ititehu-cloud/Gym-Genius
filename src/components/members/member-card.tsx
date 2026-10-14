@@ -3,10 +3,9 @@
 
 import Image from 'next/image';
 import { Card, CardContent } from "@/components/ui/card";
-import type { Member, Plan, Attendance, Payment } from "@/lib/types";
-import { Badge } from '../ui/badge';
+import type { Member, Plan, Payment } from "@/lib/types";
 import { Button } from '../ui/button';
-import { format, parseISO, startOfDay, endOfDay, differenceInMonths } from 'date-fns';
+import { format, parseISO, startOfDay, differenceInMonths } from 'date-fns';
 import { PhoneCall, LoaderCircle, CreditCard, IdCard, CalendarSync } from 'lucide-react';
 import { useRef, useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
@@ -40,7 +39,6 @@ type MemberCardProps = {
   gymAddress?: string;
   gymIconUrl?: string | null;
   gymPhone?: string | null;
-  attendanceRecord?: Attendance;
   allMembers: Member[];
   payments: Payment[];
 };
@@ -72,17 +70,13 @@ export default function MemberCard({ member, plan, gymName, gymAddress, gymIconU
 
   const { lifetimeTotalPaid, dueAmount } = useMemo(() => {
     const today = new Date();
-    // 1. Calculate Lifetime Total (All paid payments ever)
     const totalPaid = payments
       .filter(p => p.status === 'paid')
       .reduce((acc, p) => acc + p.amount, 0);
 
-    // 2. Calculate Due based on Ledger (Cycles since JoinDate - Payments since JoinDate)
     if (!plan) return { lifetimeTotalPaid: totalPaid, dueAmount: 0 };
     
     const anchorDate = parseISO(member.joinDate);
-    
-    // Total cycles elapsed since joinDate
     const monthsSinceJoin = differenceInMonths(today, anchorDate);
     const cyclesElapsed = Math.max(1, Math.floor(monthsSinceJoin / plan.duration) + 1);
     const totalOwedSinceAnchor = cyclesElapsed * plan.price;

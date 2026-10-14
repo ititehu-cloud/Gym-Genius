@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
-import type { Member, Payment, Attendance, Plan } from "@/lib/types";
+import type { Member, Payment, Plan } from "@/lib/types";
 import StatsCard from "@/components/dashboard/stats-card";
 
 export default function DashboardPage() {
@@ -30,19 +30,6 @@ export default function DashboardPage() {
     return query(collection(firestore, "plans"), where("userId", "==", user.uid));
   }, [firestore, user]);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<Plan>(plansRef);
-
-  const todayStart = useMemo(() => startOfDay(new Date()).toISOString(), []);
-
-  const attendanceQuery = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return query(
-          collection(firestore, 'attendance'),
-          where('userId', '==', user.uid),
-          where('checkInTime', '>=', todayStart)
-      )
-  }, [firestore, user, todayStart]);
-
-  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -77,10 +64,6 @@ export default function DashboardPage() {
         const expiryDate = parseISO(m.expiryDate);
         return expiryDate >= startOfToday && expiryDate <= in15Days;
     }).length ?? 0;
-
-    const presentToday = todaysAttendance?.length ?? 0;
-
-    const absentToday = Math.max(0, activeMembers - presentToday);
 
     const paidPayments = payments?.filter(p => p.status === 'paid') ?? [];
 
@@ -132,8 +115,6 @@ export default function DashboardPage() {
         expiryToday,
         expiry7Days,
         expiry15Days,
-        presentToday,
-        absentToday,
         todaysCollection,
         monthlyCollection,
         monthlyDues,
@@ -141,9 +122,9 @@ export default function DashboardPage() {
         totalDues,
         targetMonthDate
     };
-  }, [members, payments, plans, todaysAttendance]);
+  }, [members, payments, plans]);
 
-  const isLoading = isLoadingMembers || isLoadingPayments || isLoadingAttendance || isLoadingPlans;
+  const isLoading = isLoadingMembers || isLoadingPayments || isLoadingPlans;
 
   if (isLoading) {
     return (
@@ -185,8 +166,6 @@ export default function DashboardPage() {
                     <StatsCard title="Expiring Today" value={stats.expiryToday} href="/members?expiry=today" className="bg-chart-5/10" valueClassName="text-chart-5" />
                     <StatsCard title="Expiry (0-7d)" value={stats.expiry7Days} href="/members?expiry=7days" className="bg-amber-500/10" valueClassName="text-amber-600" />
                     <StatsCard title="Expiry (0-15d)" value={stats.expiry15Days} href="/members?expiry=15days" className="bg-orange-500/10" valueClassName="text-orange-600" />
-                    <StatsCard title="Present Today" value={stats.presentToday} href="/attendance?filter=present" className="bg-chart-2/10" valueClassName="text-chart-2" />
-                    <StatsCard title="Absent Today" value={stats.absentToday} href="/attendance?filter=absent" className="bg-destructive/10" valueClassName="text-destructive" />
                     <StatsCard title="Collected Today" value={`₹${stats.todaysCollection.toLocaleString()}`} href="/payments?date=today&status=paid" className="bg-primary/10" valueClassName="text-primary" />
                 </div>
             </div>

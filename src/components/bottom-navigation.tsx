@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CreditCard, LayoutDashboard, Tags, Users, ClipboardCheck, BookOpen } from 'lucide-react';
+import { CreditCard, LayoutDashboard, Tags, Users, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { UserProfile as UserProfileType } from '@/lib/types';
@@ -11,7 +12,6 @@ import type { UserProfile as UserProfileType } from '@/lib/types';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/members', icon: Users, label: 'Members' },
-  { href: '/attendance', icon: ClipboardCheck, label: 'Attendance' },
   { href: '/payments', icon: CreditCard, label: 'Payments' },
   { href: '/plans', icon: Tags, label: 'Plans' },
 ];

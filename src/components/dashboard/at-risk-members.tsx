@@ -9,12 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchInactiveMemberInsights } from '@/app/actions';
 import type { InactiveMemberInsightsOutput, InactiveMemberInsightsInput } from '@/ai/flows/inactive-member-insights';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import type { Member, Payment, Plan, Attendance, UserProfile } from '@/lib/types';
-import { parseISO, startOfDay, endOfDay, differenceInMonths } from 'date-fns';
+import { useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Member, Payment, Plan, UserProfile } from '@/lib/types';
+import { parseISO, startOfDay, differenceInMonths } from 'date-fns';
 import { Button } from '../ui/button';
-import { useToast } from '@/hooks/use-toast';
 import {
   Tooltip,
   TooltipContent,
@@ -48,18 +47,11 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
     }, [firestore, user]);
     const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
-    const attendanceQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return query(collection(firestore, 'attendance'), where('userId', '==', user.uid));
-    }, [firestore, user]);
-    
-    const { data: attendanceHistory, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
-
     const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
     const planMap = useMemo(() => new Map(plans.map(p => [p.id, p])), [plans]);
 
     useEffect(() => {
-        if (isLoadingAttendance || !members || !payments || !plans || !attendanceHistory) {
+        if (!members || !payments || !plans) {
             return;
         }
 
@@ -70,13 +62,11 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             const memberDataForAI: InactiveMemberInsightsInput['memberData'] = members.map(member => {
                 const memberPayments = payments.filter(p => p.memberId === member.id);
                 const memberPlan = plans.find(p => p.id === member.planId);
-                const memberAttendance = attendanceHistory.filter(a => a.memberId === member.id);
 
                 return {
                     memberId: member.id,
                     joinDate: parseISO(member.joinDate),
                     membershipPlan: memberPlan?.name || 'Unknown',
-                    attendanceHistory: memberAttendance.map(a => parseISO(a.checkInTime)),
                     paymentHistory: memberPayments.map(p => ({
                         date: parseISO(p.paymentDate),
                         amount: p.amount,
@@ -99,7 +89,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
             setIsLoading(false);
         }
         loadInsights();
-    }, [members, payments, plans, attendanceHistory, isLoadingAttendance]);
+    }, [members, payments, plans]);
 
     const getMember = (memberId: string) => {
         return memberMap.get(memberId);
@@ -223,7 +213,7 @@ export default function AtRiskMembers({ members, payments, plans }: AtRiskMember
                     <TrendingDown className="h-6 w-6 text-destructive" />
                     <CardTitle className="font-headline text-2xl">At-Risk Members</CardTitle>
                 </div>
-                <CardDescription>AI insights identifying members who might become inactive soon.</CardDescription>
+                <CardDescription>AI insights identifying members who might become inactive soon based on payment patterns.</CardDescription>
             </CardHeader>
             <CardContent>
                 {renderContent()}

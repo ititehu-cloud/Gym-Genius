@@ -205,6 +205,15 @@ export default function MemberDetailsDialog({ member, plan, isOpen, onOpenChange
                                                 <p className="font-black text-primary">{plan?.name || 'No Active Plan'}</p>
                                             </div>
                                         </div>
+                                        <div className="p-3 bg-muted/40 border rounded-lg flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                                <Calendar className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Joining Date</p>
+                                                <p className="font-black">{format(parseISO(member.joinDate), 'dd MMM yyyy')}</p>
+                                            </div>
+                                        </div>
                                         <div className="p-3 bg-green-50 border border-green-100 rounded-lg flex items-center gap-4">
                                             <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                                                 <Banknote className="h-5 w-5 text-green-600" />

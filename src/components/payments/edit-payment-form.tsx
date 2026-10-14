@@ -20,13 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderCircle } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { useFirestore } from "@/firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { LoaderCircle, AlertCircle } from "lucide-react";
+import { format, parseISO, isSameDay } from "date-fns";
+import { useFirestore, useMemoFirebase, useUser, useCollection } from "@/firebase";
+import { doc, updateDoc, serverTimestamp, query, collection, where } from "firebase/firestore";
 import type { Member, Payment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   memberId: z.string({ required_error: "Please select a member." }),
@@ -47,7 +48,9 @@ type EditPaymentFormProps = {
 export default function EditPaymentForm({ payment, members, setDialogOpen }: EditPaymentFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,7 +65,34 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
     },
   });
 
+  const watchedMemberId = form.watch('memberId');
+  const watchedDate = form.watch('paymentDate');
+
+  const memberPaymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !watchedMemberId || !user) return null;
+    return query(
+      collection(firestore, "payments"),
+      where("userId", "==", user.uid),
+      where("memberId", "==", watchedMemberId)
+    );
+  }, [firestore, watchedMemberId, user]);
+  const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
+
+  const isDuplicate = useMemo(() => {
+    if (!memberPayments || !watchedDate) return false;
+    const targetDate = new Date(watchedDate + 'T00:00:00');
+    // Check if any other payment (different ID) has the same date
+    return memberPayments.some(p => p.id !== payment.id && isSameDay(parseISO(p.paymentDate), targetDate));
+  }, [memberPayments, watchedDate, payment.id]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setDuplicateError(null);
+
+    if (isDuplicate) {
+        setDuplicateError(`Another payment record already exists for this member on ${format(new Date(values.paymentDate + 'T00:00:00'), 'dd MMM yyyy')}. Duplicate payments on the same date are not allowed.`);
+        return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -71,9 +101,9 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
 
       const dataToSave: Partial<Payment> & { updatedAt: any } = {
         ...rest,
-        paymentDate: new Date(values.paymentDate).toISOString(),
+        paymentDate: new Date(values.paymentDate + 'T00:00:00').toISOString(),
         updatedAt: serverTimestamp(),
-        ...(invoiceNumber && { invoiceNumber }), // Conditionally add invoiceNumber
+        ...(invoiceNumber && { invoiceNumber }),
       };
 
       await updateDoc(paymentDocRef, dataToSave);
@@ -99,6 +129,14 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {duplicateError && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Duplicate Entry</AlertTitle>
+                <AlertDescription>{duplicateError}</AlertDescription>
+            </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="memberId"
@@ -240,7 +278,7 @@ export default function EditPaymentForm({ payment, members, setDialogOpen }: Edi
 
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || isDuplicate}>
                 {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
             </Button>

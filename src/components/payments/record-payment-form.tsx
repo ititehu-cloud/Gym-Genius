@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderCircle } from "lucide-react";
-import { format, addMonths, parseISO, startOfDay, endOfDay, differenceInMonths } from "date-fns";
+import { LoaderCircle, AlertCircle } from "lucide-react";
+import { format, parseISO, startOfDay, differenceInMonths, isSameDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import {
   collection,
@@ -38,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   memberId: z.string({ required_error: "Please select a member." }),
@@ -66,6 +66,7 @@ export default function RecordPaymentForm({
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,6 +80,7 @@ export default function RecordPaymentForm({
   });
 
   const selectedMemberId = form.watch('memberId');
+  const watchedDate = form.watch('paymentDate');
 
   const plansRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -91,8 +93,7 @@ export default function RecordPaymentForm({
     return query(
       collection(firestore, "payments"),
       where("userId", "==", user.uid),
-      where("memberId", "==", selectedMemberId),
-      where("status", "==", "paid")
+      where("memberId", "==", selectedMemberId)
     );
   }, [firestore, selectedMemberId, user]);
   const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
@@ -102,8 +103,21 @@ export default function RecordPaymentForm({
     [members, selectedMemberId]
   );
 
+  const isDuplicate = useMemo(() => {
+    if (!memberPayments || !watchedDate) return false;
+    const targetDate = new Date(watchedDate + 'T00:00:00');
+    return memberPayments.some(p => isSameDay(parseISO(p.paymentDate), targetDate));
+  }, [memberPayments, watchedDate]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !firestore) return;
+    setDuplicateError(null);
+
+    if (isDuplicate) {
+        setDuplicateError(`A payment for this member on ${format(new Date(values.paymentDate + 'T00:00:00'), 'dd MMM yyyy')} already exists. Duplicate payments on the same date are not allowed.`);
+        return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -135,7 +149,7 @@ export default function RecordPaymentForm({
           const totalOwedSinceAnchor = cyclesElapsed * plan.price;
 
           const existingPaidSinceAnchor = memberPayments
-              ?.filter((p) => parseISO(p.paymentDate) >= startOfDay(anchorDate))
+              ?.filter((p) => p.status === 'paid' && parseISO(p.paymentDate) >= startOfDay(anchorDate))
               .reduce((sum, p) => sum + p.amount, 0) || 0;
           
           const totalAfterNewPayment = existingPaidSinceAnchor + values.amount;
@@ -188,6 +202,14 @@ export default function RecordPaymentForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {duplicateError && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Duplicate Payment</AlertTitle>
+                <AlertDescription>{duplicateError}</AlertDescription>
+            </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="memberId"
@@ -342,7 +364,7 @@ export default function RecordPaymentForm({
           <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || isDuplicate}>
             {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
             Record Payment
           </Button>

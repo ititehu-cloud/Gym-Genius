@@ -20,14 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LoaderCircle, ClipboardList, Calendar, Banknote, CreditCard, MessageSquare } from "lucide-react";
-import { format, addMonths } from "date-fns";
+import { LoaderCircle, ClipboardList, Calendar, Banknote, CreditCard, MessageSquare, AlertCircle } from "lucide-react";
+import { format, addMonths, parseISO, isSameDay } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, query, where } from "firebase/firestore";
-import type { Member, Plan } from "@/lib/types";
+import type { Member, Plan, Payment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo, useEffect } from "react";
 import { ScrollArea } from "../ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   planId: z.string({ required_error: "Please select a plan." }),
@@ -48,12 +49,23 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   const plansRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, "plans"), where("userId", "==", user.uid));
   }, [firestore, user]);
   const { data: plans } = useCollection<Plan>(plansRef);
+
+  const memberPaymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user || !member.id) return null;
+    return query(
+      collection(firestore, "payments"),
+      where("userId", "==", user.uid),
+      where("memberId", "==", member.id)
+    );
+  }, [firestore, user, member.id]);
+  const { data: memberPayments } = useCollection<Payment>(memberPaymentsQuery);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,6 +81,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
 
   const watchedPlanId = form.watch('planId');
   const watchedPaidAmount = form.watch('paidAmount') || 0;
+  const watchedPaymentDate = form.watch('paymentDate');
 
   const selectedPlan = useMemo(() => plans?.find(p => p.id === watchedPlanId), [plans, watchedPlanId]);
   const dueAmount = useMemo(() => (selectedPlan?.price || 0) - watchedPaidAmount, [selectedPlan, watchedPaidAmount]);
@@ -79,26 +92,36 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
     }
   }, [selectedPlan, form]);
 
+  const isDuplicate = useMemo(() => {
+    if (!memberPayments || !watchedPaymentDate) return false;
+    const targetDate = new Date(watchedPaymentDate + 'T00:00:00');
+    return memberPayments.some(p => isSameDay(parseISO(p.paymentDate), targetDate));
+  }, [memberPayments, watchedPaymentDate]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !selectedPlan) return;
+    setDuplicateError(null);
+
+    if (isDuplicate) {
+        setDuplicateError(`A payment for ${member.name} on ${format(new Date(values.paymentDate + 'T00:00:00'), 'dd MMM yyyy')} already exists. Cannot record another payment for the same day.`);
+        return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Calculate Expiry EXACTLY from the selected Plan Start Date
       const startDate = new Date(values.planStartDate + 'T00:00:00');
       const newExpiryDate = addMonths(startDate, selectedPlan.duration);
 
-      // 1. Update Member Profile
       const memberDocRef = doc(firestore, "members", member.id);
       await updateDoc(memberDocRef, {
         planId: values.planId,
-        joinDate: startDate.toISOString(), // Cycle Start
-        expiryDate: newExpiryDate.toISOString(), // Calculated from Start Date
+        joinDate: startDate.toISOString(),
+        expiryDate: newExpiryDate.toISOString(),
         status: 'active',
         updatedAt: serverTimestamp()
       });
 
-      // 2. Record Payment
       if (values.paidAmount > 0) {
         await addDoc(collection(firestore, "payments"), {
           userId: user.uid,
@@ -112,7 +135,6 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
         });
       }
 
-      // 3. Add Note for Comments
       if (values.comments?.trim()) {
         await addDoc(collection(firestore, "notes"), {
           userId: user.uid,
@@ -145,6 +167,14 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
         <ScrollArea className="flex-1 max-h-[60vh] sm:max-h-[500px]">
           <div className="p-6 space-y-5">
+            {duplicateError && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Duplicate Payment Detected</AlertTitle>
+                    <AlertDescription>{duplicateError}</AlertDescription>
+                </Alert>
+            )}
+
             <FormField
               control={form.control}
               name="planId"
@@ -298,7 +328,7 @@ export default function RenewPlanForm({ member, setDialogOpen }: RenewPlanFormPr
             </button>
             <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || isDuplicate}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 px-8 rounded-xl min-w-[140px] shadow-lg shadow-primary/20"
             >
                 {isSubmitting ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "RENEW PLAN"}

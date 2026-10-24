@@ -193,6 +193,9 @@ export default function TransactionsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="font-black uppercase text-[12px] tracking-tight truncate max-w-[120px]">{member?.name || 'N/A'}</div>
+                                                    <div className="text-[9px] font-black text-primary font-mono">
+                                                        ID: {member?.memberId || 'N/A'}
+                                                    </div>
                                                     <div className="text-[9px] font-bold text-muted-foreground font-mono flex gap-2">
                                                         <span className="capitalize">{payment.paymentType}</span>
                                                         <span>•</span>
